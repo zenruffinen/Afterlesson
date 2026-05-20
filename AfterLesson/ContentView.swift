@@ -295,7 +295,7 @@ struct HomeView: View {
                     Circle()
                         .fill(Color.white.opacity(0.15))
                         .frame(width: 40, height: 40)
-                    Image(systemName: "briefcase.fill")
+                    Image(systemName: "figure.golf")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
                 }
@@ -303,7 +303,7 @@ struct HomeView: View {
                     Text("Workspace")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
-                    Text(store.teacherTitle)
+                    Text(store.teacherName)
                         .font(.system(size: 12))
                         .foregroundStyle(Color.white.opacity(0.65))
                 }
