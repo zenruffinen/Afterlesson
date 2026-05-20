@@ -124,6 +124,11 @@ struct ProNote: Identifiable, Codable {
 
 // MARK: - Training Session (Stundenprotokoll)
 
+enum SessionSource: String, Codable {
+    case created    // Pro hat diese Stunde erstellt
+    case received   // Schüler hat diese Zusammenfassung empfangen
+}
+
 struct TrainingSession: Identifiable, Codable {
     var id = UUID()
     var studentID: UUID? = nil          // Optional – kann auch ohne Schüler gespeichert werden
@@ -135,6 +140,16 @@ struct TrainingSession: Identifiable, Codable {
     var homework: String = ""           // Hausaufgaben / nächste Aufgabe
     var rawTranscript: String = ""      // Rohtranskript (für spätere KI-Verarbeitung)
     var imageFilenames: [String] = []   // Fotos zur Stunde
+    var source: SessionSource = .created
+    var teacherName: String = ""        // Name des Pros (bei empfangenen Sessions)
+}
+
+// MARK: - Session Share Package
+
+struct AfterLessonSessionShare: Codable {
+    var session: TrainingSession
+    var teacherName: String
+    var exportDate: Date
 }
 
 // MARK: - Share Package (für AirDrop / WhatsApp)

@@ -104,6 +104,7 @@ struct HomeView: View {
     @Binding var selectedTab: ContentView.Tab
     @State private var showTeacherDashboard = false
     @State private var showQuickCapture = false
+    @State private var selectedSession: TrainingSession? = nil
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -128,10 +129,13 @@ struct HomeView: View {
                         .padding(.horizontal, 4)
                         .shadow(color: ALColor.dark.opacity(0.2), radius: 16, x: 0, y: 8)
 
-                    // Letzte Sessions
-                    if !store.sessions.isEmpty {
-                        recentSessions
-                            .padding(.top, 4)
+                    // Sessions (je nach Modus)
+                    if isTeacher {
+                        if !store.createdSessions.isEmpty {
+                            recentSessions.padding(.top, 4)
+                        }
+                    } else {
+                        receivedSessionsSection.padding(.top, 4)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -142,6 +146,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showQuickCapture) {
             QuickCaptureSheet()
+        }
+        .sheet(item: $selectedSession) { session in
+            SessionDetailSheet(session: session)
         }
     }
 
@@ -289,7 +296,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Letzte Sessions
+    // MARK: Letzte Trainings (Pro-Ansicht)
     var recentSessions: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -302,8 +309,36 @@ struct HomeView: View {
                         .foregroundStyle(ALColor.gold)
                 }
             }
-            ForEach(store.sessions.prefix(3)) { session in
-                SessionRowView(session: session)
+            ForEach(store.createdSessions.prefix(3)) { session in
+                SessionRowView(session: session) {
+                    selectedSession = session
+                }
+            }
+        }
+    }
+
+    // MARK: Meine Trainings (Schüler-Ansicht)
+    var receivedSessionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Meine Trainings")
+                .font(.headline)
+            if store.receivedSessions.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "tray")
+                        .foregroundStyle(.secondary)
+                    Text("Noch keine Trainingszusammenfassungen empfangen")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(14)
+                .background(Color(.secondarySystemGroupedBackground))
+                .cornerRadius(12)
+            } else {
+                ForEach(store.receivedSessions.prefix(5)) { session in
+                    SessionRowView(session: session) {
+                        selectedSession = session
+                    }
+                }
             }
         }
     }
@@ -314,47 +349,61 @@ struct HomeView: View {
 struct SessionRowView: View {
     @EnvironmentObject var store: AppStore
     let session: TrainingSession
+    var onTap: () -> Void
 
     var studentName: String {
-        guard let id = session.studentID else { return "Kein Schüler" }
-        return store.students.first(where: { $0.id == id })?.name ?? "Unbekannt"
+        guard let id = session.studentID else { return "" }
+        return store.students.first(where: { $0.id == id })?.name ?? ""
+    }
+
+    var subtitle: String {
+        if session.source == .received {
+            return session.teacherName.isEmpty ? "Trainingsprotokoll" : "von \(session.teacherName)"
+        }
+        return studentName.isEmpty ? "Kein Schüler" : studentName
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(ALColor.green.opacity(0.12))
-                    .frame(width: 42, height: 42)
-                Image(systemName: "figure.golf")
-                    .font(.system(size: 18))
-                    .foregroundStyle(ALColor.green)
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                Text(session.title.isEmpty ? "Trainingsstunde" : session.title)
-                    .font(.subheadline.weight(.medium))
-                HStack(spacing: 6) {
-                    Text(studentName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if !session.trained.isEmpty {
-                        Text("·")
-                            .foregroundStyle(.secondary)
-                        Text(session.trained)
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(session.source == .received
+                              ? ALColor.gold.opacity(0.12)
+                              : ALColor.green.opacity(0.12))
+                        .frame(width: 42, height: 42)
+                    Image(systemName: session.source == .received ? "arrow.down.circle.fill" : "figure.golf")
+                        .font(.system(size: 18))
+                        .foregroundStyle(session.source == .received ? ALColor.gold : ALColor.green)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(session.title.isEmpty ? "Trainingsstunde" : session.title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                    HStack(spacing: 6) {
+                        Text(subtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                        if !session.trained.isEmpty {
+                            Text("·")
+                                .foregroundStyle(Color(.tertiaryLabel))
+                            Text(session.trained)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                 }
+                Spacer()
+                Text(session.date, style: .date)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
-            Spacer()
-            Text(session.date, style: .date)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            .padding(12)
+            .background(Color(.secondarySystemGroupedBackground))
+            .cornerRadius(12)
         }
-        .padding(12)
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
+        .buttonStyle(.plain)
     }
 }
 
@@ -2631,6 +2680,8 @@ struct QuickCaptureSheet: View {
     @State private var homework: String = ""
     @State private var activeField: String = ""
     @State private var showStudentPicker = false
+    @State private var shareItems: [Any] = []
+    @State private var showShareSheet = false
 
     var selectedStudent: Student? {
         guard let id = selectedStudentID else { return nil }
@@ -2755,23 +2806,39 @@ struct QuickCaptureSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Speichern") {
-                        transcriber.stop()
-                        var session = TrainingSession()
-                        session.studentID = selectedStudentID
-                        session.title = autoTitle
-                        session.trained = trained
-                        session.corrections = corrections
-                        session.exercises = exercises
-                        session.homework = homework
-                        store.addSession(session)
-                        dismiss()
+                        saveSession(thenSend: false)
                     }
                     .fontWeight(.semibold)
                     .disabled(!canSave)
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                if canSave && selectedStudentID != nil {
+                    Button {
+                        saveSession(thenSend: true)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "paperplane.fill")
+                            Text("Speichern & an Schüler senden")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(14)
+                        .background(ALColor.gold)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                    }
+                    .buttonStyle(.plain)
+                    .background(.ultraThinMaterial)
+                }
+            }
             .sheet(isPresented: $showStudentPicker) {
                 studentPickerSheet
+            }
+            .sheet(isPresented: $showShareSheet) {
+                ShareSheet(items: shareItems)
             }
             .alert("Spracherkennung nicht verfügbar",
                    isPresented: $transcriber.permissionDenied) {
@@ -2781,6 +2848,24 @@ struct QuickCaptureSheet: View {
             }
         }
         .presentationDetents([.large])
+    }
+
+    private func saveSession(thenSend: Bool) {
+        transcriber.stop()
+        var session = TrainingSession()
+        session.studentID = selectedStudentID
+        session.title = autoTitle
+        session.trained = trained
+        session.corrections = corrections
+        session.exercises = exercises
+        session.homework = homework
+        store.addSession(session)
+        if thenSend, let url = store.exportSession(session) {
+            shareItems = [url]
+            showShareSheet = true
+        } else {
+            dismiss()
+        }
     }
 
     var studentPickerSheet: some View {
@@ -2843,6 +2928,135 @@ struct QuickCaptureSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+}
+
+// MARK: - Session Detail Sheet
+
+struct SessionDetailSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+    let session: TrainingSession
+
+    @State private var shareItems: [Any] = []
+    @State private var showShareSheet = false
+
+    var studentName: String? {
+        guard let id = session.studentID else { return nil }
+        return store.students.first(where: { $0.id == id })?.name
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+
+                    // Header
+                    VStack(spacing: 6) {
+                        Text(session.title.isEmpty ? "Trainingsstunde" : session.title)
+                            .font(.title3.bold())
+                            .multilineTextAlignment(.center)
+                        HStack(spacing: 12) {
+                            if session.source == .received, !session.teacherName.isEmpty {
+                                Label(session.teacherName, systemImage: "person.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else if let name = studentName {
+                                Label(name, systemImage: "graduationcap.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Label(session.date.formatted(date: .abbreviated, time: .omitted),
+                                  systemImage: "calendar")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, 4)
+
+                    // Sections
+                    if !session.trained.isEmpty {
+                        sessionBlock(
+                            icon: "figure.golf", color: ALColor.green,
+                            label: "Was geübt", text: session.trained)
+                    }
+                    if !session.corrections.isEmpty {
+                        sessionBlock(
+                            icon: "arrow.triangle.2.circlepath", color: Color(hex: "1565C0"),
+                            label: "Korrekturen", text: session.corrections)
+                    }
+                    if !session.exercises.isEmpty {
+                        sessionBlock(
+                            icon: "repeat.circle.fill", color: Color(hex: "4A148C"),
+                            label: "Übungen", text: session.exercises)
+                    }
+                    if !session.homework.isEmpty {
+                        sessionBlock(
+                            icon: "house.and.flag.fill", color: ALColor.gold,
+                            label: "Hausaufgaben", text: session.homework)
+                    }
+
+                    // Senden-Button (nur für Pros)
+                    if session.source == .created {
+                        Button {
+                            if let url = store.exportSession(session) {
+                                shareItems = [url]
+                                showShareSheet = true
+                            }
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "paperplane.fill")
+                                Text("An Schüler senden")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(14)
+                            .background(ALColor.gold)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 8)
+                    }
+                }
+                .padding(16)
+                .padding(.bottom, 20)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Trainingsprotokoll")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                ShareSheet(items: shareItems)
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    @ViewBuilder
+    func sessionBlock(icon: String, color: Color, label: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption.bold())
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.caption.bold())
+                    .foregroundStyle(color)
+            }
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
     }
 }
 

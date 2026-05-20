@@ -487,6 +487,48 @@ final class AppStore: ObservableObject {
             .sorted { $0.date > $1.date }
     }
 
+    var createdSessions: [TrainingSession] {
+        sessions.filter { $0.source == .created }.sorted { $0.date > $1.date }
+    }
+
+    var receivedSessions: [TrainingSession] {
+        sessions.filter { $0.source == .received }.sorted { $0.date > $1.date }
+    }
+
+    // MARK: - Session Export / Import
+
+    func exportSession(_ session: TrainingSession) -> URL? {
+        let package = AfterLessonSessionShare(
+            session: session,
+            teacherName: teacherName,
+            exportDate: Date()
+        )
+        guard let data = try? JSONEncoder().encode(package) else { return nil }
+        let safeName = session.title
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: "·", with: "")
+            .trimmingCharacters(in: .whitespaces)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AfterLesson_\(safeName).afterlessonsession")
+        try? data.write(to: url)
+        return url
+    }
+
+    func importSessionShare(from url: URL) -> Bool {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url),
+              let package = try? JSONDecoder().decode(AfterLessonSessionShare.self, from: data)
+        else { return false }
+        var session = package.session
+        session.id = UUID()
+        session.source = .received
+        session.teacherName = package.teacherName
+        sessions.insert(session, at: 0)
+        return true
+    }
+
     private func saveSessions() {
         if let data = try? JSONEncoder().encode(sessions) {
             UserDefaults.standard.set(data, forKey: "al_sessions")
