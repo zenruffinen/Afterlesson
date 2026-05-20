@@ -269,56 +269,55 @@ struct HomeView: View {
 
     // MARK: Quick Access
     var quickAccess: some View {
-        VStack(spacing: 10) {
-            homeCard(
-                icon: "person.2.fill",
-                title: "Schüler",
-                subtitle: "\(store.students.count) \(store.students.count == 1 ? "Schüler" : "Schüler")",
-                color: Color(hex: "1565C0")
-            ) { selectedTab = .students }
+        VStack(spacing: 12) {
+            // Block 1: Schüler · Vorlagen · Lernpfade
+            VStack(spacing: 0) {
+                homeRow(icon: "person.2.fill", title: "Schüler",
+                        subtitle: "\(store.students.count) Schüler",
+                        color: Color(hex: "1565C0")) { selectedTab = .students }
+                rowDivider
+                homeRow(icon: "rectangle.stack.fill", title: "Vorlagen",
+                        subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
+                        color: ALColor.green) { selectedTab = .lessons }
+                rowDivider
+                homeRow(icon: "road.lanes", title: "Lernpfade",
+                        subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
+                        color: ALColor.gold) { selectedTab = .groups }
+            }
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
 
-            homeCard(
-                icon: "rectangle.stack.fill",
-                title: "Vorlagen",
-                subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
-                color: ALColor.green
-            ) { selectedTab = .lessons }
-
-            homeCard(
-                icon: "road.lanes",
-                title: "Lernpfade",
-                subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
-                color: ALColor.gold
-            ) { selectedTab = .groups }
-
-            gradientLine
-                .padding(.vertical, 2)
-
-            homeCard(
-                icon: "note.text",
-                title: "Notizen",
-                subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
-                color: Color(hex: "4A148C")
-            ) { selectedTab = .notes }
+            // Block 2: Notizen
+            VStack(spacing: 0) {
+                homeRow(icon: "note.text", title: "Notizen",
+                        subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
+                        color: Color(hex: "4A148C")) { selectedTab = .notes }
+            }
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .padding(.top, 12)
         .padding(.bottom, 4)
     }
 
+    var rowDivider: some View {
+        Divider().padding(.leading, 72)
+    }
+
     @ViewBuilder
-    func homeCard(icon: String, title: String, subtitle: String,
-                  color: Color, action: @escaping () -> Void) -> some View {
+    func homeRow(icon: String, title: String, subtitle: String,
+                 color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 ZStack {
                     Circle()
                         .fill(color)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 42, height: 42)
                     Image(systemName: icon)
-                        .font(.system(size: 19, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.white)
                 }
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.primary)
@@ -329,17 +328,10 @@ struct HomeView: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(color.opacity(0.5))
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(color.opacity(0.07))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(color.opacity(0.28), lineWidth: 1.5)
-            )
+            .padding(.horizontal, 16)
+            .padding(.vertical, 13)
         }
         .buttonStyle(.plain)
     }
@@ -460,36 +452,28 @@ struct SessionRowView: View {
 struct GolfBallJar: View {
     @State private var animate = false
 
-    let balls: [(x: CGFloat, y: CGFloat, delay: Double, size: CGFloat)] = [
-        (-13,  6, 0.00, 22),
-        ( 13,  6, 0.08, 22),
-        (-10, -13, 0.16, 20),
-        ( 11, -12, 0.10, 20),
+    let balls: [(x: CGFloat, y: CGFloat, delay: Double, size: CGFloat, color: Color)] = [
+        (-13,  6, 0.00, 23, Color(hex: "E53935")),   // Rot
+        ( 13,  6, 0.08, 23, Color(hex: "C9A84C")),   // Gold
+        (-10, -13, 0.16, 20, ALColor.green),           // Grün
+        ( 11, -12, 0.10, 20, Color(hex: "1565C0")),   // Blau
     ]
 
     var body: some View {
         ZStack {
-            // Glasgefäss — nur sehr feine Ecken sichtbar
+            // Glasgefäss
             RoundedRectangle(cornerRadius: 14)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            .white.opacity(0.35),
-                            .white.opacity(0.05),
-                            .white.opacity(0.0),
-                            .white.opacity(0.18)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.2
+                .stroke(Color(.separator).opacity(0.5), lineWidth: 1.0)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color(.secondarySystemGroupedBackground).opacity(0.6))
                 )
                 .frame(width: 70, height: 74)
 
             // Golfbälle — wackeln links/rechts
             ForEach(balls.indices, id: \.self) { i in
                 let b = balls[i]
-                GolfBall(size: b.size)
+                GolfBall(size: b.size, color: b.color)
                     .offset(
                         x: b.x + (animate ? 4 : -4),
                         y: b.y + (animate ? 1 : -1)
@@ -513,26 +497,26 @@ struct GolfBallJar: View {
 
 struct GolfBall: View {
     let size: CGFloat
+    var color: Color = .white
 
     var body: some View {
         ZStack {
-            // Basis
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [.white, Color(white: 0.88)],
+                        colors: [color.opacity(0.6), color],
                         center: .init(x: 0.35, y: 0.3),
                         startRadius: 1,
                         endRadius: size * 0.7
                     )
                 )
                 .frame(width: size, height: size)
-                .shadow(color: .black.opacity(0.2), radius: 2, x: 1, y: 2)
+                .shadow(color: color.opacity(0.35), radius: 3, x: 1, y: 2)
 
-            // Dimples (Grübchen)
+            // Dimples
             ForEach(dimplePositions(size: size), id: \.self) { pos in
                 Circle()
-                    .fill(Color(white: 0.78).opacity(0.7))
+                    .fill(color.opacity(0.35))
                     .frame(width: size * 0.13, height: size * 0.13)
                     .offset(x: pos.x, y: pos.y)
             }
