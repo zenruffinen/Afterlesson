@@ -105,7 +105,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 12) {
+                VStack(spacing: 0) {
 
                     // Hero Banner (zentriert, groß)
                     heroBanner
@@ -146,84 +146,84 @@ struct HomeView: View {
 
     // MARK: Hero
     var heroBanner: some View {
-        ZStack {
-            // Hintergrund – grosse Golfer-Silhouette rechts
-            Image(systemName: "figure.golf")
-                .font(.system(size: 200, weight: .thin))
-                .foregroundStyle(Color(hex: "AAAAAA").opacity(0.18))
-                .offset(x: 80, y: 20)
-                .allowsHitTesting(false)
+        // VStack bestimmt die Höhe – Wasserzeichen als Overlay (bläht Höhe nicht auf)
+        VStack(spacing: 10) {
 
-            VStack(spacing: 12) {
+            // Gold-Ring + Avatar
+            ZStack {
+                // Äusserer Goldring
+                Circle()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [Color(hex: "D4A840"), Color(hex: "8B6210"), Color(hex: "D4A840")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 3
+                    )
+                    .frame(width: 104, height: 104)
 
-                // Gold-Ring + Avatar
-                ZStack {
-                    // Äusserer Goldring
-                    Circle()
+                // Goldener Füllkreis
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "D4A840"), Color(hex: "8B6210")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 94, height: 94)
+                    .shadow(color: Color(hex: "C9A84C").opacity(0.40), radius: 10, x: 0, y: 5)
+
+                // Golfer-Icon
+                Image(systemName: "figure.golf")
+                    .font(.system(size: 44, weight: .regular))
+                    .foregroundStyle(.white)
+            }
+
+            // Name – gross, klassisch-serif
+            Text(store.teacherName)
+                .font(.system(size: 38, weight: .bold, design: .serif))
+                .foregroundStyle(Color(hex: "111111"))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+
+            // Badge – dunkelgrün mit Gold-Rahmen
+            Text("Golf Pro Workspace")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(ALColor.gold)
+                .tracking(0.4)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(ALColor.green)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
                         .strokeBorder(
                             LinearGradient(
                                 colors: [Color(hex: "D4A840"), Color(hex: "8B6210"), Color(hex: "D4A840")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 3
+                            lineWidth: 1.5
                         )
-                        .frame(width: 108, height: 108)
-
-                    // Goldener Füllkreis
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "D4A840"), Color(hex: "8B6210")],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 98, height: 98)
-                        .shadow(color: Color(hex: "C9A84C").opacity(0.45), radius: 12, x: 0, y: 6)
-
-                    // Golfer-Icon
-                    Image(systemName: "figure.golf")
-                        .font(.system(size: 46, weight: .regular))
-                        .foregroundStyle(.white)
-                }
-
-                // Name – gross, klassisch-serif
-                Text(store.teacherName)
-                    .font(.system(size: 40, weight: .bold, design: .serif))
-                    .foregroundStyle(Color(hex: "111111"))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .shadow(color: Color.black.opacity(0.04), radius: 1, x: 0, y: 1)
-
-                // Badge – dunkelgrün mit Gold-Rahmen
-                Text("Golf Pro Workspace")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(ALColor.gold)
-                    .tracking(0.4)
-                    .padding(.horizontal, 26)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 22)
-                            .fill(ALColor.green)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 22)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color(hex: "D4A840"), Color(hex: "8B6210"), Color(hex: "D4A840")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1.5
-                            )
-                    )
-                    .shadow(color: ALColor.green.opacity(0.30), radius: 6, x: 0, y: 3)
-            }
-            .frame(maxWidth: .infinity)
+                )
+                .shadow(color: ALColor.green.opacity(0.25), radius: 5, x: 0, y: 2)
         }
-        .padding(.top, 14)
-        .padding(.bottom, 18)
+        .frame(maxWidth: .infinity)
+        // Wasserzeichen als Overlay – beeinflusst Höhe nicht
+        .overlay(alignment: .trailing) {
+            Image(systemName: "figure.golf")
+                .font(.system(size: 170, weight: .thin))
+                .foregroundStyle(Color(hex: "909090").opacity(0.15))
+                .offset(x: 16, y: 10)
+                .allowsHitTesting(false)
+        }
+        .clipped()
+        .padding(.top, 16)
+        .padding(.bottom, 14)
     }
 
     // MARK: AfterLesson – Hauptaktion
