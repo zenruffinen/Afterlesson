@@ -1,0 +1,102 @@
+/* Tab Bar */
+"Start" = "Start";
+"Vorlagen" = "Vorlagen";
+"Klassen" = "Klassen";
+"Schüler" = "Schüler";
+"Einstellungen" = "Einstellungen";
+"Fortschritt" = "Fortschritt";
+"Lektionen" = "Lektionen";
+
+/* Home */
+"Golf Pro" = "Golf Pro";
+"Dein Arbeitsbereich" = "Dein Arbeitsbereich";
+"Pro Studio" = "Pro Studio";
+"Nur für den Pro sichtbar" = "Nur für den Pro sichtbar";
+"Lektionsvorlagen" = "Lektionsvorlagen";
+"Erinnerung" = "Erinnerung";
+"Zuletzt hinzugefügt" = "Zuletzt hinzugefügt";
+
+/* Folders / Templates */
+"Noch keine Vorlagen" = "Noch keine Vorlagen";
+"Tippe auf + um eine Vorlage hinzuzufügen" = "Tippe auf + um eine Vorlage hinzuzufügen";
+"Neue Vorlage" = "Neue Vorlage";
+"Vorlage bearbeiten" = "Vorlage bearbeiten";
+"Name" = "Name";
+"Untertitel (optional)" = "Untertitel (optional)";
+"Icon" = "Icon";
+"Farbe" = "Farbe";
+"Duplizieren" = "Duplizieren";
+
+/* Lessons */
+"Beschreibung" = "Beschreibung";
+"Schritt für Schritt" = "Schritt für Schritt";
+"Profi-Tipps" = "Profi-Tipps";
+"Erledigt ✓" = "Erledigt ✓";
+"Als erledigt markieren" = "Als erledigt markieren";
+"Fotos werden gespeichert…" = "Fotos werden gespeichert…";
+"Übungsfotos hinzufügen" = "Übungsfotos hinzufügen";
+"Weitere Fotos hinzufügen" = "Weitere Fotos hinzufügen";
+"Foto antippen" = "Foto antippen";
+"Fotos" = "Fotos";
+"Titel" = "Titel";
+
+/* Students */
+"Noch keine Schüler" = "Noch keine Schüler";
+"Tippe auf + um einen Schüler hinzuzufügen" = "Tippe auf + um einen Schüler hinzuzufügen";
+"Handicap" = "Handicap";
+"Geburtstag" = "Geburtstag";
+"Avatar-Farbe" = "Avatar-Farbe";
+"Verlauf" = "Verlauf";
+"Noch nichts gesendet" = "Noch nichts gesendet";
+"Noch keiner Klasse zugeordnet" = "Noch keiner Klasse zugeordnet";
+"Anmerkungen des Schülers" = "Anmerkungen des Schülers";
+"Pro-Notizen (nur für dich)" = "Pro-Notizen (nur für dich)";
+"Persönliche Notiz (optional)" = "Persönliche Notiz (optional)";
+"Senden" = "Senden";
+"Paket zusammenstellen" = "Paket zusammenstellen";
+"Noch keine Schüler oder Klassen" = "Noch keine Schüler oder Klassen";
+"Lege zuerst Schüler oder Klassen im jeweiligen Tab an" = "Lege zuerst Schüler oder Klassen im jeweiligen Tab an";
+"Zuerst Schüler im Schüler-Tab anlegen" = "Zuerst Schüler im Schüler-Tab anlegen";
+"Zuerst Vorlagen im Vorlagen-Tab anlegen" = "Zuerst Vorlagen im Vorlagen-Tab anlegen";
+
+/* Groups */
+"Noch keine Klassen" = "Noch keine Klassen";
+"Tippe auf + um eine Klasse anzulegen" = "Tippe auf + um eine Klasse anzulegen";
+"Neue Klasse" = "Neue Klasse";
+"Klasse bearbeiten" = "Klasse bearbeiten";
+"Name der Klasse" = "Name der Klasse";
+
+/* Mode Selection */
+"Wähle deinen Modus" = "Wähle deinen Modus";
+"Ich bin Lehrer" = "Ich bin Lehrer";
+"Ich bin Schüler" = "Ich bin Schüler";
+"Vorlagen erstellen & Schüler verwalten" = "Vorlagen erstellen & Schüler verwalten";
+"Meine Vorlagen ansehen & lernen" = "Meine Vorlagen ansehen & lernen";
+
+/* Settings */
+"Version 1.0" = "Version 1.0";
+"Bearbeiten" = "Bearbeiten";
+
+/* Common Buttons */
+"Fertig" = "Fertig";
+"Abbrechen" = "Abbrechen";
+"Erstellen" = "Erstellen";
+"Speichern" = "Speichern";
+"Löschen" = "Löschen";
+"Schließen" = "Schließen";
+"Wechseln" = "Wechseln";
+"Entsperren" = "Entsperren";
+
+/* TextFields */
+"Erkläre die Übung in eigenen Worten…" = "Erkläre die Übung in eigenen Worten…";
+"Neuer Tipp…" = "Neuer Tipp…";
+"Notizen vom Schüler für den Pro…" = "Notizen vom Schüler für den Pro…";
+"Private Beobachtungen, Hinweise…" = "Private Beobachtungen, Hinweise…";
+"Vorname Nachname" = "Vorname Nachname";
+"z.B. 18.4" = "z.B. 18.4";
+"z.B. Abschlag" = "z.B. Abschlag";
+"z.B. Anfänger Dienstag" = "z.B. Anfänger Dienstag";
+"z.B. Drive & Aufstellung" = "z.B. Drive & Aufstellung";
+"z.B. Drive-Technik Basics" = "z.B. Drive-Technik Basics";
+"z.B. Konzentriere dich diese Woche auf die Rotation…" = "z.B. Konzentriere dich diese Woche auf die Rotation…";
+"z.B. Übe täglich 10 Minuten auf dem Chip..." = "z.B. Übe täglich 10 Minuten auf dem Chip...";

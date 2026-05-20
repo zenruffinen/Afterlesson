@@ -1,0 +1,106 @@
+/* Tab Bar */
+"Start" = "Home";
+"Vorlagen" = "Templates";
+"Klassen" = "Groups";
+"Schüler" = "Students";
+"Einstellungen" = "Settings";
+"Fortschritt" = "Progress";
+"Lektionen" = "Lessons";
+
+/* Home */
+"Golf Pro" = "Golf Pro";
+"Dein Arbeitsbereich" = "Your Workspace";
+"Pro Studio" = "Pro Studio";
+"Nur für den Pro sichtbar" = "Only visible to the Pro";
+"Lektionsvorlagen" = "Lesson Templates";
+"Erinnerung" = "Favorites";
+"Zuletzt hinzugefügt" = "Recently Added";
+
+/* Folders / Templates */
+"Lektionsvorlagen" = "Lesson Templates";
+"Noch keine Vorlagen" = "No Templates Yet";
+"Tippe auf + um eine Vorlage hinzuzufügen" = "Tap + to add a template";
+"Neue Vorlage" = "New Template";
+"Vorlage bearbeiten" = "Edit Template";
+"Name" = "Name";
+"Untertitel (optional)" = "Subtitle (optional)";
+"Icon" = "Icon";
+"Farbe" = "Color";
+"Duplizieren" = "Duplicate";
+
+/* Lessons */
+"Beschreibung" = "Description";
+"Schritt für Schritt" = "Step by Step";
+"Profi-Tipps" = "Pro Tips";
+"Erledigt ✓" = "Done ✓";
+"Als erledigt markieren" = "Mark as Done";
+"Fotos werden gespeichert…" = "Saving photos…";
+"Übungsfotos hinzufügen" = "Add Practice Photos";
+"Weitere Fotos hinzufügen" = "Add More Photos";
+"Foto antippen" = "Tap to preview";
+"Fotos" = "Photos";
+"Titel" = "Title";
+
+/* Students */
+"Noch keine Schüler" = "No Students Yet";
+"Tippe auf + um einen Schüler hinzuzufügen" = "Tap + to add a student";
+"Handicap" = "Handicap";
+"Geburtstag" = "Birthday";
+"Avatar-Farbe" = "Avatar Color";
+"Verlauf" = "History";
+"Noch nichts gesendet" = "Nothing sent yet";
+"Noch keiner Klasse zugeordnet" = "Not assigned to any group";
+"Anmerkungen des Schülers" = "Student's Remarks";
+"Pro-Notizen (nur für dich)" = "Pro Notes (only for you)";
+"Persönliche Notiz (optional)" = "Personal note (optional)";
+"Senden" = "Send";
+"Paket zusammenstellen" = "Build Package";
+"Noch keine Schüler oder Klassen" = "No students or groups yet";
+"Lege zuerst Schüler oder Klassen im jeweiligen Tab an" = "First add students or groups in the respective tab";
+"Zuerst Schüler im Schüler-Tab anlegen" = "First add students in the Students tab";
+"Zuerst Vorlagen im Vorlagen-Tab anlegen" = "First add templates in the Templates tab";
+
+/* Groups */
+"Noch keine Klassen" = "No Groups Yet";
+"Tippe auf + um eine Klasse anzulegen" = "Tap + to create a group";
+"Neue Klasse" = "New Group";
+"Klasse bearbeiten" = "Edit Group";
+"Name der Klasse" = "Group name";
+
+/* Mode Selection */
+"Wähle deinen Modus" = "Choose Your Mode";
+"Ich bin Lehrer" = "I am a Teacher";
+"Ich bin Schüler" = "I am a Student";
+"Vorlagen erstellen & Schüler verwalten" = "Create templates & manage students";
+"Meine Vorlagen ansehen & lernen" = "View my templates & learn";
+
+/* Progress */
+"Lege zuerst Schüler oder Klassen im jeweiligen Tab an" = "First add students or groups in the respective tab";
+
+/* Settings */
+"Version 1.0" = "Version 1.0";
+"Bearbeiten" = "Edit";
+
+/* Common Buttons */
+"Fertig" = "Done";
+"Abbrechen" = "Cancel";
+"Erstellen" = "Create";
+"Speichern" = "Save";
+"Löschen" = "Delete";
+"Schließen" = "Close";
+"Wechseln" = "Switch";
+"Entsperren" = "Unlock";
+
+/* TextFields */
+"Erkläre die Übung in eigenen Worten…" = "Describe the exercise in your own words…";
+"Neuer Tipp…" = "New tip…";
+"Notizen vom Schüler für den Pro…" = "Student notes for the Pro…";
+"Private Beobachtungen, Hinweise…" = "Private observations, notes…";
+"Vorname Nachname" = "First Last";
+"z.B. 18.4" = "e.g. 18.4";
+"z.B. Abschlag" = "e.g. Drive";
+"z.B. Anfänger Dienstag" = "e.g. Beginners Tuesday";
+"z.B. Drive & Aufstellung" = "e.g. Drive & Setup";
+"z.B. Drive-Technik Basics" = "e.g. Drive Technique Basics";
+"z.B. Konzentriere dich diese Woche auf die Rotation…" = "e.g. Focus on your rotation this week…";
+"z.B. Übe täglich 10 Minuten auf dem Chip..." = "e.g. Practice chipping 10 minutes daily...";
