@@ -1,6 +1,8 @@
 import SwiftUI
 import PhotosUI
 import AVFoundation
+import Speech
+import Combine
 
 // MARK: - App Entry
 
@@ -101,27 +103,36 @@ struct HomeView: View {
     @EnvironmentObject var store: AppStore
     @Binding var selectedTab: ContentView.Tab
     @State private var showTeacherDashboard = false
+    @State private var showQuickCapture = false
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 20) {
 
                     // Hero Banner
                     heroBanner
 
+                    // + Neue Lektion – Hauptaktion
+                    neueLektion
+                        .padding(.horizontal, 4)
+
                     // Schnellzugriff
                     quickAccess
-                        .padding(.top, 8)
+                        .padding(.top, 4)
 
-                    // Pro Studio Button
+                    // Training Studio
                     modeBanner
-                        .padding(.top, 16)
                         .padding(.horizontal, 4)
-                        .shadow(color: ALColor.dark.opacity(0.3), radius: 20, x: 0, y: 10)
+                        .shadow(color: ALColor.dark.opacity(0.2), radius: 16, x: 0, y: 8)
 
+                    // Letzte Sessions
+                    if !store.sessions.isEmpty {
+                        recentSessions
+                            .padding(.top, 4)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 40)
@@ -129,12 +140,14 @@ struct HomeView: View {
             .background(Color(.systemGroupedBackground))
             .navigationBarHidden(true)
         }
+        .sheet(isPresented: $showQuickCapture) {
+            QuickCaptureSheet()
+        }
     }
 
     // MARK: Hero
     var heroBanner: some View {
         HStack(alignment: .center, spacing: 0) {
-            // Text
             VStack(alignment: .leading, spacing: 4) {
                 Text("AfterLesson")
                     .font(.system(size: 26, weight: .bold, design: .rounded))
@@ -143,7 +156,7 @@ struct HomeView: View {
                     Text(store.teacherName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text("Golf Pro")
+                    Text("Golf Pro Workspace")
                         .font(.caption2.bold())
                         .foregroundStyle(Color(hex: "C9A84C"))
                         .padding(.horizontal, 8)
@@ -153,7 +166,6 @@ struct HomeView: View {
                 }
             }
             Spacer()
-            // Glasgefäss mit Golfbällen
             GolfBallJar()
                 .allowsHitTesting(false)
         }
@@ -161,13 +173,50 @@ struct HomeView: View {
         .padding(.vertical, 18)
     }
 
-    // MARK: Mode Banner (Pro Studio Button)
+    // MARK: Neue Lektion – prominenter Hauptbutton
+    var neueLektion: some View {
+        Button {
+            showQuickCapture = true
+        } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(ALColor.gold)
+                        .frame(width: 52, height: 52)
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Neue Lektion erfassen")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("Direkt nach dem Training sprechen oder tippen")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(ALColor.gold)
+            }
+            .padding(16)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(ALColor.gold.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Training Studio
     var modeBanner: some View {
         Button {
             if isTeacher { showTeacherDashboard = true }
         } label: {
             HStack(spacing: 14) {
-                // Icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 14)
                         .fill(ALColor.green)
@@ -176,19 +225,15 @@ struct HomeView: View {
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(.white)
                 }
-
-                // Text
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Pro Studio")
+                    Text("Training Studio")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.primary)
                     Text("\(store.folders.count) Vorlagen · \(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-
                 Spacer()
-
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color(.tertiaryLabel))
@@ -218,7 +263,7 @@ struct HomeView: View {
                 .cornerRadius(1)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                QuickTile(icon: "book.fill", title: "Lektionsvorlagen",
+                QuickTile(icon: "rectangle.stack.fill", title: "Vorlagen",
                           subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
                           color: ALColor.green) {
                     selectedTab = .lessons
@@ -233,7 +278,7 @@ struct HomeView: View {
                           color: Color(hex: "4A148C")) {
                     selectedTab = .notes
                 }
-                QuickTile(icon: "person.3.sequence.fill", title: "Lernpfade",
+                QuickTile(icon: "road.lanes", title: "Lernpfade",
                           subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
                           color: ALColor.gold) {
                     selectedTab = .groups
@@ -242,15 +287,72 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Recent Lessons
-    var recentLessons: some View {
+    // MARK: Letzte Sessions
+    var recentSessions: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Zuletzt hinzugefügt")
-                .font(.headline)
-            ForEach(store.lessons.sorted { $0.dateCreated > $1.dateCreated }.prefix(3)) { lesson in
-                LessonRowView(lesson: lesson)
+            HStack {
+                Text("Letzte Trainings")
+                    .font(.headline)
+                Spacer()
+                Button { showQuickCapture = true } label: {
+                    Text("Neue Stunde")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(ALColor.gold)
+                }
+            }
+            ForEach(store.sessions.prefix(3)) { session in
+                SessionRowView(session: session)
             }
         }
+    }
+}
+
+// MARK: - Session Row View
+
+struct SessionRowView: View {
+    @EnvironmentObject var store: AppStore
+    let session: TrainingSession
+
+    var studentName: String {
+        guard let id = session.studentID else { return "Kein Schüler" }
+        return store.students.first(where: { $0.id == id })?.name ?? "Unbekannt"
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(ALColor.green.opacity(0.12))
+                    .frame(width: 42, height: 42)
+                Image(systemName: "figure.golf")
+                    .font(.system(size: 18))
+                    .foregroundStyle(ALColor.green)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(session.title.isEmpty ? "Trainingsstunde" : session.title)
+                    .font(.subheadline.weight(.medium))
+                HStack(spacing: 6) {
+                    Text(studentName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if !session.trained.isEmpty {
+                        Text("·")
+                            .foregroundStyle(.secondary)
+                        Text(session.trained)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            Spacer()
+            Text(session.date, style: .date)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
     }
 }
 
@@ -2343,6 +2445,402 @@ struct AddEditGroupSheet: View {
             }
         }
         .presentationDetents([.large])
+    }
+}
+
+// MARK: - Speech Transcriber
+
+@MainActor
+class SpeechTranscriber: ObservableObject {
+    @Published var isRecording = false
+    @Published var permissionDenied = false
+
+    private var recognizer: SFSpeechRecognizer?
+    private var request: SFSpeechAudioBufferRecognitionRequest?
+    private var task: SFSpeechRecognitionTask?
+    private let engine = AVAudioEngine()
+
+    init() {
+        // Deutsch (Schweiz) bevorzugt, Fallback auf Deutsch
+        recognizer = SFSpeechRecognizer(locale: Locale(identifier: "de-CH"))
+            ?? SFSpeechRecognizer(locale: Locale(identifier: "de-DE"))
+    }
+
+    func start(existing: String, onChange: @escaping (String) -> Void) {
+        SFSpeechRecognizer.requestAuthorization { [weak self] auth in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                switch auth {
+                case .authorized:
+                    self.startEngine(existing: existing, onChange: onChange)
+                default:
+                    self.permissionDenied = true
+                }
+            }
+        }
+    }
+
+    private func startEngine(existing: String, onChange: @escaping (String) -> Void) {
+        stopEngine()
+        guard let recognizer, recognizer.isAvailable else { return }
+
+        let req = SFSpeechAudioBufferRecognitionRequest()
+        req.shouldReportPartialResults = true
+        request = req
+
+        let prefix = existing.trimmingCharacters(in: .whitespaces)
+
+        task = recognizer.recognitionTask(with: req) { [weak self] result, error in
+            if let result = result {
+                let new = result.bestTranscription.formattedString
+                let combined = prefix.isEmpty ? new : prefix + " " + new
+                onChange(combined)
+            }
+            if error != nil || result?.isFinal == true {
+                Task { @MainActor [weak self] in self?.stopEngine() }
+            }
+        }
+
+        let node = engine.inputNode
+        let format = node.outputFormat(forBus: 0)
+        node.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buf, _ in
+            self?.request?.append(buf)
+        }
+
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.record, mode: .measurement, options: .duckOthers)
+            try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+            try engine.start()
+            isRecording = true
+        } catch {
+            stopEngine()
+        }
+    }
+
+    func stop() {
+        stopEngine()
+    }
+
+    private func stopEngine() {
+        if engine.isRunning {
+            engine.stop()
+            engine.inputNode.removeTap(onBus: 0)
+        }
+        request?.endAudio()
+        task?.finish()
+        task = nil
+        request = nil
+        isRecording = false
+        try? AVAudioSession.sharedInstance().setActive(false)
+    }
+}
+
+// MARK: - Voice Input Field
+
+struct VoiceInputField: View {
+    let label: String
+    let icon: String
+    let color: Color
+    @Binding var text: String
+    @ObservedObject var transcriber: SpeechTranscriber
+    var activeField: String
+    @Binding var currentActiveField: String
+
+    var isActive: Bool { currentActiveField == activeField && transcriber.isRecording }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption.bold())
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.caption.bold())
+                    .foregroundStyle(color)
+                Spacer()
+                Button {
+                    if isActive {
+                        transcriber.stop()
+                        currentActiveField = ""
+                    } else {
+                        if transcriber.isRecording {
+                            transcriber.stop()
+                        }
+                        currentActiveField = activeField
+                        transcriber.start(existing: text) { newText in
+                            text = newText
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: isActive ? "stop.circle.fill" : "mic.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(isActive ? .red : color.opacity(0.7))
+                        if isActive {
+                            Text("Stopp")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 4)
+
+            ZStack(alignment: .topLeading) {
+                if text.isEmpty {
+                    Text("Tippe oder sprich…")
+                        .font(.subheadline)
+                        .foregroundStyle(Color(.placeholderText))
+                        .padding(.horizontal, 12)
+                        .padding(.top, 10)
+                }
+                TextEditor(text: $text)
+                    .font(.subheadline)
+                    .frame(minHeight: 70)
+                    .padding(8)
+                    .scrollContentBackground(.hidden)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(.secondarySystemGroupedBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(isActive ? color.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                    )
+            )
+        }
+    }
+}
+
+// MARK: - Quick Capture Sheet
+
+struct QuickCaptureSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+
+    @StateObject private var transcriber = SpeechTranscriber()
+
+    @State private var selectedStudentID: UUID? = nil
+    @State private var title: String = ""
+    @State private var trained: String = ""
+    @State private var corrections: String = ""
+    @State private var exercises: String = ""
+    @State private var homework: String = ""
+    @State private var activeField: String = ""
+    @State private var showStudentPicker = false
+
+    var selectedStudent: Student? {
+        guard let id = selectedStudentID else { return nil }
+        return store.students.first(where: { $0.id == id })
+    }
+
+    var autoTitle: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM.yyyy"
+        let dateStr = formatter.string(from: Date())
+        if let s = selectedStudent { return "Training \(dateStr) · \(s.name)" }
+        return "Training \(dateStr)"
+    }
+
+    var canSave: Bool {
+        !trained.isEmpty || !corrections.isEmpty || !exercises.isEmpty || !homework.isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+
+                    // Schüler auswählen
+                    Button { showStudentPicker = true } label: {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(selectedStudent != nil
+                                          ? Color(hex: selectedStudent!.avatarColor)
+                                          : Color(.tertiarySystemFill))
+                                    .frame(width: 42, height: 42)
+                                if let s = selectedStudent {
+                                    Text(String(s.name.prefix(1)).uppercased())
+                                        .font(.subheadline.bold())
+                                        .foregroundStyle(.white)
+                                } else {
+                                    Image(systemName: "person.badge.plus")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(selectedStudent?.name ?? "Schüler auswählen")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(selectedStudent != nil ? .primary : .secondary)
+                                Text(autoTitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(14)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(14)
+                    }
+                    .buttonStyle(.plain)
+
+                    // Trennlinie
+                    Rectangle()
+                        .fill(LinearGradient(
+                            colors: [ALColor.green, ALColor.gold, ALColor.green.opacity(0)],
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(height: 2).cornerRadius(1)
+
+                    // Felder
+                    VoiceInputField(
+                        label: "Was geübt",
+                        icon: "figure.golf",
+                        color: ALColor.green,
+                        text: $trained,
+                        transcriber: transcriber,
+                        activeField: "trained",
+                        currentActiveField: $activeField
+                    )
+
+                    VoiceInputField(
+                        label: "Korrekturen",
+                        icon: "arrow.triangle.2.circlepath",
+                        color: Color(hex: "1565C0"),
+                        text: $corrections,
+                        transcriber: transcriber,
+                        activeField: "corrections",
+                        currentActiveField: $activeField
+                    )
+
+                    VoiceInputField(
+                        label: "Übungen",
+                        icon: "repeat.circle.fill",
+                        color: Color(hex: "4A148C"),
+                        text: $exercises,
+                        transcriber: transcriber,
+                        activeField: "exercises",
+                        currentActiveField: $activeField
+                    )
+
+                    VoiceInputField(
+                        label: "Hausaufgaben / Nächste Stunde",
+                        icon: "house.and.flag.fill",
+                        color: ALColor.gold,
+                        text: $homework,
+                        transcriber: transcriber,
+                        activeField: "homework",
+                        currentActiveField: $activeField
+                    )
+                }
+                .padding(16)
+                .padding(.bottom, 20)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Neue Lektion")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") {
+                        transcriber.stop()
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Speichern") {
+                        transcriber.stop()
+                        var session = TrainingSession()
+                        session.studentID = selectedStudentID
+                        session.title = autoTitle
+                        session.trained = trained
+                        session.corrections = corrections
+                        session.exercises = exercises
+                        session.homework = homework
+                        store.addSession(session)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(!canSave)
+                }
+            }
+            .sheet(isPresented: $showStudentPicker) {
+                studentPickerSheet
+            }
+            .alert("Spracherkennung nicht verfügbar",
+                   isPresented: $transcriber.permissionDenied) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Bitte erlaube Spracherkennung in den Einstellungen.")
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    var studentPickerSheet: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Button {
+                        selectedStudentID = nil
+                        showStudentPicker = false
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.slash")
+                                .foregroundStyle(.secondary)
+                            Text("Kein Schüler")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if selectedStudentID == nil {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(ALColor.green)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                Section("Schüler") {
+                    ForEach(store.students) { student in
+                        Button {
+                            selectedStudentID = student.id
+                            showStudentPicker = false
+                        } label: {
+                            HStack(spacing: 12) {
+                                Circle()
+                                    .fill(Color(hex: student.avatarColor))
+                                    .frame(width: 36, height: 36)
+                                    .overlay(
+                                        Text(String(student.name.prefix(1)).uppercased())
+                                            .font(.subheadline.bold())
+                                            .foregroundStyle(.white)
+                                    )
+                                Text(student.name).foregroundStyle(.primary)
+                                Spacer()
+                                if selectedStudentID == student.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(ALColor.green)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Schüler auswählen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { showStudentPicker = false }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 

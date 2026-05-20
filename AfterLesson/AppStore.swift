@@ -23,6 +23,9 @@ final class AppStore: ObservableObject {
     @Published var proNotes: [ProNote] = [] {
         didSet { saveProNotes() }
     }
+    @Published var sessions: [TrainingSession] = [] {
+        didSet { saveSessions() }
+    }
     @AppStorage("appMode") var appMode: String = AppMode.teacher.rawValue
     @AppStorage("teacherName") var teacherName: String = "Thomas Kubernat"
     @AppStorage("isLocked") var isLocked: Bool = false
@@ -448,11 +451,45 @@ final class AppStore: ObservableObject {
            let decoded = try? JSONDecoder().decode([ProNote].self, from: data) {
             proNotes = decoded
         }
+        if let data = UserDefaults.standard.data(forKey: "al_sessions"),
+           let decoded = try? JSONDecoder().decode([TrainingSession].self, from: data) {
+            sessions = decoded
+        }
     }
 
     private func saveProNotes() {
         if let data = try? JSONEncoder().encode(proNotes) {
             UserDefaults.standard.set(data, forKey: "al_pronotes")
+        }
+    }
+
+    // MARK: - Training Sessions
+
+    func addSession(_ session: TrainingSession) {
+        sessions.insert(session, at: 0)
+    }
+
+    func updateSession(_ session: TrainingSession) {
+        if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+            sessions[idx] = session
+        }
+    }
+
+    func deleteSession(_ session: TrainingSession) {
+        for f in session.imageFilenames {
+            try? FileManager.default.removeItem(at: imageURL(for: f))
+        }
+        sessions.removeAll { $0.id == session.id }
+    }
+
+    func sessionsFor(_ student: Student) -> [TrainingSession] {
+        sessions.filter { $0.studentID == student.id }
+            .sorted { $0.date > $1.date }
+    }
+
+    private func saveSessions() {
+        if let data = try? JSONEncoder().encode(sessions) {
+            UserDefaults.standard.set(data, forKey: "al_sessions")
         }
     }
 }

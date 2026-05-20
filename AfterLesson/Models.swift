@@ -122,6 +122,21 @@ struct ProNote: Identifiable, Codable {
     enum AssignmentType { case student, group, none }
 }
 
+// MARK: - Training Session (Stundenprotokoll)
+
+struct TrainingSession: Identifiable, Codable {
+    var id = UUID()
+    var studentID: UUID? = nil          // Optional – kann auch ohne Schüler gespeichert werden
+    var date: Date = Date()
+    var title: String = ""              // z.B. "Training 20.05.2026"
+    var trained: String = ""            // Was geübt
+    var corrections: String = ""        // Korrekturen
+    var exercises: String = ""          // Übungen
+    var homework: String = ""           // Hausaufgaben / nächste Aufgabe
+    var rawTranscript: String = ""      // Rohtranskript (für spätere KI-Verarbeitung)
+    var imageFilenames: [String] = []   // Fotos zur Stunde
+}
+
 // MARK: - Share Package (für AirDrop / WhatsApp)
 
 struct AfterLessonShare: Codable {

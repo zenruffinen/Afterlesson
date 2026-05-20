@@ -406,6 +406,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "AfterLesson benötigt das Mikrofon für Sprachnotizen.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "AfterLesson benötigt Zugriff auf deine Fotos für Lektionsbilder.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "AfterLesson nutzt Spracherkennung um Trainingsstunden zu transkribieren.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -442,6 +443,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "AfterLesson benötigt das Mikrofon für Sprachnotizen.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "AfterLesson benötigt Zugriff auf deine Fotos für Lektionsbilder.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "AfterLesson nutzt Spracherkennung um Trainingsstunden zu transkribieren.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
