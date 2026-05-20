@@ -323,9 +323,9 @@ struct HomeView: View {
                     subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
                     color: ALColor.green) { selectedTab = .notes }
         }
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color(hex: "F0EDE6"))
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+        .shadow(color: Color.black.opacity(0.10), radius: 8, x: 0, y: 3)
     }
 
     var rowDivider: some View {
