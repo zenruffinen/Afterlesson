@@ -114,11 +114,8 @@ struct HomeView: View {
                     // Karte + AfterLesson im gleichen Padding
                     VStack(spacing: 12) {
 
-                        // 4 Zeilen in einer Karte
+                        // Karte inkl. AfterLesson-Zeile
                         quickAccess
-
-                        // AfterLesson – Hauptaktion
-                        neueLektion
 
                         // Sessions (je nach Modus)
                         if isTeacher {
@@ -307,6 +304,7 @@ struct HomeView: View {
     // MARK: Quick Access
     var quickAccess: some View {
         VStack(spacing: 0) {
+            // Navigation-Zeilen
             homeRow(icon: "figure.golf", title: "Schüler",
                     subtitle: "\(store.students.count) \(store.students.count == 1 ? "Schüler" : "Schüler")",
                     color: ALColor.green) { selectedTab = .students }
@@ -322,6 +320,46 @@ struct HomeView: View {
             homeRow(icon: "pencil.tip", title: "Notizen",
                     subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
                     color: ALColor.green) { selectedTab = .notes }
+
+            // Trennlinie zum AfterLesson-Bereich
+            Rectangle()
+                .fill(ALColor.gold.opacity(0.30))
+                .frame(height: 1)
+
+            // AfterLesson – als letzte Zeile, grüner Hintergrund
+            Button { showQuickCapture = true } label: {
+                HStack(spacing: 13) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "D4A840"), Color(hex: "8B6410")],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("AfterLesson")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text("Stunde dokumentieren")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.white.opacity(0.70))
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(ALColor.gold.opacity(0.80))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(ALColor.green)
+            }
+            .buttonStyle(.plain)
         }
         .background(Color(hex: "F0EDE6"))
         .clipShape(RoundedRectangle(cornerRadius: 16))
