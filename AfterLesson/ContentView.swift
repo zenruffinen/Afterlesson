@@ -438,20 +438,11 @@ struct HomeView: View {
     // MARK: Meine Trainings (Schüler-Ansicht)
     var receivedSessionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Meine Trainings")
-                .font(.headline)
             if store.receivedSessions.isEmpty {
-                HStack(spacing: 10) {
-                    Image(systemName: "tray")
-                        .foregroundStyle(.secondary)
-                    Text("Noch keine Trainingszusammenfassungen empfangen")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(14)
-                .background(Color(.secondarySystemGroupedBackground))
-                .cornerRadius(12)
+                StudentEmptyPlaceholder()
             } else {
+                Text("Meine Trainings")
+                    .font(.headline)
                 ForEach(store.receivedSessions.prefix(5)) { session in
                     SessionRowView(session: session) {
                         selectedSession = session
@@ -522,6 +513,101 @@ struct SessionRowView: View {
             .cornerRadius(12)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Student Empty Placeholder
+
+struct StudentEmptyPlaceholder: View {
+    @State private var pulse = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+
+            // Illustration
+            ZStack {
+                // Hintergrund-Kreis gross
+                Circle()
+                    .fill(ALColor.green.opacity(0.06))
+                    .frame(width: 180, height: 180)
+
+                Circle()
+                    .fill(ALColor.green.opacity(0.09))
+                    .frame(width: 130, height: 130)
+                    .scaleEffect(pulse ? 1.05 : 1.0)
+                    .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: pulse)
+
+                // Goldener Ball
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(
+                            colors: [Color(hex: "D4A840"), Color(hex: "8B6210")],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                        .frame(width: 80, height: 80)
+                        .shadow(color: Color(hex: "C9A84C").opacity(0.40), radius: 14, x: 0, y: 6)
+
+                    // Dimple-Muster
+                    ForEach(0..<6, id: \.self) { i in
+                        let angle = Double(i) * 60.0
+                        let r: CGFloat = 22
+                        Circle()
+                            .fill(Color.black.opacity(0.12))
+                            .frame(width: 8, height: 8)
+                            .offset(
+                                x: r * cos(angle * .pi / 180),
+                                y: r * sin(angle * .pi / 180)
+                            )
+                    }
+                    Circle()
+                        .fill(Color.black.opacity(0.10))
+                        .frame(width: 8, height: 8)
+                }
+
+                // Golfer oben rechts
+                Image(systemName: "figure.golf")
+                    .font(.system(size: 36, weight: .light))
+                    .foregroundStyle(ALColor.green.opacity(0.35))
+                    .offset(x: 54, y: -42)
+
+                // Sterne / Glanz links
+                Image(systemName: "sparkles")
+                    .font(.system(size: 20))
+                    .foregroundStyle(ALColor.gold.opacity(0.55))
+                    .offset(x: -58, y: -36)
+                    .scaleEffect(pulse ? 1.15 : 0.9)
+                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true).delay(0.4), value: pulse)
+            }
+            .padding(.top, 32)
+            .padding(.bottom, 24)
+
+            // Text
+            VStack(spacing: 10) {
+                Text("Bereit für dein Training")
+                    .font(.system(size: 20, weight: .bold, design: .serif))
+                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .multilineTextAlignment(.center)
+
+                Text("Dein Golf Pro sendet dir nach\njedem Training eine Zusammenfassung.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color(hex: "888888"))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 32)
+        }
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color(hex: "F0EDE6"))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(ALColor.green.opacity(0.12), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 3)
+        .onAppear { pulse = true }
     }
 }
 
