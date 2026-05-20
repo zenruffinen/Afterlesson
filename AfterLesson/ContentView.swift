@@ -187,7 +187,7 @@ struct HomeView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 18)
-        .padding(.bottom, 14)
+        .padding(.bottom, 5)
     }
 
     // MARK: AfterLesson – Hauptaktion
@@ -271,13 +271,6 @@ struct HomeView: View {
     var quickAccess: some View {
         VStack(spacing: 10) {
             homeCard(
-                icon: "rectangle.stack.fill",
-                title: "Vorlagen",
-                subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
-                color: ALColor.green
-            ) { selectedTab = .lessons }
-
-            homeCard(
                 icon: "person.2.fill",
                 title: "Schüler",
                 subtitle: "\(store.students.count) \(store.students.count == 1 ? "Schüler" : "Schüler")",
@@ -285,11 +278,11 @@ struct HomeView: View {
             ) { selectedTab = .students }
 
             homeCard(
-                icon: "note.text",
-                title: "Notizen",
-                subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
-                color: Color(hex: "4A148C")
-            ) { selectedTab = .notes }
+                icon: "rectangle.stack.fill",
+                title: "Vorlagen",
+                subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
+                color: ALColor.green
+            ) { selectedTab = .lessons }
 
             homeCard(
                 icon: "road.lanes",
@@ -297,6 +290,16 @@ struct HomeView: View {
                 subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
                 color: ALColor.gold
             ) { selectedTab = .groups }
+
+            gradientLine
+                .padding(.vertical, 2)
+
+            homeCard(
+                icon: "note.text",
+                title: "Notizen",
+                subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
+                color: Color(hex: "4A148C")
+            ) { selectedTab = .notes }
         }
         .padding(.top, 12)
         .padding(.bottom, 4)
