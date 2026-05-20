@@ -187,29 +187,6 @@ struct HomeView: View {
                 .foregroundStyle(Color(hex: "666666"))
                 .tracking(0.6)
                 .multilineTextAlignment(.center)
-
-            // Badge
-            Text("Golf Pro Workspace")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(ALColor.gold)
-                .tracking(0.5)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(ALColor.green)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color(hex: "D4A840"), Color(hex: "8B6210"), Color(hex: "D4A840")],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.2
-                        )
-                )
         }
         .frame(maxWidth: .infinity)
         .overlay(alignment: .trailing) {
@@ -221,7 +198,7 @@ struct HomeView: View {
         }
         .clipped()
         .padding(.top, 20)
-        .padding(.bottom, 20)
+        .padding(.bottom, 26)
     }
 
     // MARK: AfterLesson – Hauptaktion (gleiche Zeilenhöhe wie andere Rows)
@@ -312,21 +289,29 @@ struct HomeView: View {
     var quickAccess: some View {
         VStack(spacing: 0) {
 
-            // Workspace-Header-Balken
-            HStack {
-                Text("Workspace")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(ALColor.gold.opacity(0.85))
-                    .tracking(1.2)
-                    .textCase(.uppercase)
+            // Workspace-Header-Balken — gleiche Höhe wie AfterLesson unten
+            HStack(spacing: 13) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "briefcase.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Workspace")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(store.teacherTitle)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.white.opacity(0.65))
+                }
                 Spacer()
-                Text(store.teacherName)
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(ALColor.gold.opacity(0.55))
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 9)
-            .background(ALColor.green.opacity(0.92))
+            .padding(.vertical, 10)
+            .background(ALColor.green)
 
             // Navigation-Zeilen
             homeRow(icon: "figure.golf", title: "Schüler",
