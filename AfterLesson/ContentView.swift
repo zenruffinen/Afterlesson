@@ -84,7 +84,7 @@ struct AfterLessonTabBar: View {
 // MARK: - Branding Colors
 
 enum ALColor {
-    static let green    = Color(red: 0.11, green: 0.37, blue: 0.16)   // Dunkelgrün
+    static let green    = Color(hex: "2D6A30")                          // Golf-Grün (warm, edel)
     static let gold     = Color(red: 0.72, green: 0.57, blue: 0.22)   // Golf-Gold
     static let dark     = Color(red: 0.10, green: 0.12, blue: 0.10)   // Fast Schwarz
     static let fairway  = Color(red: 0.17, green: 0.50, blue: 0.22)   // Fairway-Grün
