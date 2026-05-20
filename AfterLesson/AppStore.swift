@@ -20,6 +20,9 @@ final class AppStore: ObservableObject {
     @Published var groups: [TeachingGroup] = [] {
         didSet { saveGroups() }
     }
+    @Published var proNotes: [ProNote] = [] {
+        didSet { saveProNotes() }
+    }
     @AppStorage("appMode") var appMode: String = AppMode.teacher.rawValue
     @AppStorage("teacherName") var teacherName: String = "Thomas Kubernat"
     @AppStorage("isLocked") var isLocked: Bool = false
@@ -209,6 +212,39 @@ final class AppStore: ObservableObject {
         )
         students[si].sentHistory.insert(pkg, at: 0)
         students[si].lastActiveDate = Date()
+    }
+
+    // MARK: - Pro Notes
+
+    func addNote(title: String = "", text: String = "", audioFilename: String? = nil,
+                 studentID: UUID? = nil, groupID: UUID? = nil) {
+        let colors = ["1B5E20", "1565C0", "4A148C", "E65100", "37474F", "880E4F"]
+        let color = colors[proNotes.count % colors.count]
+        let note = ProNote(title: title, text: text, audioFilename: audioFilename,
+                           assignedStudentID: studentID, assignedGroupID: groupID,
+                           colorHex: color)
+        proNotes.insert(note, at: 0)
+    }
+
+    func updateNote(_ note: ProNote) {
+        if let idx = proNotes.firstIndex(where: { $0.id == note.id }) {
+            proNotes[idx] = note
+        }
+    }
+
+    func deleteNote(_ note: ProNote) {
+        if let audio = note.audioFilename {
+            try? FileManager.default.removeItem(at: imageURL(for: audio))
+        }
+        proNotes.removeAll { $0.id == note.id }
+    }
+
+    func notesFor(student: Student) -> [ProNote] {
+        proNotes.filter { $0.assignedStudentID == student.id }
+    }
+
+    func notesFor(group: TeachingGroup) -> [ProNote] {
+        proNotes.filter { $0.assignedGroupID == group.id }
     }
 
     // MARK: - File URLs
@@ -406,6 +442,16 @@ final class AppStore: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "al_groups"),
            let decoded = try? JSONDecoder().decode([TeachingGroup].self, from: data) {
             groups = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: "al_pronotes"),
+           let decoded = try? JSONDecoder().decode([ProNote].self, from: data) {
+            proNotes = decoded
+        }
+    }
+
+    private func saveProNotes() {
+        if let data = try? JSONEncoder().encode(proNotes) {
+            UserDefaults.standard.set(data, forKey: "al_pronotes")
         }
     }
 }

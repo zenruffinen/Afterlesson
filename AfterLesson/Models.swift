@@ -100,6 +100,27 @@ struct SentPackage: Identifiable, Codable, Hashable {
     var note: String = ""             // Persönliche Notiz
 }
 
+// MARK: - Pro Note (Notiz des Pros)
+
+struct ProNote: Identifiable, Codable {
+    var id = UUID()
+    var title: String = ""
+    var text: String = ""
+    var audioFilename: String? = nil      // Sprachaufnahme
+    var assignedStudentID: UUID? = nil    // Zuweisung zu Schüler
+    var assignedGroupID: UUID? = nil      // Zuweisung zu Gruppe
+    var dateCreated: Date = Date()
+    var colorHex: String = "1B5E20"
+
+    var assignmentType: AssignmentType {
+        if assignedStudentID != nil { return .student }
+        if assignedGroupID != nil { return .group }
+        return .none
+    }
+
+    enum AssignmentType { case student, group, none }
+}
+
 // MARK: - Share Package (für AirDrop / WhatsApp)
 
 struct AfterLessonShare: Codable {
