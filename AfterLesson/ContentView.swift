@@ -247,9 +247,9 @@ struct HomeView: View {
                           color: Color(hex: "4A148C")) {
                     selectedTab = .notes
                 }
-                QuickTile(icon: "chart.bar.fill", title: "Fortschritt",
-                          subtitle: "\(store.progress.filter(\.isCompleted).count) erledigt",
-                          color: .purple) {
+                QuickTile(icon: "person.3.sequence.fill", title: "Klassen",
+                          subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Klasse" : "Klassen")",
+                          color: ALColor.gold) {
                     selectedTab = .groups
                 }
             }
