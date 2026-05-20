@@ -116,13 +116,17 @@ struct HomeView: View {
                     // Hero Banner
                     heroBanner
 
-                    // Schnellzugriff
+                    // Linie direkt unter Thomas Kubernat
+                    gradientLine
+
+                    // 4 Kacheln
                     quickAccess
-                        .padding(.top, 4)
+
+                    // Linie zwischen Kacheln und AfterLesson-Button
+                    gradientLine
 
                     // AfterLesson – Hauptaktion
                     neueLektion
-                        .padding(.horizontal, 4)
 
                     // Sessions (je nach Modus)
                     if isTeacher {
@@ -145,6 +149,16 @@ struct HomeView: View {
         .sheet(item: $selectedSession) { session in
             SessionDetailSheet(session: session)
         }
+    }
+
+    // MARK: Gradient Divider
+    var gradientLine: some View {
+        Rectangle()
+            .fill(LinearGradient(
+                colors: [ALColor.green, ALColor.gold, ALColor.green.opacity(0)],
+                startPoint: .leading, endPoint: .trailing))
+            .frame(height: 2)
+            .cornerRadius(1)
     }
 
     // MARK: Hero
@@ -172,7 +186,8 @@ struct HomeView: View {
                 .allowsHitTesting(false)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 18)
+        .padding(.top, 18)
+        .padding(.bottom, 14)
     }
 
     // MARK: AfterLesson – Hauptaktion
@@ -254,41 +269,76 @@ struct HomeView: View {
 
     // MARK: Quick Access
     var quickAccess: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [ALColor.green, ALColor.gold, ALColor.green.opacity(0)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(height: 2)
-                .cornerRadius(1)
+        VStack(spacing: 10) {
+            homeCard(
+                icon: "rectangle.stack.fill",
+                title: "Vorlagen",
+                subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
+                color: ALColor.green
+            ) { selectedTab = .lessons }
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                QuickTile(icon: "rectangle.stack.fill", title: "Vorlagen",
-                          subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
-                          color: ALColor.green) {
-                    selectedTab = .lessons
-                }
-                QuickTile(icon: "person.2.fill", title: "Schüler",
-                          subtitle: "\(store.students.count) gespeichert",
-                          color: Color(hex: "1565C0")) {
-                    selectedTab = .students
-                }
-                QuickTile(icon: "note.text", title: "Notizen",
-                          subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
-                          color: Color(hex: "4A148C")) {
-                    selectedTab = .notes
-                }
-                QuickTile(icon: "road.lanes", title: "Lernpfade",
-                          subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
-                          color: ALColor.gold) {
-                    selectedTab = .groups
-                }
-            }
+            homeCard(
+                icon: "person.2.fill",
+                title: "Schüler",
+                subtitle: "\(store.students.count) \(store.students.count == 1 ? "Schüler" : "Schüler")",
+                color: Color(hex: "1565C0")
+            ) { selectedTab = .students }
+
+            homeCard(
+                icon: "note.text",
+                title: "Notizen",
+                subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
+                color: Color(hex: "4A148C")
+            ) { selectedTab = .notes }
+
+            homeCard(
+                icon: "road.lanes",
+                title: "Lernpfade",
+                subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
+                color: ALColor.gold
+            ) { selectedTab = .groups }
         }
+        .padding(.top, 12)
+        .padding(.bottom, 4)
+    }
+
+    @ViewBuilder
+    func homeCard(icon: String, title: String, subtitle: String,
+                  color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 48, height: 48)
+                    Image(systemName: icon)
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(color.opacity(0.5))
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(color.opacity(0.07))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(color.opacity(0.28), lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Letzte Trainings (Pro-Ansicht)
