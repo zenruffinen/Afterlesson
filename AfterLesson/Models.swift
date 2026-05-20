@@ -13,6 +13,7 @@ enum AppMode: String, CaseIterable {
 struct Student: Identifiable, Codable, Hashable {
     var id = UUID()
     var name: String
+    var phone: String = ""               // Telefonnummer
     var birthday: Date? = nil             // Geburtstag
     var handicap: String = ""            // Golf-Handicap z.B. "18.4"
     var notes: String = ""

@@ -2113,6 +2113,7 @@ struct StudentEditorSheet: View {
     @Environment(\.dismiss) var dismiss
 
     @State private var name = ""
+    @State private var phone = ""
     @State private var handicap = ""
     @State private var birthday: Date = Date()
     @State private var hasBirthday = false
@@ -2177,6 +2178,16 @@ struct StudentEditorSheet: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Name").font(.caption.bold()).foregroundStyle(.secondary).padding(.horizontal, 4)
                             TextField("Vorname Nachname", text: $name)
+                                .padding(12)
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                        }
+
+                        // Telefonnummer
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Telefon").font(.caption.bold()).foregroundStyle(.secondary).padding(.horizontal, 4)
+                            TextField("+41 79 000 00 00", text: $phone)
+                                .keyboardType(.phonePad)
                                 .padding(12)
                                 .background(Color(.secondarySystemGroupedBackground))
                                 .cornerRadius(10)
@@ -2254,6 +2265,7 @@ struct StudentEditorSheet: View {
     func loadExisting() {
         guard let s = existingStudent else { return }
         name = s.name
+        phone = s.phone
         handicap = s.handicap
         avatarColor = s.avatarColor
         photoFilename = s.photoFilename
@@ -2265,6 +2277,7 @@ struct StudentEditorSheet: View {
         guard !n.isEmpty else { return }
         if isEditing, var s = existingStudent {
             s.name = n
+            s.phone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
             s.handicap = handicap.trimmingCharacters(in: .whitespacesAndNewlines)
             s.birthday = hasBirthday ? birthday : nil
             s.avatarColor = avatarColor
@@ -2272,6 +2285,7 @@ struct StudentEditorSheet: View {
             store.updateStudent(s)
         } else {
             var s = Student(name: n)
+            s.phone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
             s.handicap = handicap.trimmingCharacters(in: .whitespacesAndNewlines)
             s.birthday = hasBirthday ? birthday : nil
             s.avatarColor = avatarColor
