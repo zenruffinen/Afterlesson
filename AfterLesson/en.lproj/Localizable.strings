@@ -1,7 +1,7 @@
 /* Tab Bar */
 "Start" = "Home";
 "Vorlagen" = "Templates";
-"Klassen" = "Groups";
+"Klassen" = "Learning Paths";
 "Schüler" = "Students";
 "Einstellungen" = "Settings";
 "Fortschritt" = "Progress";
@@ -61,11 +61,11 @@
 "Zuerst Vorlagen im Vorlagen-Tab anlegen" = "First add templates in the Templates tab";
 
 /* Groups */
-"Noch keine Klassen" = "No Groups Yet";
-"Tippe auf + um eine Klasse anzulegen" = "Tap + to create a group";
-"Neue Klasse" = "New Group";
-"Klasse bearbeiten" = "Edit Group";
-"Name der Klasse" = "Group name";
+"Noch keine Klassen" = "No Learning Paths Yet";
+"Tippe auf + um eine Klasse anzulegen" = "Tap + to create a learning path";
+"Neue Klasse" = "New Learning Path";
+"Klasse bearbeiten" = "Edit Learning Path";
+"Name der Klasse" = "Learning path name";
 
 /* Mode Selection */
 "Wähle deinen Modus" = "Choose Your Mode";

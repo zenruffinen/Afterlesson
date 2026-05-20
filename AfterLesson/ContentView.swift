@@ -233,8 +233,8 @@ struct HomeView: View {
                           color: Color(hex: "4A148C")) {
                     selectedTab = .notes
                 }
-                QuickTile(icon: "person.3.sequence.fill", title: "Klassen",
-                          subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Klasse" : "Klassen")",
+                QuickTile(icon: "person.3.sequence.fill", title: "Lernpfade",
+                          subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
                           color: ALColor.gold) {
                     selectedTab = .groups
                 }
@@ -1388,7 +1388,7 @@ struct TeacherDashboardView: View {
                     List {
                         // Klassen
                         if !store.groups.isEmpty {
-                            Section("Klassen") {
+                            Section("Lernpfade") {
                                 ForEach(store.groups) { group in
                                     recipientRow(DashboardRecipient(kind: .group(group)))
                                 }
@@ -1482,9 +1482,9 @@ struct TeacherDashboardView: View {
             Image(systemName: "person.2.slash")
                 .font(.system(size: 56))
                 .foregroundStyle(ALColor.gold.opacity(0.4))
-            Text("Noch keine Schüler oder Klassen")
+            Text("Noch keine Schüler oder Lernpfade")
                 .font(.title3.bold())
-            Text("Lege zuerst Schüler oder Klassen im jeweiligen Tab an")
+            Text("Lege zuerst Schüler oder Lernpfade im jeweiligen Tab an")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -1699,9 +1699,9 @@ struct GruppenView: View {
                         Image(systemName: "person.3.slash")
                             .font(.system(size: 60))
                             .foregroundStyle(ALColor.gold.opacity(0.4))
-                        Text("Noch keine Klassen")
+                        Text("Noch keine Lernpfade")
                             .font(.title3.bold())
-                        Text("Tippe auf + um eine Klasse anzulegen")
+                        Text("Tippe auf + um einen Lernpfad anzulegen")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -1756,7 +1756,7 @@ struct GruppenView: View {
                     .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle("Klassen")
+            .navigationTitle("Lernpfade")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showAddGroup = true } label: {
@@ -1782,7 +1782,7 @@ struct GruppenView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Name
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Name der Klasse")
+                        Text("Name des Lernpfads")
                             .font(.subheadline.bold())
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 4)
@@ -1822,7 +1822,7 @@ struct GruppenView: View {
                 .padding(16)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Neue Klasse")
+            .navigationTitle("Neuer Lernpfad")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -1870,7 +1870,7 @@ struct EditGroupSheet: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Name
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Name der Klasse")
+                        Text("Name des Lernpfads")
                             .font(.subheadline.bold())
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 4)
@@ -1910,7 +1910,7 @@ struct EditGroupSheet: View {
                 .padding(16)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Klasse bearbeiten")
+            .navigationTitle("Lernpfad bearbeiten")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 editName = group.name
@@ -2513,7 +2513,7 @@ struct StudentDetailView: View {
                 // Segment: Lektionen | Klassen | Verlauf
                 Picker("", selection: $tab) {
                     Text("Lektionen").tag(0)
-                    Text("Klassen").tag(1)
+                    Text("Lernpfade").tag(1)
                     Text("Verlauf").tag(2)
                 }
                 .pickerStyle(.segmented)
@@ -2585,7 +2585,7 @@ struct StudentDetailView: View {
                         let studentClasses = store.groups.filter { $0.studentIDs.contains(student.id) }
                         if studentClasses.isEmpty {
                             Section {
-                                Text("Noch keiner Klasse zugeordnet")
+                                Text("Noch keinem Lernpfad zugeordnet")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                         } else {
