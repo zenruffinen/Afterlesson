@@ -4631,7 +4631,7 @@ struct NoteEditorView: View {
             AVNumberOfChannelsKey: 1,
             AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
         ]
-        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+        AVAudioApplication.requestRecordPermission { granted in
             guard granted else { return }
             DispatchQueue.main.async {
                 try? AVAudioSession.sharedInstance().setCategory(.record, mode: .default)
