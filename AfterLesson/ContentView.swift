@@ -163,29 +163,29 @@ struct HomeView: View {
 
     // MARK: Hero
     var heroBanner: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: 16) {
             // Golfbälle links als Logo
             GolfBallJar()
                 .allowsHitTesting(false)
+                .padding(.leading, -4)
 
-            // Name + Badge rechts
-            VStack(alignment: .leading, spacing: 5) {
-                Text("AfterLesson")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+            // Name + Badge
+            VStack(alignment: .leading, spacing: 6) {
+                Text(store.teacherName)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
-                HStack(spacing: 8) {
-                    Text(store.teacherName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("Golf Pro")
-                        .font(.caption2.bold())
-                        .foregroundStyle(Color(hex: "C9A84C"))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color(hex: "C9A84C").opacity(0.15))
-                        .clipShape(Capsule())
-                }
+                Text("Golf Pro Workspace")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color(hex: "C9A84C"))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(Color(hex: "C9A84C").opacity(0.12))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule().strokeBorder(Color(hex: "C9A84C").opacity(0.3), lineWidth: 1)
+                    )
             }
+
             Spacer()
         }
         .padding(.horizontal, 20)
@@ -456,22 +456,22 @@ struct GolfBallJar: View {
     @State private var animate = false
 
     let balls: [(x: CGFloat, y: CGFloat, delay: Double, size: CGFloat, color: Color)] = [
-        (-13,  6, 0.00, 23, Color(hex: "E53935")),   // Rot
-        ( 13,  6, 0.08, 23, Color(hex: "C9A84C")),   // Gold
-        (-10, -13, 0.16, 20, ALColor.green),           // Grün
-        ( 11, -12, 0.10, 20, Color(hex: "1565C0")),   // Blau
+        (-11,  5, 0.00, 19, Color(hex: "E53935")),   // Rot
+        ( 11,  5, 0.08, 19, Color(hex: "C9A84C")),   // Gold
+        ( -8, -11, 0.16, 17, ALColor.green),           // Grün
+        (  9, -10, 0.10, 17, Color(hex: "1565C0")),   // Blau
     ]
 
     var body: some View {
         ZStack {
             // Glasgefäss
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(Color(.separator).opacity(0.5), lineWidth: 1.0)
                 .background(
-                    RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: 12)
                         .fill(Color(.secondarySystemGroupedBackground).opacity(0.6))
                 )
-                .frame(width: 70, height: 74)
+                .frame(width: 58, height: 62)
 
             // Golfbälle — wackeln links/rechts
             ForEach(balls.indices, id: \.self) { i in
