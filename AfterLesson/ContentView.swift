@@ -105,13 +105,14 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 0) {
+                VStack(spacing: 12) {
 
                     // Hero Banner (zentriert, groß)
                     heroBanner
+                        .padding(.horizontal, 16)
 
                     // Karte + AfterLesson im gleichen Padding
-                    VStack(spacing: 14) {
+                    VStack(spacing: 12) {
 
                         // 4 Zeilen in einer Karte
                         quickAccess
@@ -146,16 +147,14 @@ struct HomeView: View {
     // MARK: Hero
     var heroBanner: some View {
         ZStack {
-            // Wasserzeichen – grosser Golfer im Hintergrund
+            // Wasserzeichen – Golfer-Silhouette rechts
             Image(systemName: "figure.golf")
-                .font(.system(size: 220, weight: .thin))
-                .foregroundStyle(ALColor.green.opacity(0.055))
-                .offset(x: 70, y: 10)
-                .clipped()
+                .font(.system(size: 160, weight: .ultraLight))
+                .foregroundStyle(ALColor.green.opacity(0.07))
+                .offset(x: 90, y: 0)
+                .allowsHitTesting(false)
 
-            VStack(spacing: 14) {
-                Spacer().frame(height: 8)
-
+            VStack(spacing: 10) {
                 // Goldener Avatar-Kreis
                 ZStack {
                     Circle()
@@ -166,43 +165,40 @@ struct HomeView: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 84, height: 84)
-                        .shadow(color: Color(hex: "C9A84C").opacity(0.45), radius: 12, x: 0, y: 6)
+                        .frame(width: 80, height: 80)
+                        .shadow(color: Color(hex: "C9A84C").opacity(0.40), radius: 10, x: 0, y: 5)
 
-                    // Innerer Kreis / Rahmen
                     Circle()
                         .strokeBorder(Color.white.opacity(0.25), lineWidth: 2)
-                        .frame(width: 84, height: 84)
+                        .frame(width: 80, height: 80)
 
                     Image(systemName: "figure.golf")
-                        .font(.system(size: 36, weight: .semibold))
+                        .font(.system(size: 34, weight: .semibold))
                         .foregroundStyle(.white)
                 }
 
-                // Name – groß, serif, bold
+                // Name
                 Text(store.teacherName)
-                    .font(.system(size: 36, weight: .bold, design: .serif))
+                    .font(.system(size: 34, weight: .bold, design: .serif))
                     .foregroundStyle(Color(hex: "1A1A1A"))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
 
-                // Badge – dunkelgrün gefüllt, gold Text
+                // Badge
                 Text("Golf Pro Workspace")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(ALColor.gold)
                     .tracking(0.3)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 9)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
                     .background(ALColor.green)
                     .clipShape(Capsule())
-                    .shadow(color: ALColor.green.opacity(0.35), radius: 6, x: 0, y: 3)
-
-                Spacer().frame(height: 4)
+                    .shadow(color: ALColor.green.opacity(0.30), radius: 5, x: 0, y: 3)
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(.top, 16)
-        .padding(.bottom, 22)
+        .padding(.top, 14)
+        .padding(.bottom, 18)
     }
 
     // MARK: AfterLesson – Hauptaktion
