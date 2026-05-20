@@ -39,11 +39,11 @@ struct AfterLessonTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            tabItem(.home,     icon: "house.fill",        label: "Start",      color: ALColor.green)
-            tabItem(.lessons,  icon: "book.fill",          label: "Vorlagen",   color: ALColor.green)
-            tabItem(.groups,   icon: "person.3.fill",      label: "Klassen",    color: ALColor.gold)
-            tabItem(.students, icon: "person.2.fill",      label: "Schüler",    color: Color(hex: "1565C0"))
-            tabItem(.settings, icon: "gearshape.fill",     label: "Einstellungen", color: .gray)
+            tabItem(.home,     icon: "house.fill",           label: "Start",         color: ALColor.green)
+            tabItem(.lessons,  icon: "rectangle.stack.fill", label: "Vorlagen",      color: ALColor.green)
+            tabItem(.groups,   icon: "person.3.sequence.fill",label: "Klassen",      color: ALColor.gold)
+            tabItem(.students, icon: "graduationcap.fill",    label: "Schüler",      color: Color(hex: "1565C0"))
+            tabItem(.settings, icon: "gearshape.fill",        label: "Einstellungen",color: .gray)
         }
         .padding(.bottom, 28)
         .background(.ultraThinMaterial)
@@ -116,7 +116,7 @@ struct HomeView: View {
 
                     // Pro Studio Button
                     modeBanner
-                        .padding(.top, 36)
+                        .padding(.top, 16)
                         .padding(.horizontal, 4)
                         .shadow(color: ALColor.dark.opacity(0.3), radius: 20, x: 0, y: 10)
 
@@ -175,109 +175,41 @@ struct HomeView: View {
 
     // MARK: Mode Banner (Pro Studio Button)
     var modeBanner: some View {
-        // Äussere Karte
-        ZStack {
-            // Äusserer Hintergrund
-            RoundedRectangle(cornerRadius: 28)
-                .fill(
-                    LinearGradient(
-                        colors: [ALColor.dark.opacity(0.85), Color(hex: "1A2E1A")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .shadow(color: ALColor.dark.opacity(0.5), radius: 16, x: 0, y: 8)
+        Button {
+            if isTeacher { showTeacherDashboard = true }
+        } label: {
+            HStack(spacing: 14) {
+                // Icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(ALColor.green)
+                        .frame(width: 52, height: 52)
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
 
-            // Dekorative Kreise im Hintergrund
-            Circle()
-                .fill(ALColor.green.opacity(0.15))
-                .frame(width: 160, height: 160)
-                .offset(x: 120, y: -30)
-            Circle()
-                .fill(ALColor.gold.opacity(0.08))
-                .frame(width: 100, height: 100)
-                .offset(x: -80, y: 50)
-
-            VStack(spacing: 16) {
-                // Titel der Karte
-                HStack {
-                    Text("Dein Arbeitsbereich")
-                        .font(.caption.bold())
-                        .foregroundStyle(.white.opacity(0.45))
-                        .textCase(.uppercase)
-                        .tracking(1.5)
-                    Spacer()
-                    Image(systemName: "sparkles")
+                // Text
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Pro Studio")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("\(store.folders.count) Vorlagen · \(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")")
                         .font(.caption)
-                        .foregroundStyle(ALColor.gold.opacity(0.6))
+                        .foregroundStyle(.secondary)
                 }
 
-                // Der eigentliche Button
-                Button {
-                    if isTeacher { showTeacherDashboard = true }
-                } label: {
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 18)
-                            .fill(
-                                LinearGradient(
-                                    colors: [ALColor.dark, ALColor.fairway],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(height: 80)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18)
-                                    .stroke(ALColor.gold.opacity(0.3), lineWidth: 1)
-                            )
+                Spacer()
 
-                        HStack(spacing: 16) {
-                            ZStack {
-                                Circle()
-                                    .fill(ALColor.gold.opacity(0.2))
-                                    .frame(width: 52, height: 52)
-                                Circle()
-                                    .stroke(ALColor.gold.opacity(0.4), lineWidth: 1)
-                                    .frame(width: 52, height: 52)
-                                Image(systemName: "slider.horizontal.3")
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(ALColor.gold)
-                            }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Pro Studio")
-                                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                                    .foregroundStyle(ALColor.gold)
-                                Text("\(store.folders.count) Vorlagen · \(store.lessons.count) Lektionen")
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.65))
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "arrow.right.circle.fill")
-                                .font(.system(size: 26))
-                                .foregroundStyle(ALColor.gold.opacity(0.7))
-                                .padding(.trailing, 4)
-                        }
-                        .padding(.horizontal, 16)
-                    }
-                }
-                .buttonStyle(.plain)
-
-                // Untertitel
-                HStack(spacing: 6) {
-                    Image(systemName: "lock.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.3))
-                    Text("Nur für den Pro sichtbar")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.3))
-                    Spacer()
-                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
-            .padding(20)
+            .padding(16)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
         }
+        .buttonStyle(.plain)
         .sheet(isPresented: $showTeacherDashboard) {
             TeacherDashboardView()
         }
@@ -299,7 +231,7 @@ struct HomeView: View {
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 QuickTile(icon: "book.fill", title: "Lektionsvorlagen",
-                          subtitle: "\(store.lessons.count) Lektionen",
+                          subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
                           color: ALColor.green) {
                     selectedTab = .lessons
                 }
