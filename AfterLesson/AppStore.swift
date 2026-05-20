@@ -28,6 +28,7 @@ final class AppStore: ObservableObject {
     }
     @AppStorage("appMode") var appMode: String = AppMode.teacher.rawValue
     @AppStorage("teacherName") var teacherName: String = "Thomas Kubernat"
+    @AppStorage("teacherTitle") var teacherTitle: String = "PGA Teaching Professional"
     @AppStorage("isLocked") var isLocked: Bool = false
 
     // MARK: - Init

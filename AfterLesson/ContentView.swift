@@ -181,6 +181,13 @@ struct HomeView: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
 
+            // Höchster Titel
+            Text(store.teacherTitle)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color(hex: "666666"))
+                .tracking(0.6)
+                .multilineTextAlignment(.center)
+
             // Badge
             Text("Golf Pro Workspace")
                 .font(.system(size: 11, weight: .semibold))
@@ -304,6 +311,23 @@ struct HomeView: View {
     // MARK: Quick Access
     var quickAccess: some View {
         VStack(spacing: 0) {
+
+            // Workspace-Header-Balken
+            HStack {
+                Text("Workspace")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(ALColor.gold.opacity(0.85))
+                    .tracking(1.2)
+                    .textCase(.uppercase)
+                Spacer()
+                Text(store.teacherName)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(ALColor.gold.opacity(0.55))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 9)
+            .background(ALColor.green.opacity(0.92))
+
             // Navigation-Zeilen
             homeRow(icon: "figure.golf", title: "Schüler",
                     subtitle: "\(store.students.count) \(store.students.count == 1 ? "Schüler" : "Schüler")",
