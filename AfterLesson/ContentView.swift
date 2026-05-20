@@ -217,16 +217,15 @@ struct HomeView: View {
         }
         .clipped()
         .padding(.top, 20)
-        .padding(.bottom, 16)
+        .padding(.bottom, 20)
     }
 
-    // MARK: AfterLesson – Hauptaktion
+    // MARK: AfterLesson – Hauptaktion (gleiche Zeilenhöhe wie andere Rows)
     var neueLektion: some View {
         Button {
             showQuickCapture = true
         } label: {
-            HStack(spacing: 16) {
-                // Goldener Mic-Kreis
+            HStack(spacing: 13) {
                 ZStack {
                     Circle()
                         .fill(
@@ -235,35 +234,35 @@ struct HomeView: View {
                                 startPoint: .topLeading, endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 54, height: 54)
-                        .shadow(color: ALColor.gold.opacity(0.4), radius: 6, x: 0, y: 3)
+                        .frame(width: 40, height: 40)
                     Image(systemName: "mic.fill")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
                 }
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text("AfterLesson")
-                        .font(.system(size: 19, weight: .bold, design: .rounded))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
                     Text("Stunde dokumentieren")
-                        .font(.caption)
+                        .font(.system(size: 12))
                         .foregroundStyle(Color.white.opacity(0.65))
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(ALColor.gold.opacity(0.8))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(ALColor.gold.opacity(0.7))
             }
-            .padding(16)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(ALColor.green)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(ALColor.gold.opacity(0.45), lineWidth: 1.5)
+                    .strokeBorder(ALColor.gold.opacity(0.40), lineWidth: 1.2)
             )
-            .shadow(color: ALColor.green.opacity(0.3), radius: 8, x: 0, y: 4)
+            .shadow(color: ALColor.green.opacity(0.25), radius: 6, x: 0, y: 3)
         }
         .buttonStyle(.plain)
     }
