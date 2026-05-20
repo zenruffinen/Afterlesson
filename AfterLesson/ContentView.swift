@@ -163,33 +163,32 @@ struct HomeView: View {
 
     // MARK: Hero
     var heroBanner: some View {
-        HStack(alignment: .center, spacing: 16) {
-            // Golfbälle links als Logo
+        HStack(alignment: .center, spacing: 14) {
+            // Golfbälle links — bündig mit Kartenkanten
             GolfBallJar()
                 .allowsHitTesting(false)
-                .padding(.leading, -4)
 
             // Name + Badge
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(store.teacherName)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.primary)
                 Text("Golf Pro Workspace")
-                    .font(.caption.weight(.medium))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Color(hex: "C9A84C"))
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
-                    .background(Color(hex: "C9A84C").opacity(0.12))
+                    .background(Color(hex: "C9A84C").opacity(0.10))
                     .clipShape(Capsule())
                     .overlay(
-                        Capsule().strokeBorder(Color(hex: "C9A84C").opacity(0.3), lineWidth: 1)
+                        Capsule().strokeBorder(Color(hex: "C9A84C").opacity(0.28), lineWidth: 0.8)
                     )
             }
 
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
+        .padding(.horizontal, 0)
+        .padding(.top, 14)
         .padding(.bottom, 5)
     }
 
