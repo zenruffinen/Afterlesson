@@ -147,53 +147,78 @@ struct HomeView: View {
     // MARK: Hero
     var heroBanner: some View {
         ZStack {
-            // Wasserzeichen – Golfer-Silhouette rechts
+            // Hintergrund – grosse Golfer-Silhouette rechts
             Image(systemName: "figure.golf")
-                .font(.system(size: 160, weight: .ultraLight))
-                .foregroundStyle(ALColor.green.opacity(0.07))
-                .offset(x: 90, y: 0)
+                .font(.system(size: 200, weight: .thin))
+                .foregroundStyle(Color(hex: "AAAAAA").opacity(0.18))
+                .offset(x: 80, y: 20)
                 .allowsHitTesting(false)
 
-            VStack(spacing: 10) {
-                // Goldener Avatar-Kreis
+            VStack(spacing: 12) {
+
+                // Gold-Ring + Avatar
                 ZStack {
+                    // Äusserer Goldring
+                    Circle()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Color(hex: "D4A840"), Color(hex: "8B6210"), Color(hex: "D4A840")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 3
+                        )
+                        .frame(width: 108, height: 108)
+
+                    // Goldener Füllkreis
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "D4A840"), Color(hex: "7A5210")],
+                                colors: [Color(hex: "D4A840"), Color(hex: "8B6210")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 80, height: 80)
-                        .shadow(color: Color(hex: "C9A84C").opacity(0.40), radius: 10, x: 0, y: 5)
+                        .frame(width: 98, height: 98)
+                        .shadow(color: Color(hex: "C9A84C").opacity(0.45), radius: 12, x: 0, y: 6)
 
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 2)
-                        .frame(width: 80, height: 80)
-
+                    // Golfer-Icon
                     Image(systemName: "figure.golf")
-                        .font(.system(size: 34, weight: .semibold))
+                        .font(.system(size: 46, weight: .regular))
                         .foregroundStyle(.white)
                 }
 
-                // Name
+                // Name – gross, klassisch-serif
                 Text(store.teacherName)
-                    .font(.system(size: 34, weight: .bold, design: .serif))
-                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .font(.system(size: 40, weight: .bold, design: .serif))
+                    .foregroundStyle(Color(hex: "111111"))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
+                    .shadow(color: Color.black.opacity(0.04), radius: 1, x: 0, y: 1)
 
-                // Badge
+                // Badge – dunkelgrün mit Gold-Rahmen
                 Text("Golf Pro Workspace")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(ALColor.gold)
-                    .tracking(0.3)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
-                    .background(ALColor.green)
-                    .clipShape(Capsule())
-                    .shadow(color: ALColor.green.opacity(0.30), radius: 5, x: 0, y: 3)
+                    .tracking(0.4)
+                    .padding(.horizontal, 26)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(ALColor.green)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color(hex: "D4A840"), Color(hex: "8B6210"), Color(hex: "D4A840")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.5
+                            )
+                    )
+                    .shadow(color: ALColor.green.opacity(0.30), radius: 6, x: 0, y: 3)
             }
             .frame(maxWidth: .infinity)
         }
