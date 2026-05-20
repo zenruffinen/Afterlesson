@@ -30,6 +30,13 @@ final class AppStore: ObservableObject {
     @AppStorage("teacherName") var teacherName: String = "Thomas Kubernat"
     @AppStorage("teacherTitle") var teacherTitle: String = "PGA Teaching Professional"
     @AppStorage("isLocked") var isLocked: Bool = false
+    @AppStorage("pinnedNoteID") var pinnedNoteID: String = ""
+
+    var pinnedNote: ProNote? {
+        guard !pinnedNoteID.isEmpty,
+              let uuid = UUID(uuidString: pinnedNoteID) else { return nil }
+        return proNotes.first(where: { $0.id == uuid })
+    }
 
     // MARK: - Init
 

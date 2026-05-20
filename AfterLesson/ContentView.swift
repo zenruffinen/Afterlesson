@@ -114,6 +114,9 @@ struct HomeView: View {
                     // Karte + AfterLesson im gleichen Padding
                     VStack(spacing: 12) {
 
+                        // Gepinnte Notiz
+                        PinnedNoteCard()
+
                         // Karte inkl. AfterLesson-Zeile
                         quickAccess
 
@@ -519,6 +522,171 @@ struct SessionRowView: View {
             .cornerRadius(12)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Pinned Note Card
+
+struct PinnedNoteCard: View {
+    @EnvironmentObject var store: AppStore
+    @State private var showPicker = false
+
+    var body: some View {
+        Button { showPicker = true } label: {
+            HStack(spacing: 12) {
+                // Pin-Icon
+                ZStack {
+                    Circle()
+                        .fill(store.pinnedNote != nil
+                              ? Color(hex: store.pinnedNote!.colorHex)
+                              : Color(hex: "C9A84C").opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "pin.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(store.pinnedNote != nil ? .white : Color(hex: "C9A84C"))
+                        .rotationEffect(.degrees(45))
+                }
+
+                if let note = store.pinnedNote {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(note.title.isEmpty ? "Unbenannte Notiz" : note.title)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color(hex: "1A1A1A"))
+                            .lineLimit(1)
+                        if !note.text.isEmpty {
+                            Text(note.text)
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color(hex: "888888"))
+                                .lineLimit(1)
+                        }
+                    }
+                } else {
+                    Text("Wichtige Notiz anheften …")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(hex: "AAAAAA"))
+                }
+
+                Spacer()
+
+                if store.pinnedNote != nil {
+                    Button {
+                        store.pinnedNoteID = ""
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color(hex: "BBBBBB"))
+                            .padding(6)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(store.pinnedNote != nil
+                          ? Color(hex: store.pinnedNote!.colorHex).opacity(0.08)
+                          : Color(hex: "F0EDE6"))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(
+                        store.pinnedNote != nil
+                            ? Color(hex: store.pinnedNote!.colorHex).opacity(0.25)
+                            : Color(hex: "C9A84C").opacity(0.35),
+                        style: StrokeStyle(lineWidth: 1.2, dash: store.pinnedNote != nil ? [] : [5, 3])
+                    )
+            )
+            .shadow(color: Color.black.opacity(store.pinnedNote != nil ? 0.05 : 0), radius: 4, x: 0, y: 2)
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showPicker) {
+            PinNotePickerSheet()
+        }
+    }
+}
+
+// MARK: - Pin Note Picker
+
+struct PinNotePickerSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if store.proNotes.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "pin.slash")
+                            .font(.system(size: 48))
+                            .foregroundStyle(ALColor.gold.opacity(0.5))
+                        Text("Noch keine Notizen")
+                            .font(.headline)
+                        Text("Erstelle zuerst eine Notiz um sie anheften zu können.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List(store.proNotes) { note in
+                        Button {
+                            store.pinnedNoteID = note.id.uuidString
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(hex: note.colorHex))
+                                        .frame(width: 36, height: 36)
+                                    Image(systemName: "pin.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.white)
+                                        .rotationEffect(.degrees(45))
+                                }
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(note.title.isEmpty ? "Unbenannte Notiz" : note.title)
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    if !note.text.isEmpty {
+                                        Text(note.text)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                }
+                                Spacer()
+                                if store.pinnedNoteID == note.id.uuidString {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(ALColor.green)
+                                        .font(.system(size: 14, weight: .bold))
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .listStyle(.insetGrouped)
+                }
+            }
+            .navigationTitle("Notiz anheften")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                if !store.pinnedNoteID.isEmpty {
+                    ToolbarItem(placement: .destructiveAction) {
+                        Button("Lösen") {
+                            store.pinnedNoteID = ""
+                            dismiss()
+                        }
+                        .foregroundStyle(.red)
+                    }
+                }
+            }
+        }
     }
 }
 
