@@ -1674,29 +1674,19 @@ struct ShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ uvc: UIActivityViewController, context: Context) {}
 }
 
-// MARK: - Gruppen View
+// MARK: - Gruppen View (Lernpfade)
 
 struct GruppenView: View {
     @EnvironmentObject var store: AppStore
     @State private var showAddGroup = false
-    @State private var newGroupName = ""
-    @State private var newGroupIcon = "person.3.fill"
-    @State private var selectedGroup: TeachingGroup? = nil
     @State private var groupToEdit: TeachingGroup? = nil
-
-    let groupIcons = [
-        "person.3.fill", "person.2.fill", "figure.golf", "graduationcap.fill",
-        "trophy.fill", "flag.fill", "star.fill", "clock.fill",
-        "calendar", "mappin.fill", "leaf.fill", "sportscourt.fill",
-        "figure.walk", "sun.max.fill", "moon.fill", "bolt.fill"
-    ]
 
     var body: some View {
         NavigationStack {
             Group {
                 if store.groups.isEmpty {
                     VStack(spacing: 16) {
-                        Image(systemName: "person.3.slash")
+                        Image(systemName: "road.lanes")
                             .font(.system(size: 60))
                             .foregroundStyle(ALColor.gold.opacity(0.4))
                         Text("Noch keine Lernpfade")
@@ -1712,38 +1702,11 @@ struct GruppenView: View {
                 } else {
                     List {
                         ForEach(store.groups) { group in
-                            Button { selectedGroup = group } label: {
-                                HStack(spacing: 14) {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(Color(hex: group.colorHex))
-                                            .frame(width: 46, height: 46)
-                                        Image(systemName: group.icon)
-                                            .font(.system(size: 20))
-                                            .foregroundStyle(.white)
-                                    }
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(group.name).font(.headline).foregroundStyle(.primary)
-                                        HStack(spacing: 8) {
-                                            Label("\(store.studentsIn(group).count) Schüler",
-                                                  systemImage: "person.2")
-                                            Label("\(store.lessonsIn(group).count) Lektionen",
-                                                  systemImage: "book")
-                                        }
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                                .padding(.vertical, 4)
+                            NavigationLink(destination: LernpfadDetailView(group: group)) {
+                                LernpfadRow(group: group)
                             }
-                            .buttonStyle(.plain)
                             .swipeActions(edge: .leading) {
-                                Button {
-                                    groupToEdit = group
-                                } label: {
+                                Button { groupToEdit = group } label: {
                                     Label("Bearbeiten", systemImage: "pencil")
                                 }
                                 .tint(ALColor.gold)
@@ -1765,189 +1728,339 @@ struct GruppenView: View {
                 }
             }
             .sheet(isPresented: $showAddGroup) {
-                addGroupSheet
+                AddEditGroupSheet()
             }
             .sheet(item: $groupToEdit) { group in
-                EditGroupSheet(group: group)
-            }
-            .sheet(item: $selectedGroup) { group in
-                GruppeDetailView(group: group)
+                AddEditGroupSheet(existing: group)
             }
         }
-    }
-
-    var addGroupSheet: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Name
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Name des Lernpfads")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 4)
-                        TextField("z.B. Anfänger Dienstag", text: $newGroupName)
-                            .padding(12)
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(10)
-                    }
-
-                    // Icon picker
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Icon")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 4)
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
-                            ForEach(groupIcons, id: \.self) { icon in
-                                Button {
-                                    newGroupIcon = icon
-                                } label: {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(newGroupIcon == icon
-                                                  ? ALColor.gold
-                                                  : Color(.secondarySystemGroupedBackground))
-                                            .frame(height: 64)
-                                        Image(systemName: icon)
-                                            .font(.system(size: 26))
-                                            .foregroundStyle(newGroupIcon == icon ? .white : .primary)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                }
-                .padding(16)
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Neuer Lernpfad")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") {
-                        newGroupName = ""
-                        newGroupIcon = "person.3.fill"
-                        showAddGroup = false
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Erstellen") {
-                        let name = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !name.isEmpty { store.addGroup(name: name, icon: newGroupIcon) }
-                        newGroupName = ""
-                        newGroupIcon = "person.3.fill"
-                        showAddGroup = false
-                    }
-                    .disabled(newGroupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-        .presentationDetents([.large])
     }
 }
 
-// MARK: - Edit Group Sheet
+// MARK: - Lernpfad Row
 
-struct EditGroupSheet: View {
+struct LernpfadRow: View {
     @EnvironmentObject var store: AppStore
-    @Environment(\.dismiss) var dismiss
     let group: TeachingGroup
-    @State private var editName: String = ""
-    @State private var editIcon: String = "person.3.fill"
-
-    let groupIcons = [
-        "person.3.fill", "person.2.fill", "figure.golf", "graduationcap.fill",
-        "trophy.fill", "flag.fill", "star.fill", "clock.fill",
-        "calendar", "mappin.fill", "leaf.fill", "sportscourt.fill",
-        "figure.walk", "sun.max.fill", "moon.fill", "bolt.fill"
-    ]
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Name
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Name des Lernpfads")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 4)
-                        TextField("Name", text: $editName)
-                            .padding(12)
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(10)
-                    }
-
-                    // Icon picker
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Icon")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 4)
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
-                            ForEach(groupIcons, id: \.self) { icon in
-                                Button {
-                                    editIcon = icon
-                                } label: {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(editIcon == icon
-                                                  ? ALColor.gold
-                                                  : Color(.secondarySystemGroupedBackground))
-                                            .frame(height: 64)
-                                        Image(systemName: icon)
-                                            .font(.system(size: 26))
-                                            .foregroundStyle(editIcon == icon ? .white : .primary)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                }
-                .padding(16)
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 13)
+                    .fill(Color(hex: group.colorHex))
+                    .frame(width: 52, height: 52)
+                Image(systemName: group.icon)
+                    .font(.system(size: 22))
+                    .foregroundStyle(.white)
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Lernpfad bearbeiten")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                editName = group.name
-                editIcon = group.icon
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(group.name)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                if !group.notes.isEmpty {
+                    Text(group.notes)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Speichern") {
-                        let name = editName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !name.isEmpty {
-                            var updated = group
-                            updated.name = name
-                            updated.icon = editIcon
-                            store.updateGroup(updated)
-                        }
-                        dismiss()
-                    }
-                    .disabled(editName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                HStack(spacing: 10) {
+                    Label("\(store.lessonsIn(group).count) Lektionen", systemImage: "book.fill")
+                    Label("\(store.studentsIn(group).count) Schüler", systemImage: "person.2.fill")
                 }
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(Color(hex: group.colorHex))
             }
+            Spacer()
         }
-        .presentationDetents([.large])
+        .padding(.vertical, 4)
     }
 }
 
-// MARK: - Gruppe Detail View
+// MARK: - Lernpfad Detail View
 
-struct GruppeDetailView: View {
+struct LernpfadDetailView: View {
+    @EnvironmentObject var store: AppStore
+    @State private var showEditSheet = false
+    @State private var showShareSheet = false
+    @State private var shareItems: [Any] = []
+    @State private var showAddLesson = false
+    @State private var showAddStudent = false
+
+    let group: TeachingGroup
+
+    var currentGroup: TeachingGroup {
+        store.groups.first(where: { $0.id == group.id }) ?? group
+    }
+    var groupColor: Color { Color(hex: currentGroup.colorHex) }
+    var lessons: [Lesson] { store.lessonsIn(currentGroup) }
+    var students: [Student] { store.studentsIn(currentGroup) }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                // Header Card
+                headerCard
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+
+                // Lektionen
+                lektionenSection
+                    .padding(.top, 24)
+
+                // Schüler
+                schuelerSection
+                    .padding(.top, 20)
+                    .padding(.bottom, 40)
+            }
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle(currentGroup.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button { showEditSheet = true } label: {
+                        Label("Lernpfad bearbeiten", systemImage: "pencil")
+                    }
+                    if !lessons.isEmpty {
+                        Button {
+                            shareItems = store.exportGroup(currentGroup)
+                            if !shareItems.isEmpty { showShareSheet = true }
+                        } label: {
+                            Label("Alle Lektionen senden", systemImage: "paperplane.fill")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            AddEditGroupSheet(existing: currentGroup)
+        }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(items: shareItems)
+        }
+        .sheet(isPresented: $showAddLesson) {
+            LernpfadLessonPickerSheet(group: currentGroup)
+        }
+        .sheet(isPresented: $showAddStudent) {
+            LernpfadStudentPickerSheet(group: currentGroup)
+        }
+    }
+
+    // MARK: Header Card
+    var headerCard: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(groupColor)
+                    .frame(width: 68, height: 68)
+                Image(systemName: currentGroup.icon)
+                    .font(.system(size: 30))
+                    .foregroundStyle(.white)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(currentGroup.name)
+                    .font(.title3.bold())
+                if !currentGroup.notes.isEmpty {
+                    Text(currentGroup.notes)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                HStack(spacing: 12) {
+                    Label("\(lessons.count) Lektionen", systemImage: "book.fill")
+                    Label("\(students.count) Schüler", systemImage: "person.2.fill")
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(groupColor)
+            }
+            Spacer()
+        }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(16)
+    }
+
+    // MARK: Lektionen Section
+    var lektionenSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Lektionen")
+                    .font(.headline)
+                Spacer()
+                Button { showAddLesson = true } label: {
+                    Label("Hinzufügen", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(groupColor)
+                }
+            }
+            .padding(.horizontal, 20)
+
+            if lessons.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "book.closed")
+                        .foregroundStyle(.secondary)
+                    Text("Noch keine Lektionen")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(16)
+                .background(Color(.secondarySystemGroupedBackground))
+                .cornerRadius(12)
+                .padding(.horizontal, 16)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(lessons.enumerated()), id: \.element.id) { idx, lesson in
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(groupColor.opacity(0.12))
+                                    .frame(width: 32, height: 32)
+                                Text("\(idx + 1)")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundStyle(groupColor)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(lesson.title)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.primary)
+                                if let folder = store.folders.first(where: { $0.id == lesson.folderID }) {
+                                    Text(folder.title)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Button {
+                                store.toggleLesson(lesson, in: currentGroup)
+                            } label: {
+                                Image(systemName: "minus.circle")
+                                    .foregroundStyle(Color(.tertiaryLabel))
+                                    .font(.title3)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 11)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        if idx < lessons.count - 1 {
+                            Divider().padding(.leading, 62).background(Color(.secondarySystemGroupedBackground))
+                        }
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    // MARK: Schüler Section
+    var schuelerSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Schüler")
+                    .font(.headline)
+                Spacer()
+                Button { showAddStudent = true } label: {
+                    Label("Hinzufügen", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(groupColor)
+                }
+            }
+            .padding(.horizontal, 20)
+
+            if students.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "person.slash")
+                        .foregroundStyle(.secondary)
+                    Text("Noch keine Schüler")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(16)
+                .background(Color(.secondarySystemGroupedBackground))
+                .cornerRadius(12)
+                .padding(.horizontal, 16)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(students.enumerated()), id: \.element.id) { idx, student in
+                        let total = lessons.count
+                        let lessonIDs = lessons.map(\.id)
+                        let viewed = student.viewedLessonIDs.filter { lessonIDs.contains($0) }.count
+                        let progress = total > 0 ? Double(viewed) / Double(total) : 0.0
+
+                        HStack(spacing: 14) {
+                            Circle()
+                                .fill(Color(hex: student.avatarColor))
+                                .frame(width: 42, height: 42)
+                                .overlay(
+                                    Text(String(student.name.prefix(1)).uppercased())
+                                        .font(.subheadline.bold())
+                                        .foregroundStyle(.white)
+                                )
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(student.name)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.primary)
+                                if total > 0 {
+                                    HStack(spacing: 8) {
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule()
+                                                    .fill(Color(.tertiarySystemFill))
+                                                    .frame(height: 5)
+                                                Capsule()
+                                                    .fill(progress == 1.0 ? ALColor.green : groupColor)
+                                                    .frame(width: geo.size.width * progress, height: 5)
+                                            }
+                                        }
+                                        .frame(height: 5)
+                                        Text("\(viewed)/\(total)")
+                                            .font(.caption2.weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                            .frame(minWidth: 28, alignment: .trailing)
+                                    }
+                                } else {
+                                    Text("Noch keine Lektionen im Pfad")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Button {
+                                store.toggleStudent(student, in: currentGroup)
+                            } label: {
+                                Image(systemName: "minus.circle")
+                                    .foregroundStyle(Color(.tertiaryLabel))
+                                    .font(.title3)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 11)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        if idx < students.count - 1 {
+                            Divider().padding(.leading, 72).background(Color(.secondarySystemGroupedBackground))
+                        }
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+}
+
+// MARK: - Lernpfad Lesson Picker Sheet
+
+struct LernpfadLessonPickerSheet: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
     let group: TeachingGroup
-    @State private var showShareSheet = false
-    @State private var shareItems: [Any] = []
-    @State private var tab: Int = 0
 
     var currentGroup: TeachingGroup {
         store.groups.first(where: { $0.id == group.id }) ?? group
@@ -1955,51 +2068,19 @@ struct GruppeDetailView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Segment
-                Picker("", selection: $tab) {
-                    Text("Schüler").tag(0)
-                    Text("Lektionen").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding(16)
-
-                if tab == 0 {
-                    // Schüler zuweisen
-                    List {
-                        Section("Schüler auswählen") {
-                            if store.students.isEmpty {
-                                Text("Zuerst Schüler im Schüler-Tab anlegen")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                            ForEach(store.students) { student in
-                                let inGroup = currentGroup.studentIDs.contains(student.id)
-                                Button {
-                                    store.toggleStudent(student, in: currentGroup)
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        Circle()
-                                            .fill(Color(hex: student.avatarColor))
-                                            .frame(width: 36, height: 36)
-                                            .overlay(
-                                                Text(String(student.name.prefix(1)).uppercased())
-                                                    .font(.subheadline.bold())
-                                                    .foregroundStyle(.white)
-                                            )
-                                        Text(student.name).foregroundStyle(.primary)
-                                        Spacer()
-                                        Image(systemName: inGroup ? "checkmark.circle.fill" : "circle")
-                                            .foregroundStyle(inGroup ? ALColor.green : .secondary)
-                                            .font(.title3)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+            Group {
+                if store.lessons.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "book.closed")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.secondary)
+                        Text("Zuerst Vorlagen im Vorlagen-Tab anlegen")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .listStyle(.insetGrouped)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // Lektionen zuweisen
                     List {
                         ForEach(store.folders) { folder in
                             let folderLessons = store.lessonsIn(folder)
@@ -2010,11 +2091,12 @@ struct GruppeDetailView: View {
                                         Button {
                                             store.toggleLesson(lesson, in: currentGroup)
                                         } label: {
-                                            HStack {
+                                            HStack(spacing: 12) {
                                                 Image(systemName: inGroup ? "checkmark.circle.fill" : "circle")
-                                                    .foregroundStyle(inGroup ? ALColor.green : .secondary)
+                                                    .foregroundStyle(inGroup ? Color(hex: currentGroup.colorHex) : .secondary)
                                                     .font(.title3)
-                                                Text(lesson.title).foregroundStyle(.primary)
+                                                Text(lesson.title)
+                                                    .foregroundStyle(.primary)
                                                 Spacer()
                                             }
                                         }
@@ -2023,38 +2105,244 @@ struct GruppeDetailView: View {
                                 }
                             }
                         }
-                        if store.lessons.isEmpty {
-                            Section {
-                                Text("Zuerst Vorlagen im Vorlagen-Tab anlegen")
-                                    .font(.caption).foregroundStyle(.secondary)
+                    }
+                    .listStyle(.insetGrouped)
+                }
+            }
+            .navigationTitle("Lektionen auswählen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+}
+
+// MARK: - Lernpfad Student Picker Sheet
+
+struct LernpfadStudentPickerSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+    let group: TeachingGroup
+
+    var currentGroup: TeachingGroup {
+        store.groups.first(where: { $0.id == group.id }) ?? group
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if store.students.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.slash")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.secondary)
+                        Text("Zuerst Schüler im Schüler-Tab anlegen")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(store.students) { student in
+                            let inGroup = currentGroup.studentIDs.contains(student.id)
+                            Button {
+                                store.toggleStudent(student, in: currentGroup)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Circle()
+                                        .fill(Color(hex: student.avatarColor))
+                                        .frame(width: 38, height: 38)
+                                        .overlay(
+                                            Text(String(student.name.prefix(1)).uppercased())
+                                                .font(.subheadline.bold())
+                                                .foregroundStyle(.white)
+                                        )
+                                    Text(student.name)
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    Image(systemName: inGroup ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(inGroup ? Color(hex: currentGroup.colorHex) : .secondary)
+                                        .font(.title3)
+                                }
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                     .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle(currentGroup.name)
+            .navigationTitle("Schüler auswählen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Fertig") { dismiss() }
+                        .fontWeight(.semibold)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if !store.lessonsIn(currentGroup).isEmpty {
-                        Button {
-                            shareItems = store.exportGroup(currentGroup)
-                            if !shareItems.isEmpty { showShareSheet = true }
-                        } label: {
-                            Label("Senden", systemImage: "paperplane.fill")
-                                .foregroundStyle(ALColor.gold)
+            }
+        }
+        .presentationDetents([.large])
+    }
+}
+
+// MARK: - Add / Edit Group Sheet
+
+struct AddEditGroupSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+
+    var existing: TeachingGroup? = nil
+    var isEditing: Bool { existing != nil }
+
+    @State private var name: String = ""
+    @State private var description: String = ""
+    @State private var selectedIcon: String = "figure.golf"
+    @State private var selectedColor: String = "1B5E20"
+
+    let groupIcons = [
+        "figure.golf",   "graduationcap.fill", "person.3.fill",  "person.2.fill",
+        "trophy.fill",   "flag.fill",           "star.fill",      "scope",
+        "bolt.fill",     "chart.line.uptrend.xyaxis", "leaf.fill", "sun.max.fill",
+        "clock.fill",    "calendar",            "mappin.fill",    "sportscourt.fill"
+    ]
+
+    let colors: [(String, String)] = [
+        ("1B5E20", "Grün"),    ("2C5F2D", "Dunkelgrün"), ("1565C0", "Blau"),  ("4A148C", "Lila"),
+        ("E65100", "Orange"),  ("37474F", "Grau"),        ("880E4F", "Pink"),  ("006064", "Türkis"),
+        ("BF360C", "Rot"),     ("F57F17", "Gold"),        ("263238", "Anthrazit"), ("4E342E", "Braun")
+    ]
+
+    var canSave: Bool { !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+
+                    // Vorschau
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color(hex: selectedColor))
+                            .frame(width: 84, height: 84)
+                        Image(systemName: selectedIcon)
+                            .font(.system(size: 36))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.top, 8)
+                    .animation(.spring(response: 0.3), value: selectedColor)
+                    .animation(.spring(response: 0.3), value: selectedIcon)
+
+                    // Name + Beschreibung
+                    VStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Name").font(.caption.bold()).foregroundStyle(.secondary)
+                                .padding(.horizontal, 4)
+                            TextField("z.B. Anfänger Drive", text: $name)
+                                .padding(12)
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Beschreibung (optional)").font(.caption.bold()).foregroundStyle(.secondary)
+                                .padding(.horizontal, 4)
+                            TextField("z.B. Drive-Technik für Einsteiger", text: $description)
+                                .padding(12)
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                        }
+                    }
+
+                    // Icon Picker
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Icon").font(.caption.bold()).foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+                            ForEach(groupIcons, id: \.self) { icon in
+                                Button { selectedIcon = icon } label: {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(selectedIcon == icon
+                                                  ? Color(hex: selectedColor)
+                                                  : Color(.tertiarySystemFill))
+                                            .frame(height: 58)
+                                        Image(systemName: icon)
+                                            .font(.system(size: 22))
+                                            .foregroundStyle(selectedIcon == icon ? .white : .primary)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    // Farb-Picker
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Farbe").font(.caption.bold()).foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
+                            ForEach(colors, id: \.0) { hex, _ in
+                                Button { selectedColor = hex } label: {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color(hex: hex))
+                                            .frame(width: 40, height: 40)
+                                        if selectedColor == hex {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
                 }
+                .padding(16)
+                .padding(.bottom, 30)
             }
-            .sheet(isPresented: $showShareSheet) {
-                ShareSheet(items: shareItems)
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle(isEditing ? "Lernpfad bearbeiten" : "Neuer Lernpfad")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                if let g = existing {
+                    name = g.name
+                    description = g.notes
+                    selectedIcon = g.icon
+                    selectedColor = g.colorHex
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isEditing ? "Speichern" : "Erstellen") {
+                        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !n.isEmpty else { return }
+                        if var g = existing {
+                            g.name = n
+                            g.notes = description
+                            g.icon = selectedIcon
+                            g.colorHex = selectedColor
+                            store.updateGroup(g)
+                        } else {
+                            store.addGroup(name: n, icon: selectedIcon,
+                                           colorHex: selectedColor, notes: description)
+                        }
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(!canSave)
+                }
             }
         }
+        .presentationDetents([.large])
     }
 }
 

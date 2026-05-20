@@ -363,10 +363,11 @@ final class AppStore: ObservableObject {
 
     // MARK: - Groups (Unterrichtsgruppen)
 
-    func addGroup(name: String, icon: String = "person.3.fill") {
-        let colors = ["1B5E20", "1565C0", "4A148C", "E65100", "880E4F", "006064"]
-        let color = colors[groups.count % colors.count]
-        let g = TeachingGroup(name: name, colorHex: color, icon: icon)
+    func addGroup(name: String, icon: String = "person.3.fill", colorHex: String? = nil, notes: String = "") {
+        let defaults = ["1B5E20", "1565C0", "4A148C", "E65100", "880E4F", "006064"]
+        let color = colorHex ?? defaults[groups.count % defaults.count]
+        var g = TeachingGroup(name: name, colorHex: color, icon: icon)
+        g.notes = notes
         groups.append(g)
     }
 
