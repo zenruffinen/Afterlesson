@@ -115,13 +115,13 @@ struct HomeView: View {
                     // Hero Banner
                     heroBanner
 
-                    // + Neue Lektion – Hauptaktion
-                    neueLektion
-                        .padding(.horizontal, 4)
-
                     // Schnellzugriff
                     quickAccess
                         .padding(.top, 4)
+
+                    // AfterLesson – Hauptaktion
+                    neueLektion
+                        .padding(.horizontal, 4)
 
                     // Training Studio
                     modeBanner
@@ -173,7 +173,7 @@ struct HomeView: View {
         .padding(.vertical, 18)
     }
 
-    // MARK: Neue Lektion – prominenter Hauptbutton
+    // MARK: AfterLesson – Hauptaktion
     var neueLektion: some View {
         Button {
             showQuickCapture = true
@@ -182,30 +182,32 @@ struct HomeView: View {
                 ZStack {
                     Circle()
                         .fill(ALColor.gold)
-                        .frame(width: 52, height: 52)
-                    Image(systemName: "plus")
+                        .frame(width: 54, height: 54)
+                    Image(systemName: "mic.fill")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
                 }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Neue Lektion erfassen")
-                        .font(.system(size: 17, weight: .semibold))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("AfterLesson")
+                        .font(.system(size: 19, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
-                    Text("Direkt nach dem Training sprechen oder tippen")
+                    Text("Stunde dokumentieren")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(ALColor.gold)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(ALColor.gold.opacity(0.6))
             }
             .padding(16)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(ALColor.gold.opacity(0.08))
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(ALColor.gold.opacity(0.3), lineWidth: 1)
+                    .strokeBorder(ALColor.gold.opacity(0.35), lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)
