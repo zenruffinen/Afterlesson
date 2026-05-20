@@ -337,30 +337,30 @@ struct HomeView: View {
     func homeRow(icon: String, title: String, subtitle: String,
                  color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 15) {
+            HStack(spacing: 13) {
                 ZStack {
                     Circle()
                         .fill(color)
-                        .frame(width: 46, height: 46)
+                        .frame(width: 40, height: 40)
                     Image(systemName: icon)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(title)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color(hex: "1A1A1A"))
                     Text(subtitle)
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color(hex: "888888"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(hex: "999999"))
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color(hex: "CCCCCC"))
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
     }
