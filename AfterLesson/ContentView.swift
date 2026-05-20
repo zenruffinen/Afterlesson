@@ -39,45 +39,39 @@ struct AfterLessonTabBar: View {
     @Binding var selected: ContentView.Tab
     @EnvironmentObject var store: AppStore
 
-    var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
-
     var body: some View {
         HStack(spacing: 0) {
-            tabItem(.home,     icon: "house.fill",            label: "Start",         color: ALColor.green)
-            tabItem(.lessons,  icon: "rectangle.stack.fill",  label: "Vorlagen",      color: ALColor.green)
-            tabItem(.students, icon: "graduationcap.fill",     label: "Schüler",      color: Color(hex: "1565C0"))
-            tabItem(.notes,    icon: "note.text",              label: "Notizen",       color: Color(hex: "4A148C"))
-            tabItem(.settings, icon: "gearshape.fill",         label: "Einstellungen",color: .gray)
+            tabItem(.home,     icon: "house.fill",           label: "Start")
+            tabItem(.lessons,  icon: "folder.fill",          label: "Vorlagen")
+            tabItem(.students, icon: "graduationcap.fill",   label: "Schüler")
+            tabItem(.notes,    icon: "doc.text.fill",        label: "Notizen")
+            tabItem(.settings, icon: "gearshape.fill",       label: "Einstellungen")
         }
         .padding(.bottom, 28)
-        .background(.ultraThinMaterial)
+        .background(Color(hex: "0D160D"))
         .overlay(alignment: .top) {
-            Rectangle().fill(Color(UIColor.separator)).frame(height: 0.5)
+            Rectangle().fill(Color(hex: "2A3A2A")).frame(height: 0.5)
         }
     }
 
     @ViewBuilder
-    func tabItem(_ tab: ContentView.Tab, icon: String, label: String, color: Color) -> some View {
+    func tabItem(_ tab: ContentView.Tab, icon: String, label: String) -> some View {
         Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 selected = tab
             }
         } label: {
             let isSelected = selected == tab
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: isSelected ? .bold : .regular))
-                    .foregroundStyle(color.opacity(isSelected ? 1.0 : 0.4))
-                    .scaleEffect(isSelected ? 1.15 : 1.0)
+                    .font(.system(size: 21, weight: isSelected ? .bold : .regular))
+                    .foregroundStyle(isSelected ? ALColor.gold : Color.white.opacity(0.45))
+                    .scaleEffect(isSelected ? 1.10 : 1.0)
                 Text(label)
                     .font(.system(size: 9, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(color.opacity(isSelected ? 1.0 : 0.4))
+                    .foregroundStyle(isSelected ? ALColor.gold : Color.white.opacity(0.45))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(color)
-                    .frame(width: 24, height: 3)
-                    .opacity(isSelected ? 1 : 0)
+                    .minimumScaleFactor(0.65)
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 10)
@@ -111,36 +105,34 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 0) {
 
-                    // Hero Banner
+                    // Hero Banner (zentriert, groß)
                     heroBanner
 
-                    // Linie direkt unter Thomas Kubernat
-                    gradientLine
+                    // Karte + AfterLesson im gleichen Padding
+                    VStack(spacing: 14) {
 
-                    // 4 Kacheln
-                    quickAccess
+                        // 4 Zeilen in einer Karte
+                        quickAccess
 
-                    // Linie zwischen Kacheln und AfterLesson-Button
-                    gradientLine
+                        // AfterLesson – Hauptaktion
+                        neueLektion
 
-                    // AfterLesson – Hauptaktion
-                    neueLektion
-
-                    // Sessions (je nach Modus)
-                    if isTeacher {
-                        if !store.createdSessions.isEmpty {
-                            recentSessions.padding(.top, 4)
+                        // Sessions (je nach Modus)
+                        if isTeacher {
+                            if !store.createdSessions.isEmpty {
+                                recentSessions.padding(.top, 4)
+                            }
+                        } else {
+                            receivedSessionsSection.padding(.top, 4)
                         }
-                    } else {
-                        receivedSessionsSection.padding(.top, 4)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 40)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 40)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color(hex: "F0EDE6"))
             .navigationBarHidden(true)
         }
         .sheet(isPresented: $showQuickCapture) {
@@ -151,45 +143,66 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Gradient Divider
-    var gradientLine: some View {
-        Rectangle()
-            .fill(LinearGradient(
-                colors: [ALColor.green, ALColor.gold, ALColor.green.opacity(0)],
-                startPoint: .leading, endPoint: .trailing))
-            .frame(height: 2)
-            .cornerRadius(1)
-    }
-
     // MARK: Hero
     var heroBanner: some View {
-        HStack(alignment: .center, spacing: 14) {
-            // Golfbälle links — bündig mit Kartenkanten
-            GolfBallJar()
-                .allowsHitTesting(false)
+        ZStack {
+            // Wasserzeichen – grosser Golfer im Hintergrund
+            Image(systemName: "figure.golf")
+                .font(.system(size: 220, weight: .thin))
+                .foregroundStyle(ALColor.green.opacity(0.055))
+                .offset(x: 70, y: 10)
+                .clipped()
 
-            // Name + Badge
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(spacing: 14) {
+                Spacer().frame(height: 8)
+
+                // Goldener Avatar-Kreis
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "D4A840"), Color(hex: "7A5210")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 84, height: 84)
+                        .shadow(color: Color(hex: "C9A84C").opacity(0.45), radius: 12, x: 0, y: 6)
+
+                    // Innerer Kreis / Rahmen
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 2)
+                        .frame(width: 84, height: 84)
+
+                    Image(systemName: "figure.golf")
+                        .font(.system(size: 36, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+                // Name – groß, serif, bold
                 Text(store.teacherName)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.primary)
-                Text("Golf Pro Workspace")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color(hex: "C9A84C"))
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background(Color(hex: "C9A84C").opacity(0.10))
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule().strokeBorder(Color(hex: "C9A84C").opacity(0.28), lineWidth: 0.8)
-                    )
-            }
+                    .font(.system(size: 36, weight: .bold, design: .serif))
+                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
 
-            Spacer()
+                // Badge – dunkelgrün gefüllt, gold Text
+                Text("Golf Pro Workspace")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(ALColor.gold)
+                    .tracking(0.3)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 9)
+                    .background(ALColor.green)
+                    .clipShape(Capsule())
+                    .shadow(color: ALColor.green.opacity(0.35), radius: 6, x: 0, y: 3)
+
+                Spacer().frame(height: 4)
+            }
+            .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal, 0)
-        .padding(.top, 14)
-        .padding(.bottom, 5)
+        .padding(.top, 16)
+        .padding(.bottom, 22)
     }
 
     // MARK: AfterLesson – Hauptaktion
@@ -198,10 +211,17 @@ struct HomeView: View {
             showQuickCapture = true
         } label: {
             HStack(spacing: 16) {
+                // Goldener Mic-Kreis
                 ZStack {
                     Circle()
-                        .fill(ALColor.gold)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "D4A840"), Color(hex: "8B6410")],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
                         .frame(width: 54, height: 54)
+                        .shadow(color: ALColor.gold.opacity(0.4), radius: 6, x: 0, y: 3)
                     Image(systemName: "mic.fill")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
@@ -209,25 +229,26 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("AfterLesson")
                         .font(.system(size: 19, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.white)
                     Text("Stunde dokumentieren")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(ALColor.gold.opacity(0.6))
+                    .foregroundStyle(ALColor.gold.opacity(0.8))
             }
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(ALColor.gold.opacity(0.08))
+                    .fill(ALColor.green)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(ALColor.gold.opacity(0.35), lineWidth: 1.5)
+                    .strokeBorder(ALColor.gold.opacity(0.45), lineWidth: 1.5)
             )
+            .shadow(color: ALColor.green.opacity(0.3), radius: 8, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
@@ -271,35 +292,26 @@ struct HomeView: View {
 
     // MARK: Quick Access
     var quickAccess: some View {
-        VStack(spacing: 12) {
-            // Block 1: Schüler · Vorlagen · Lernpfade
-            VStack(spacing: 0) {
-                homeRow(icon: "person.2.fill", title: "Schüler",
-                        subtitle: "\(store.students.count) Schüler",
-                        color: Color(hex: "1565C0")) { selectedTab = .students }
-                rowDivider
-                homeRow(icon: "rectangle.stack.fill", title: "Vorlagen",
-                        subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
-                        color: ALColor.green) { selectedTab = .lessons }
-                rowDivider
-                homeRow(icon: "road.lanes", title: "Lernpfade",
-                        subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
-                        color: ALColor.gold) { selectedTab = .groups }
-            }
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-
-            // Block 2: Notizen
-            VStack(spacing: 0) {
-                homeRow(icon: "note.text", title: "Notizen",
-                        subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
-                        color: Color(hex: "4A148C")) { selectedTab = .notes }
-            }
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+        VStack(spacing: 0) {
+            homeRow(icon: "figure.golf", title: "Schüler",
+                    subtitle: "\(store.students.count) \(store.students.count == 1 ? "Schüler" : "Schüler")",
+                    color: ALColor.green) { selectedTab = .students }
+            rowDivider
+            homeRow(icon: "rectangle.stack.fill", title: "Trainingsvorlagen",
+                    subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
+                    color: ALColor.gold) { selectedTab = .lessons }
+            rowDivider
+            homeRow(icon: "road.lanes", title: "Lernpfade",
+                    subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
+                    color: ALColor.green) { selectedTab = .groups }
+            rowDivider
+            homeRow(icon: "pencil.tip", title: "Notizen",
+                    subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
+                    color: ALColor.green) { selectedTab = .notes }
         }
-        .padding(.top, 12)
-        .padding(.bottom, 4)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
     }
 
     var rowDivider: some View {
@@ -310,30 +322,30 @@ struct HomeView: View {
     func homeRow(icon: String, title: String, subtitle: String,
                  color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            HStack(spacing: 15) {
                 ZStack {
                     Circle()
                         .fill(color)
-                        .frame(width: 42, height: 42)
+                        .frame(width: 46, height: 46)
                     Image(systemName: icon)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(.white)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.primary)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(hex: "888888"))
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(.tertiaryLabel))
+                    .foregroundStyle(Color(hex: "CCCCCC"))
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 13)
+            .padding(.vertical, 14)
         }
         .buttonStyle(.plain)
     }
