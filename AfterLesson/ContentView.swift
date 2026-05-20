@@ -146,12 +146,10 @@ struct HomeView: View {
 
     // MARK: Hero
     var heroBanner: some View {
-        // VStack bestimmt die Höhe – Wasserzeichen als Overlay (bläht Höhe nicht auf)
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
 
-            // Gold-Ring + Avatar
+            // Gold-Ring + Avatar — kompakt
             ZStack {
-                // Äusserer Goldring
                 Circle()
                     .strokeBorder(
                         LinearGradient(
@@ -159,11 +157,10 @@ struct HomeView: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 3
+                        lineWidth: 2.5
                     )
-                    .frame(width: 104, height: 104)
+                    .frame(width: 72, height: 72)
 
-                // Goldener Füllkreis
                 Circle()
                     .fill(
                         LinearGradient(
@@ -172,58 +169,55 @@ struct HomeView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 94, height: 94)
-                    .shadow(color: Color(hex: "C9A84C").opacity(0.40), radius: 10, x: 0, y: 5)
+                    .frame(width: 64, height: 64)
+                    .shadow(color: Color(hex: "C9A84C").opacity(0.35), radius: 7, x: 0, y: 4)
 
-                // Golfer-Icon
                 Image(systemName: "figure.golf")
-                    .font(.system(size: 44, weight: .regular))
+                    .font(.system(size: 28, weight: .regular))
                     .foregroundStyle(.white)
             }
 
-            // Name – gross, klassisch-serif
+            // Name — elegant, aber zurückhaltend
             Text(store.teacherName)
-                .font(.system(size: 38, weight: .bold, design: .serif))
+                .font(.system(size: 24, weight: .bold, design: .serif))
                 .foregroundStyle(Color(hex: "111111"))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
 
-            // Badge – dunkelgrün mit Gold-Rahmen
+            // Badge
             Text("Golf Pro Workspace")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(ALColor.gold)
-                .tracking(0.4)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 9)
+                .tracking(0.5)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: 14)
                         .fill(ALColor.green)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: 14)
                         .strokeBorder(
                             LinearGradient(
                                 colors: [Color(hex: "D4A840"), Color(hex: "8B6210"), Color(hex: "D4A840")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 1.5
+                            lineWidth: 1.2
                         )
                 )
-                .shadow(color: ALColor.green.opacity(0.25), radius: 5, x: 0, y: 2)
         }
         .frame(maxWidth: .infinity)
-        // Wasserzeichen als Overlay – beeinflusst Höhe nicht
         .overlay(alignment: .trailing) {
             Image(systemName: "figure.golf")
-                .font(.system(size: 170, weight: .thin))
-                .foregroundStyle(Color(hex: "909090").opacity(0.15))
-                .offset(x: 16, y: 10)
+                .font(.system(size: 110, weight: .thin))
+                .foregroundStyle(Color(hex: "909090").opacity(0.12))
+                .offset(x: 14, y: 6)
                 .allowsHitTesting(false)
         }
         .clipped()
-        .padding(.top, 16)
-        .padding(.bottom, 14)
+        .padding(.top, 20)
+        .padding(.bottom, 16)
     }
 
     // MARK: AfterLesson – Hauptaktion
