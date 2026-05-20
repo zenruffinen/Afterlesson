@@ -163,8 +163,13 @@ struct HomeView: View {
 
     // MARK: Hero
     var heroBanner: some View {
-        HStack(alignment: .center, spacing: 0) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 14) {
+            // Golfbälle links als Logo
+            GolfBallJar()
+                .allowsHitTesting(false)
+
+            // Name + Badge rechts
+            VStack(alignment: .leading, spacing: 5) {
                 Text("AfterLesson")
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
@@ -172,7 +177,7 @@ struct HomeView: View {
                     Text(store.teacherName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text("Golf Pro Workspace")
+                    Text("Golf Pro")
                         .font(.caption2.bold())
                         .foregroundStyle(Color(hex: "C9A84C"))
                         .padding(.horizontal, 8)
@@ -182,8 +187,6 @@ struct HomeView: View {
                 }
             }
             Spacer()
-            GolfBallJar()
-                .allowsHitTesting(false)
         }
         .padding(.horizontal, 20)
         .padding(.top, 18)
