@@ -133,46 +133,32 @@ struct HomeView: View {
 
     // MARK: Hero
     var heroBanner: some View {
-        ZStack(alignment: .bottomLeading) {
-            // Hintergrund
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: [ALColor.dark, ALColor.green],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(height: 110)
-
-            // Glasgefäss mit Golfbällen (rechts)
-            GolfBallJar()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-                .padding(.trailing, 20)
-                .padding(.bottom, 8)
-                .allowsHitTesting(false)
-
-            // Text links unten
+        HStack(alignment: .center, spacing: 0) {
+            // Text
             VStack(alignment: .leading, spacing: 4) {
                 Text("AfterLesson")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
                 HStack(spacing: 8) {
                     Text(store.teacherName)
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(.secondary)
                     Text("Golf Pro")
                         .font(.caption2.bold())
                         .foregroundStyle(Color(hex: "C9A84C"))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color(hex: "C9A84C").opacity(0.2))
+                        .background(Color(hex: "C9A84C").opacity(0.15))
                         .clipShape(Capsule())
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            Spacer()
+            // Glasgefäss mit Golfbällen
+            GolfBallJar()
+                .allowsHitTesting(false)
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 18)
     }
 
     // MARK: Mode Banner (Pro Studio Button)
@@ -273,55 +259,54 @@ struct HomeView: View {
 struct GolfBallJar: View {
     @State private var animate = false
 
-    // Positionen der 4 Bälle im Glas (2 unten, 2 oben)
     let balls: [(x: CGFloat, y: CGFloat, delay: Double, size: CGFloat)] = [
-        (-14,  4, 0.0, 22),   // unten links
-        ( 14,  4, 0.1, 22),   // unten rechts
-        (-10, -16, 0.2, 20),  // oben links
-        ( 12, -14, 0.15, 20), // oben rechts
+        (-13,  6, 0.00, 22),
+        ( 13,  6, 0.08, 22),
+        (-10, -13, 0.16, 20),
+        ( 11, -12, 0.10, 20),
     ]
 
     var body: some View {
         ZStack {
-            // Glasgefäss
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.white.opacity(0.25), lineWidth: 1)
+            // Glasgefäss — nur sehr feine Ecken sichtbar
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            .white.opacity(0.35),
+                            .white.opacity(0.05),
+                            .white.opacity(0.0),
+                            .white.opacity(0.18)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.2
                 )
-                .overlay(alignment: .top) {
-                    // Glasglanz
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(
-                            LinearGradient(
-                                colors: [.white.opacity(0.18), .clear],
-                                startPoint: .top,
-                                endPoint: .center
-                            )
-                        )
-                        .padding(2)
-                }
-                .frame(width: 68, height: 72)
-                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                .frame(width: 70, height: 74)
 
-            // Golfbälle
+            // Golfbälle — wackeln links/rechts
             ForEach(balls.indices, id: \.self) { i in
                 let b = balls[i]
                 GolfBall(size: b.size)
                     .offset(
-                        x: b.x + (animate ? CGFloat.random(in: -1.5...1.5) : 0),
-                        y: b.y + (animate ? -2 : 0)
+                        x: b.x + (animate ? 4 : -4),
+                        y: b.y + (animate ? 1 : -1)
                     )
+                    .rotationEffect(.degrees(animate ? 8 : -8))
                     .animation(
-                        .easeInOut(duration: 0.8)
+                        .easeInOut(duration: 1.2)
                         .delay(b.delay)
                         .repeatForever(autoreverses: true),
                         value: animate
                     )
             }
         }
-        .onAppear { animate = true }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                animate = true
+            }
+        }
     }
 }
 
