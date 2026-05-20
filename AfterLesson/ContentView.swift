@@ -41,11 +41,11 @@ struct AfterLessonTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            tabItem(.home,     icon: "house.fill",           label: "Start")
-            tabItem(.lessons,  icon: "folder.fill",          label: "Vorlagen")
-            tabItem(.students, icon: "graduationcap.fill",   label: "Schüler")
-            tabItem(.notes,    icon: "doc.text.fill",        label: "Notizen")
-            tabItem(.settings, icon: "gearshape.fill",       label: "Einstellungen")
+            tabItem(.home,     icon: "house.fill",            label: "Start")
+            tabItem(.lessons,  icon: "rectangle.stack.fill",  label: "Vorlagen")
+            tabItem(.students, icon: "figure.golf",           label: "Schüler")
+            tabItem(.notes,    icon: "pencil.tip",            label: "Notizen")
+            tabItem(.settings, icon: "gearshape.fill",        label: "Einstellungen")
         }
         .padding(.bottom, 28)
         .background(Color(hex: "0D160D"))
