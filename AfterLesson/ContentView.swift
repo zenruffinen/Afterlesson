@@ -134,6 +134,7 @@ struct HomeView: View {
     // MARK: Hero
     var heroBanner: some View {
         ZStack(alignment: .bottomLeading) {
+            // Hintergrund
             RoundedRectangle(cornerRadius: 20)
                 .fill(
                     LinearGradient(
@@ -144,12 +145,11 @@ struct HomeView: View {
                 )
                 .frame(height: 110)
 
-            // Dekoratives Golf-Element (rechts, hinter allem)
-            Image(systemName: "figure.golf")
-                .font(.system(size: 80))
-                .foregroundStyle(.white.opacity(0.12))
+            // Glasgefäss mit Golfbällen (rechts)
+            GolfBallJar()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-                .padding(.trailing, 16)
+                .padding(.trailing, 20)
+                .padding(.bottom, 8)
                 .allowsHitTesting(false)
 
             // Text links unten
@@ -265,6 +265,104 @@ struct HomeView: View {
                 LessonRowView(lesson: lesson)
             }
         }
+    }
+}
+
+// MARK: - Golf Ball Jar
+
+struct GolfBallJar: View {
+    @State private var animate = false
+
+    // Positionen der 4 Bälle im Glas (2 unten, 2 oben)
+    let balls: [(x: CGFloat, y: CGFloat, delay: Double, size: CGFloat)] = [
+        (-14,  4, 0.0, 22),   // unten links
+        ( 14,  4, 0.1, 22),   // unten rechts
+        (-10, -16, 0.2, 20),  // oben links
+        ( 12, -14, 0.15, 20), // oben rechts
+    ]
+
+    var body: some View {
+        ZStack {
+            // Glasgefäss
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.white.opacity(0.25), lineWidth: 1)
+                )
+                .overlay(alignment: .top) {
+                    // Glasglanz
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(
+                            LinearGradient(
+                                colors: [.white.opacity(0.18), .clear],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
+                        )
+                        .padding(2)
+                }
+                .frame(width: 68, height: 72)
+                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+
+            // Golfbälle
+            ForEach(balls.indices, id: \.self) { i in
+                let b = balls[i]
+                GolfBall(size: b.size)
+                    .offset(
+                        x: b.x + (animate ? CGFloat.random(in: -1.5...1.5) : 0),
+                        y: b.y + (animate ? -2 : 0)
+                    )
+                    .animation(
+                        .easeInOut(duration: 0.8)
+                        .delay(b.delay)
+                        .repeatForever(autoreverses: true),
+                        value: animate
+                    )
+            }
+        }
+        .onAppear { animate = true }
+    }
+}
+
+struct GolfBall: View {
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            // Basis
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [.white, Color(white: 0.88)],
+                        center: .init(x: 0.35, y: 0.3),
+                        startRadius: 1,
+                        endRadius: size * 0.7
+                    )
+                )
+                .frame(width: size, height: size)
+                .shadow(color: .black.opacity(0.2), radius: 2, x: 1, y: 2)
+
+            // Dimples (Grübchen)
+            ForEach(dimplePositions(size: size), id: \.self) { pos in
+                Circle()
+                    .fill(Color(white: 0.78).opacity(0.7))
+                    .frame(width: size * 0.13, height: size * 0.13)
+                    .offset(x: pos.x, y: pos.y)
+            }
+        }
+    }
+
+    func dimplePositions(size: CGFloat) -> [CGPoint] {
+        let r = size * 0.28
+        return [
+            CGPoint(x: 0,  y: -r),
+            CGPoint(x: r,  y: 0),
+            CGPoint(x: 0,  y: r),
+            CGPoint(x: -r, y: 0),
+            CGPoint(x: r * 0.7, y: -r * 0.7),
+            CGPoint(x: -r * 0.7, y: r * 0.7),
+        ]
     }
 }
 
