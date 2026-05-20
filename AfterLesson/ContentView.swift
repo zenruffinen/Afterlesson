@@ -124,11 +124,6 @@ struct HomeView: View {
                     neueLektion
                         .padding(.horizontal, 4)
 
-                    // Training Studio
-                    modeBanner
-                        .padding(.horizontal, 4)
-                        .shadow(color: ALColor.dark.opacity(0.2), radius: 16, x: 0, y: 8)
-
                     // Sessions (je nach Modus)
                     if isTeacher {
                         if !store.createdSessions.isEmpty {
