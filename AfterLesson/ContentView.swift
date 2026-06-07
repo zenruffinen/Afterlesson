@@ -1843,13 +1843,17 @@ struct ContentClassEditorSheet: View {
 
     var isEditing: Bool { existingClass != nil }
 
+    // Golfbezogene Icon-Auswahl: Schwung, Fahne/Green, Ball, Ziel, Platz,
+    // Wetter, Fitness & Mental — plus ein paar neutrale für Theorie & Medien.
     let classIcons = [
-        "folder.fill", "figure.golf", "figure.stand", "sportscourt.fill",
-        "trophy.fill", "flag.fill", "star.fill", "bolt.fill",
-        "scope", "target", "brain.head.profile", "eye.fill",
-        "sun.max.fill", "leaf.fill", "video.fill", "photo.fill",
-        "doc.richtext.fill", "waveform", "book.fill", "lightbulb.fill",
-        "timer", "repeat", "checkmark.seal.fill", "graduationcap.fill"
+        "figure.golf", "flag.fill", "flag.circle.fill", "flag.2.crossed.fill",
+        "circle.fill", "target", "scope", "trophy.fill",
+        "medal.fill", "arrow.up.right", "ruler.fill", "map.fill",
+        "mappin.and.ellipse", "sun.max.fill", "wind", "cloud.sun.fill",
+        "leaf.fill", "tree.fill", "mountain.2.fill", "figure.flexibility",
+        "figure.walk", "dumbbell.fill", "brain.head.profile", "eye.fill",
+        "hand.raised.fill", "timer", "video.fill", "book.fill",
+        "graduationcap.fill", "lightbulb.fill", "star.fill", "folder.fill"
     ]
 
     let colors: [(String, String)] = [
