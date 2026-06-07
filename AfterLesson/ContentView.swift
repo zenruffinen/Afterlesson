@@ -1152,10 +1152,10 @@ struct DatenpoolView: View {
                         .foregroundStyle(ALColor.gold)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Eingang")
+                    Text("Golf-Inhalte erfassen")
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Text("Neue Inhalte hinzufügen & einsortieren")
+                    Text("Neues Material sammeln & einsortieren")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
