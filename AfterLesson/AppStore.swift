@@ -54,13 +54,12 @@ final class AppStore: ObservableObject {
         if folders.isEmpty {
             createDefaultFolders()
         }
-        // Standard-Klassen nur einmalig anlegen (Flag statt isEmpty-Prüfung,
-        // damit bewusst gelöschte Klassen nicht beim nächsten Start zurückkehren).
-        if !UserDefaults.standard.bool(forKey: "al_defaultclasses_created") {
-            if contentClasses.isEmpty {
-                createDefaultContentClasses()
-            }
-            UserDefaults.standard.set(true, forKey: "al_defaultclasses_created")
+        // Standard-Klassen anlegen, solange keine vorhanden sind (gleiche Logik
+        // wie bei den Ordnern). Wichtig: didSet/Speichern feuert im Init nicht
+        // automatisch — deshalb explizit sichern.
+        if contentClasses.isEmpty {
+            createDefaultContentClasses()
+            saveContentClasses()
         }
     }
 
