@@ -1151,10 +1151,10 @@ struct ContentClassTile: View {
     let count: Int
 
     var color: Color {
-        contentClass.map { Color(hex: $0.colorHex) } ?? Color(.systemGray)
+        contentClass.map { Color(hex: $0.colorHex) } ?? ALColor.gold
     }
-    var icon: String { contentClass?.icon ?? "tray.fill" }
-    var title: String { contentClass?.title ?? "Unsortiert" }
+    var icon: String { contentClass?.icon ?? "tray.and.arrow.down.fill" }
+    var title: String { contentClass?.title ?? "Eingang" }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -1233,8 +1233,16 @@ struct ClassContentView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        filterBar
-                        themeFilterBar
+                        // "Unsortiert" ist der Eingangskorb für neue Inhalte —
+                        // dort braucht es keine Typ-/Themen-Filter, sondern eine
+                        // freundliche Überschrift mit Hinweis. In echten Klassen
+                        // bleiben die Filterleisten erhalten.
+                        if contentClass == nil {
+                            inboxHeader
+                        } else {
+                            filterBar
+                            themeFilterBar
+                        }
                         grid
                     }
                     .padding(16)
@@ -1243,7 +1251,7 @@ struct ClassContentView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(contentClass?.title ?? "Unsortiert")
+        .navigationTitle(contentClass?.title ?? "Eingang")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isTeacher {
@@ -1309,7 +1317,7 @@ struct ClassContentView: View {
             Image(systemName: "tray.full.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(ALColor.green.opacity(0.35))
-            Text(contentClass == nil ? "Keine unsortierten Inhalte" : "Diese Klasse ist leer")
+            Text(contentClass == nil ? "Eingang ist leer" : "Diese Klasse ist leer")
                 .font(.title3.bold())
             Text("Importiere Fotos, Videos und PDFs\noder nimm direkt etwas Neues auf")
                 .font(.subheadline)
@@ -1341,6 +1349,32 @@ struct ClassContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
+    }
+
+    // MARK: Eingang-Überschrift (nur bei "Unsortiert")
+
+    var inboxHeader: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(ALColor.gold.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                Image(systemName: "tray.and.arrow.down.fill")
+                    .font(.title3)
+                    .foregroundStyle(ALColor.gold)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Neue Inhalte")
+                    .font(.headline)
+                Text("Halte einen Inhalt gedrückt,\num ihn in eine Klasse zu verschieben")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: Filter-Leiste
