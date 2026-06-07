@@ -54,18 +54,20 @@ final class AppStore: ObservableObject {
         if folders.isEmpty {
             createDefaultFolders()
         }
-        // Standard-Klassen anlegen, solange keine vorhanden sind (gleiche Logik
-        // wie bei den Ordnern). Wichtig: didSet/Speichern feuert im Init nicht
-        // automatisch — deshalb explizit sichern.
-        if contentClasses.isEmpty {
-            createDefaultContentClasses()
+        // Standard-Golfklassen einmalig ERGÄNZEN (nicht nur bei leerem Bestand):
+        // Bereits selbst angelegte Klassen (z.B. "Abschlag") bleiben unberührt,
+        // nur fehlende Standards kommen dazu. Wichtig: didSet/Speichern feuert
+        // im Init nicht automatisch — deshalb explizit sichern.
+        if !UserDefaults.standard.bool(forKey: "al_defaultclasses_v1") {
+            seedDefaultContentClasses()
             saveContentClasses()
+            UserDefaults.standard.set(true, forKey: "al_defaultclasses_v1")
         }
     }
 
     // MARK: - Default Content Classes (Golf-Klassen im Datenpool)
 
-    private func createDefaultContentClasses() {
+    private func seedDefaultContentClasses() {
         let defaults: [(String, String, String)] = [
             ("Putten",       "flag.circle.fill", "1565C0"),
             ("Chippen",      "arrow.up.right",   "4A148C"),
@@ -73,8 +75,11 @@ final class AppStore: ObservableObject {
             ("Bunker",       "sun.max.fill",     "E65100"),
             ("Langes Spiel", "figure.golf",      "1B5E20"),
         ]
-        contentClasses = defaults.enumerated().map { i, d in
-            ContentClass(title: d.0, icon: d.1, colorHex: d.2, sortIndex: i)
+        let existing = Set(contentClasses.map { $0.title.lowercased() })
+        var nextIndex = (contentClasses.map(\.sortIndex).max() ?? -1) + 1
+        for d in defaults where !existing.contains(d.0.lowercased()) {
+            contentClasses.append(ContentClass(title: d.0, icon: d.1, colorHex: d.2, sortIndex: nextIndex))
+            nextIndex += 1
         }
     }
 
