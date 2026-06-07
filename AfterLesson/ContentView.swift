@@ -1,6 +1,9 @@
 import SwiftUI
 import PhotosUI
 import AVFoundation
+import AVKit
+import PDFKit
+import UniformTypeIdentifiers
 import Speech
 import Combine
 
@@ -17,7 +20,7 @@ struct ContentView: View {
             Group {
                 switch selectedTab {
                 case .home:     HomeView(selectedTab: $selectedTab)
-                case .lessons:  FoldersView()
+                case .lessons:  DatenpoolView()
                 case .students: StudentsView()
                 case .notes:    NotesView()
                 case .settings: SettingsView()
@@ -41,7 +44,7 @@ struct AfterLessonTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             tabItem(.home,     icon: "house.fill",           label: "Start")
-            tabItem(.lessons,  icon: "rectangle.stack.fill", label: "Vorlagen")
+            tabItem(.lessons,  icon: "square.grid.2x2.fill", label: "Datenpool")
             tabItem(.students, icon: "figure.golf",          label: "Schüler")
             tabItem(.notes,    icon: "pencil.tip",           label: "Notizen")
             tabItem(.settings, icon: "gearshape.fill",       label: "Einstellungen")
@@ -1022,6 +1025,901 @@ struct QuickTile: View {
     }
 }
 
+// MARK: - Datenpool (zentrale Inhalts-Verwaltung)
+//
+// Ersetzt die frühere "Lektionsvorlagen"-Ansicht: Der Pro sammelt hier alle
+// Lerninhalte – egal in welchem Format – an einem Ort. Jedes Element trägt
+// ein kleines Vorschau-Icon, das auf einen Blick zeigt, um was es sich
+// handelt. Aus diesem Pool heraus werden später Lektionen zusammengestellt
+// und Inhalte gezielt den Schülern zugewiesen.
+
+struct DatenpoolView: View {
+    @EnvironmentObject var store: AppStore
+    @State private var photoPickerItems: [PhotosPickerItem] = []
+    @State private var showPhotosPicker = false
+    @State private var showFileImporter = false
+    @State private var showCamera = false
+    @State private var selectedItem: ContentItem? = nil
+    @State private var filterType: ContentType? = nil
+    @State private var filterTheme: String? = nil
+    @State private var isImporting = false
+    @State private var importError: String? = nil
+
+    var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
+
+    /// Alle im Pool vergebenen Themen ("Gruppierungen"), alphabetisch — Grundlage
+    /// für die Themen-Filterleiste. Bleibt leer, solange noch nichts zugeordnet wurde.
+    var allThemes: [String] {
+        Array(Set(store.contentPool.flatMap { $0.tags })).sorted()
+    }
+
+    var filteredItems: [ContentItem] {
+        store.contentPool.filter { item in
+            (filterType == nil || item.type == filterType)
+            && (filterTheme == nil || item.tags.contains(filterTheme!))
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if store.contentPool.isEmpty {
+                    emptyState
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            filterBar
+                            themeFilterBar
+                            grid
+                        }
+                        .padding(16)
+                        .padding(.bottom, 30)
+                    }
+                }
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Datenpool")
+            .toolbar {
+                if isTeacher {
+                    ToolbarItem(placement: .primaryAction) {
+                        addMenu
+                    }
+                }
+            }
+            .onChange(of: photoPickerItems) { _, items in
+                guard !items.isEmpty else { return }
+                importFromPhotos(items)
+            }
+            .photosPicker(isPresented: $showPhotosPicker, selection: $photoPickerItems,
+                          maxSelectionCount: 20, matching: .any(of: [.images, .videos]))
+            .fileImporter(isPresented: $showFileImporter,
+                          allowedContentTypes: [.pdf, .movie, .image, .audio, .plainText, .data],
+                          allowsMultipleSelection: true) { result in
+                handleFileImport(result)
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                VideoCameraView { url in
+                    importRecordedVideo(from: url)
+                }
+                .ignoresSafeArea()
+            }
+            .sheet(item: $selectedItem) { item in
+                ContentItemDetailView(item: item)
+            }
+            .overlay {
+                if isImporting { importOverlay }
+            }
+            .alert("Import fehlgeschlagen",
+                   isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
+                Button("OK", role: .cancel) { importError = nil }
+            } message: {
+                Text(importError ?? "")
+            }
+        }
+    }
+
+    // MARK: Hinzufügen-Menü
+
+    var addMenu: some View {
+        Menu {
+            Button { showPhotosPicker = true } label: {
+                Label("Fotos & Videos", systemImage: "photo.on.rectangle")
+            }
+            Button { showFileImporter = true } label: {
+                Label("Datei importieren", systemImage: "doc.badge.plus")
+            }
+            Button { showCamera = true } label: {
+                Label("Video aufnehmen", systemImage: "video.badge.plus")
+            }
+        } label: {
+            Image(systemName: "plus.circle.fill")
+                .font(.system(size: 20))
+        }
+    }
+
+    // MARK: Empty State
+
+    var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "tray.full.fill")
+                .font(.system(size: 60))
+                .foregroundStyle(ALColor.green.opacity(0.35))
+            Text("Datenpool ist leer")
+                .font(.title3.bold())
+            Text("Importiere Fotos, Videos und PDFs\noder nimm direkt etwas Neues auf")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            if isTeacher {
+                Menu {
+                    Button { showPhotosPicker = true } label: {
+                        Label("Fotos & Videos", systemImage: "photo.on.rectangle")
+                    }
+                    Button { showFileImporter = true } label: {
+                        Label("Datei importieren", systemImage: "doc.badge.plus")
+                    }
+                    Button { showCamera = true } label: {
+                        Label("Video aufnehmen", systemImage: "video.badge.plus")
+                    }
+                } label: {
+                    Label("Inhalt hinzufügen", systemImage: "plus")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 12)
+                        .background(ALColor.green)
+                        .clipShape(Capsule())
+                }
+                .padding(.top, 8)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGroupedBackground))
+    }
+
+    // MARK: Filter-Leiste
+
+    var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterChip(nil, label: "Alle")
+                ForEach(ContentType.allCases, id: \.self) { type in
+                    filterChip(type, label: type.label)
+                }
+            }
+        }
+    }
+
+    func filterChip(_ type: ContentType?, label: String) -> some View {
+        let isSelected = filterType == type
+        let color = type.map { Color(hex: $0.colorHex) } ?? ALColor.green
+        return Button {
+            filterType = type
+        } label: {
+            HStack(spacing: 6) {
+                if let type {
+                    Image(systemName: type.icon).font(.caption2)
+                }
+                Text(label).font(.subheadline)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(isSelected ? color : Color(.secondarySystemGroupedBackground))
+            .foregroundStyle(isSelected ? .white : .primary)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Themen-Filterleiste ("Gruppierungen")
+    //
+    // Zweite, optionale Filterebene über die im Pool vergebenen Themen
+    // (ContentItem.tags) — ergänzt den Typ-Filter oben. Erscheint erst,
+    // sobald mindestens ein Inhalt einem Thema zugeordnet wurde, damit der
+    // Datenpool für Hans' aktuelle Daten unverändert schlank bleibt.
+
+    @ViewBuilder
+    var themeFilterBar: some View {
+        if !allThemes.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    themeChip(nil, label: "Alle Themen")
+                    ForEach(allThemes, id: \.self) { theme in
+                        themeChip(theme, label: theme)
+                    }
+                }
+            }
+        }
+    }
+
+    func themeChip(_ theme: String?, label: String) -> some View {
+        let isSelected = filterTheme == theme
+        return Button {
+            filterTheme = theme
+        } label: {
+            HStack(spacing: 6) {
+                if theme != nil {
+                    Image(systemName: "tag.fill").font(.caption2)
+                }
+                Text(label).font(.subheadline)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(isSelected ? ALColor.gold : Color(.secondarySystemGroupedBackground))
+            .foregroundStyle(isSelected ? .white : .primary)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Grid
+
+    var grid: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            ForEach(filteredItems) { item in
+                Button { selectedItem = item } label: {
+                    ContentItemTile(item: item)
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button(role: .destructive) {
+                        store.deleteContentItem(item)
+                    } label: {
+                        Label("Löschen", systemImage: "trash")
+                    }
+                }
+            }
+        }
+    }
+
+    var importOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.25).ignoresSafeArea()
+            VStack(spacing: 12) {
+                ProgressView().tint(.white).scaleEffect(1.3)
+                Text("Wird importiert …")
+                    .font(.subheadline)
+                    .foregroundStyle(.white)
+            }
+            .padding(24)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+    }
+
+    // MARK: Import – Fotos & Videos aus der Mediathek
+
+    func importFromPhotos(_ items: [PhotosPickerItem]) {
+        isImporting = true
+        Task {
+            for item in items {
+                let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .movie) || $0.conforms(to: .video) }
+                guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+
+                let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? (isVideo ? "mov" : "jpg")
+                let filename = "pool_\(UUID().uuidString).\(ext)"
+                store.saveImage(data, filename: filename)
+
+                var thumbFilename: String? = nil
+                if isVideo, let thumbData = await generateVideoThumbnail(url: store.imageURL(for: filename)) {
+                    thumbFilename = "pool_thumb_\(UUID().uuidString).jpg"
+                    store.saveImage(thumbData, filename: thumbFilename!)
+                }
+
+                let newItem = ContentItem(title: isVideo ? "Video \(dateStamp())" : "Bild \(dateStamp())",
+                                          type: isVideo ? .video : .image,
+                                          filename: filename, thumbnailFilename: thumbFilename,
+                                          source: .imported)
+                store.addContentItem(newItem)
+            }
+            photoPickerItems = []
+            isImporting = false
+        }
+    }
+
+    // MARK: Import – Dateien (PDF, Audio, Text, …)
+
+    func handleFileImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            isImporting = true
+            Task {
+                for url in urls {
+                    await importFile(from: url)
+                }
+                isImporting = false
+            }
+        case .failure(let error):
+            importError = error.localizedDescription
+        }
+    }
+
+    func importFile(from url: URL) async {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url) else { return }
+
+        let ext = url.pathExtension.isEmpty ? "dat" : url.pathExtension
+        let filename = "pool_\(UUID().uuidString).\(ext)"
+        store.saveImage(data, filename: filename)
+
+        let type = contentType(forExtension: url.pathExtension)
+        var thumbFilename: String? = nil
+        if type == .video, let thumbData = await generateVideoThumbnail(url: store.imageURL(for: filename)) {
+            thumbFilename = "pool_thumb_\(UUID().uuidString).jpg"
+            store.saveImage(thumbData, filename: thumbFilename!)
+        }
+
+        let rawTitle = url.deletingPathExtension().lastPathComponent
+        let newItem = ContentItem(title: rawTitle.isEmpty ? type.label : rawTitle,
+                                  type: type, filename: filename, thumbnailFilename: thumbFilename,
+                                  source: .imported)
+        store.addContentItem(newItem)
+    }
+
+    func contentType(forExtension ext: String) -> ContentType {
+        guard let utType = UTType(filenameExtension: ext) else { return .text }
+        if utType.conforms(to: .pdf) { return .pdf }
+        if utType.conforms(to: .movie) || utType.conforms(to: .video) { return .video }
+        if utType.conforms(to: .image) { return .image }
+        if utType.conforms(to: .audio) { return .audio }
+        return .text
+    }
+
+    // MARK: Aufnahme – Video direkt filmen
+
+    func importRecordedVideo(from url: URL) {
+        guard let data = try? Data(contentsOf: url) else { return }
+        let filename = "pool_\(UUID().uuidString).mov"
+        store.saveImage(data, filename: filename)
+
+        isImporting = true
+        Task {
+            var thumbFilename: String? = nil
+            if let thumbData = await generateVideoThumbnail(url: store.imageURL(for: filename)) {
+                thumbFilename = "pool_thumb_\(UUID().uuidString).jpg"
+                store.saveImage(thumbData, filename: thumbFilename!)
+            }
+            let newItem = ContentItem(title: "Aufnahme \(dateStamp())", type: .video,
+                                      filename: filename, thumbnailFilename: thumbFilename,
+                                      source: .recorded)
+            store.addContentItem(newItem)
+            try? FileManager.default.removeItem(at: url)
+            isImporting = false
+        }
+    }
+
+    // MARK: Hilfsfunktionen
+
+    func generateVideoThumbnail(url: URL) async -> Data? {
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        guard let result = try? await generator.image(at: CMTime(seconds: 0.5, preferredTimescale: 60)) else { return nil }
+        return UIImage(cgImage: result.image).jpegData(compressionQuality: 0.7)
+    }
+
+    func dateStamp() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM. HH:mm"
+        return formatter.string(from: Date())
+    }
+}
+
+// MARK: - Content Item Tile (Kachel im Datenpool-Grid)
+
+struct ContentItemTile: View {
+    let item: ContentItem
+    @EnvironmentObject var store: AppStore
+
+    var typeColor: Color { Color(hex: item.type.colorHex) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .topTrailing) {
+                preview
+                    .frame(height: 110)
+                    .frame(maxWidth: .infinity)
+                    .background(typeColor.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                ZStack {
+                    Circle().fill(typeColor)
+                        .frame(width: 26, height: 26)
+                    Image(systemName: item.type.icon)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white)
+                }
+                .padding(6)
+                .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.subheadline.bold())
+                    .lineLimit(1)
+                    .foregroundStyle(.primary)
+                HStack(spacing: 4) {
+                    Image(systemName: item.source == .recorded ? "video.fill" : "square.and.arrow.down.fill")
+                        .font(.system(size: 9))
+                    Text(item.dateCreated.formatted(date: .abbreviated, time: .omitted))
+                        .font(.caption2)
+                }
+                .foregroundStyle(.secondary)
+
+                if let firstTheme = item.tags.first {
+                    HStack(spacing: 3) {
+                        Image(systemName: "tag.fill")
+                            .font(.system(size: 8))
+                        Text(item.tags.count > 1 ? "\(firstTheme) +\(item.tags.count - 1)" : firstTheme)
+                            .font(.caption2.weight(.medium))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(ALColor.green)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    var preview: some View {
+        if item.type == .image, let img = UIImage(contentsOfFile: store.imageURL(for: item.filename).path) {
+            Image(uiImage: img).resizable().scaledToFill().frame(height: 110).clipped()
+        } else if let thumb = item.thumbnailFilename,
+                  let img = UIImage(contentsOfFile: store.imageURL(for: thumb).path) {
+            ZStack {
+                Image(uiImage: img).resizable().scaledToFill().frame(height: 110).clipped()
+                if item.type == .video {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.4), radius: 4)
+                }
+            }
+        } else {
+            Image(systemName: item.type.icon)
+                .font(.system(size: 32))
+                .foregroundStyle(typeColor)
+        }
+    }
+}
+
+// MARK: - Content Item Detail (Vorschau je nach Typ)
+
+struct ContentItemDetailView: View {
+    let item: ContentItem
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+    @State private var showDeleteConfirm = false
+    @State private var showAddToLesson = false
+    @State private var showTagEditor = false
+    @State private var tags: [String]
+
+    init(item: ContentItem) {
+        self.item = item
+        _tags = State(initialValue: item.tags)
+    }
+
+    var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
+
+    /// Alle im Datenpool bereits verwendeten Themen — als Vorschläge beim Zuordnen,
+    /// damit sich über mehrere Inhalte hinweg dieselben Gruppierungen bilden.
+    var allPoolThemes: [String] {
+        Array(Set(store.contentPool.flatMap { $0.tags })).sorted()
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                Group {
+                    switch item.type {
+                    case .image:
+                        imagePreview
+                    case .video:
+                        VideoPlayer(player: AVPlayer(url: store.imageURL(for: item.filename)))
+                    case .pdf:
+                        PDFKitRepresentable(url: store.imageURL(for: item.filename))
+                    case .audio:
+                        AudioPlayerView(url: store.imageURL(for: item.filename))
+                    case .text:
+                        ScrollView {
+                            Text(item.notes.isEmpty ? "Kein Text hinterlegt." : item.notes)
+                                .font(.body)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                if isTeacher {
+                    themesBar
+                }
+            }
+            .navigationTitle(item.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fertig") { dismiss() }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showAddToLesson = true
+                    } label: {
+                        Image(systemName: "plus.rectangle.on.folder")
+                    }
+                    .accessibilityLabel("Zu Lektion hinzufügen")
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
+            }
+            .confirmationDialog("Diesen Inhalt wirklich löschen?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("Löschen", role: .destructive) {
+                    store.deleteContentItem(item)
+                    dismiss()
+                }
+            }
+            .sheet(isPresented: $showAddToLesson) {
+                AddToLessonSheet(item: item)
+            }
+            .sheet(isPresented: $showTagEditor) {
+                TagEditorSheet(themes: $tags, suggestions: allPoolThemes)
+            }
+            .onChange(of: tags) { _, newThemes in
+                guard newThemes != item.tags else { return }
+                var updated = item
+                updated.tags = newThemes
+                store.updateContentItem(updated)
+            }
+        }
+    }
+
+    // MARK: Themen-Leiste
+    //
+    // Kompakte Anzeige der zugeordneten Themen ("Gruppierungen") direkt in der
+    // Detail-Vorschau, mit Einstieg ins Bearbeiten — macht Datenpool-Inhalte
+    // über gemeinsame Themen wiederfind- und gruppierbar (z. B. "Putting",
+    // "Anfänger", "Kurzes Spiel" …). Nutzt das vorhandene ContentItem.tags-Feld,
+    // persistiert über store.updateContentItem (siehe onChange oben).
+
+    var themesBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "tag.fill")
+                    .font(.caption)
+                    .foregroundStyle(ALColor.green)
+                Text("Themen")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    showTagEditor = true
+                } label: {
+                    Text(tags.isEmpty ? "Zuordnen" : "Bearbeiten")
+                        .font(.caption.weight(.semibold))
+                }
+            }
+            if tags.isEmpty {
+                Text("Noch keinem Thema zugeordnet. Ordne diesen Inhalt z. B. „Putting“ oder „Anfänger“ zu, um ihn im Datenpool leichter wiederzufinden und beim Zusammenstellen einer Lektion zu gruppieren.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(tags, id: \.self) { theme in
+                            Text(theme)
+                                .font(.caption.weight(.medium))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(ALColor.green.opacity(0.12))
+                                .foregroundStyle(ALColor.green)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.thinMaterial)
+    }
+
+    @ViewBuilder
+    var imagePreview: some View {
+        if let img = UIImage(contentsOfFile: store.imageURL(for: item.filename).path) {
+            ScrollView([.horizontal, .vertical]) {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+            }
+            .background(Color.black)
+        } else {
+            ContentUnavailableView("Bild konnte nicht geladen werden", systemImage: "photo")
+        }
+    }
+}
+
+// MARK: - Inhalt nachträglich zu Lektion(en) hinzufügen ("nachliefern")
+//
+// Erlaubt es, einen einzelnen Datenpool-Inhalt im Nachhinein einer oder
+// mehreren bestehenden Lektionen zuzuordnen — auch wenn diese bereits an
+// Schüler zugewiesen/versendet wurden. Der Inhalt wird beim nächsten Versand
+// automatisch mitgeliefert (siehe AppStore.exportLesson).
+
+struct AddToLessonSheet: View {
+    let item: ContentItem
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if store.lessons.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "book.closed")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.secondary)
+                        Text("Lege zuerst eine Lektion an, um Inhalte aus dem Datenpool nachzuliefern.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        Section {
+                            Text("Wähle eine oder mehrere Lektionen — „\(item.title)“ wird dort als weiterer Inhalt aus dem Datenpool ergänzt, auch wenn die Lektion bereits einem Schüler zugewiesen ist.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(store.folders.sorted(by: { $0.sortIndex < $1.sortIndex })) { folder in
+                            let folderLessons = store.lessonsIn(folder)
+                            if !folderLessons.isEmpty {
+                                Section(folder.title) {
+                                    ForEach(folderLessons) { lesson in
+                                        let alreadyIn = lesson.contentItemIDs.contains(item.id)
+                                        Button {
+                                            store.addContentItem(item, toLesson: lesson)
+                                        } label: {
+                                            HStack(spacing: 12) {
+                                                Image(systemName: alreadyIn ? "checkmark.circle.fill" : "circle")
+                                                    .foregroundStyle(alreadyIn ? ALColor.green : .secondary)
+                                                    .font(.title3)
+                                                Text(lesson.title)
+                                                    .foregroundStyle(.primary)
+                                                Spacer()
+                                                if alreadyIn {
+                                                    Text("bereits enthalten")
+                                                        .font(.caption)
+                                                        .foregroundStyle(.secondary)
+                                                }
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(alreadyIn)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.insetGrouped)
+                }
+            }
+            .navigationTitle("Zu Lektion hinzufügen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+}
+
+// MARK: - Themen-Editor (Gruppierung von Datenpool-Inhalten)
+//
+// Erlaubt es, einem Datenpool-Inhalt frei wählbare Themen zuzuordnen — nutzt
+// das vorhandene ContentItem.tags-Feld als leichtgewichtigen Gruppierungs-
+// Mechanismus (ein Inhalt kann mehreren Themen zugleich angehören, z. B.
+// "Putting" + "Anfänger"). Inhalte mit gemeinsamen Themen lassen sich im
+// Datenpool gefiltert anzeigen (siehe DatenpoolView) und beim Zusammenstellen
+// einer Lektion leichter wiederfinden.
+
+struct TagEditorSheet: View {
+    @Binding var themes: [String]
+    let suggestions: [String]
+    @Environment(\.dismiss) var dismiss
+    @State private var newThemeText: String = ""
+
+    var availableSuggestions: [String] {
+        suggestions.filter { !themes.contains($0) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    HStack {
+                        TextField("Neues Thema, z. B. „Putting“", text: $newThemeText)
+                            .onSubmit(addTheme)
+                        Button("Hinzufügen", action: addTheme)
+                            .fontWeight(.semibold)
+                            .disabled(newThemeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                } footer: {
+                    Text("Inhalte mit demselben Thema lassen sich im Datenpool gemeinsam anzeigen und beim Zusammenstellen einer Lektion leichter wiederfinden.")
+                }
+
+                if !themes.isEmpty {
+                    Section("Zugeordnet") {
+                        ForEach(themes, id: \.self) { theme in
+                            HStack(spacing: 10) {
+                                Image(systemName: "number")
+                                    .foregroundStyle(ALColor.green)
+                                Text(theme)
+                            }
+                        }
+                        .onDelete { offsets in
+                            themes.remove(atOffsets: offsets)
+                        }
+                    }
+                }
+
+                if !availableSuggestions.isEmpty {
+                    Section("Bereits im Datenpool verwendet") {
+                        ForEach(availableSuggestions, id: \.self) { theme in
+                            Button {
+                                themes.append(theme)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundStyle(ALColor.green)
+                                    Text(theme)
+                                        .foregroundStyle(.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Themen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func addTheme() {
+        let trimmed = newThemeText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !themes.contains(trimmed) else {
+            newThemeText = ""
+            return
+        }
+        themes.append(trimmed)
+        newThemeText = ""
+    }
+}
+
+// MARK: - PDF-Vorschau (PDFKit)
+
+struct PDFKitRepresentable: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> PDFView {
+        let view = PDFView()
+        view.autoScales = true
+        view.document = PDFDocument(url: url)
+        return view
+    }
+
+    func updateUIView(_ uiView: PDFView, context: Context) {
+        if uiView.document == nil {
+            uiView.document = PDFDocument(url: url)
+        }
+    }
+}
+
+// MARK: - Audio-Vorschau
+
+struct AudioPlayerView: View {
+    let url: URL
+    @State private var player: AVAudioPlayer? = nil
+    @State private var isPlaying = false
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "waveform")
+                .font(.system(size: 60))
+                .foregroundStyle(Color(hex: ContentType.audio.colorHex))
+            Button {
+                isPlaying ? stop() : play()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: isPlaying ? "stop.circle.fill" : "play.circle.fill")
+                        .font(.system(size: 28))
+                    Text(isPlaying ? "Stoppen" : "Abspielen")
+                        .font(.headline)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Color(hex: ContentType.audio.colorHex).opacity(0.12))
+                .foregroundStyle(Color(hex: ContentType.audio.colorHex))
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGroupedBackground))
+        .onDisappear { stop() }
+    }
+
+    func play() {
+        try? AVAudioSession.sharedInstance().setCategory(.playback)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        player = try? AVAudioPlayer(contentsOf: url)
+        player?.play()
+        isPlaying = true
+    }
+
+    func stop() {
+        player?.stop()
+        isPlaying = false
+    }
+}
+
+// MARK: - Video-Aufnahme (Kamera)
+
+struct VideoCameraView: UIViewControllerRepresentable {
+    var onFinish: (URL) -> Void
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.mediaTypes = [UTType.movie.identifier]
+        picker.videoQuality = .typeMedium
+        picker.cameraCaptureMode = .video
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: VideoCameraView
+        init(_ parent: VideoCameraView) { self.parent = parent }
+
+        func imagePickerController(_ picker: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            let url = info[.mediaURL] as? URL
+            picker.dismiss(animated: true) {
+                if let url { self.parent.onFinish(url) }
+            }
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
+    }
+}
+
 // MARK: - Folders View
 
 struct FoldersView: View {
@@ -1394,9 +2292,26 @@ struct LessonCardView: View {
     let onTap: () -> Void
     @EnvironmentObject var store: AppStore
 
+    /// Inhalte, die diese Lektion zusätzlich aus dem zentralen Datenpool bezieht.
+    var poolItems: [ContentItem] { store.contentItems(for: lesson) }
+
+    /// Gesamtzahl der Medien — klassisch hochgeladene Bilder plus Pool-Inhalte.
+    var totalMediaCount: Int { lesson.imageFilenames.count + poolItems.count }
+
     var firstImage: UIImage? {
-        guard let first = lesson.imageFilenames.first else { return nil }
-        return UIImage(contentsOfFile: store.imageURL(for: first).path)
+        if let first = lesson.imageFilenames.first,
+           let img = UIImage(contentsOfFile: store.imageURL(for: first).path) {
+            return img
+        }
+        for item in poolItems {
+            if item.type == .image, let img = UIImage(contentsOfFile: store.imageURL(for: item.filename).path) {
+                return img
+            }
+            if let thumb = item.thumbnailFilename, let img = UIImage(contentsOfFile: store.imageURL(for: thumb).path) {
+                return img
+            }
+        }
+        return nil
     }
 
     var isCompleted: Bool { store.isCompleted(lesson.id) }
@@ -1423,12 +2338,12 @@ struct LessonCardView: View {
                             }
                     }
 
-                    // Bilder-Anzahl Badge
-                    if lesson.imageFilenames.count > 1 {
+                    // Medien-Anzahl Badge (klassisch + Datenpool)
+                    if totalMediaCount > 1 {
                         HStack(spacing: 3) {
                             Image(systemName: "photo.on.rectangle")
                                 .font(.caption2)
-                            Text("\(lesson.imageFilenames.count)")
+                            Text("\(totalMediaCount)")
                                 .font(.caption2.bold())
                         }
                         .foregroundStyle(.white)
@@ -1445,7 +2360,7 @@ struct LessonCardView: View {
                             .foregroundStyle(.green)
                             .font(.title3)
                             .padding(6)
-                            .offset(x: 0, y: lesson.imageFilenames.count > 1 ? 28 : 0)
+                            .offset(x: 0, y: totalMediaCount > 1 ? 28 : 0)
                     }
                 }
 
@@ -1456,6 +2371,11 @@ struct LessonCardView: View {
                         .foregroundStyle(.primary)
                         .lineLimit(2)
 
+                    if !poolItems.isEmpty {
+                        Label("\(poolItems.count) aus Datenpool", systemImage: "square.grid.2x2.fill")
+                            .font(.caption)
+                            .foregroundStyle(ALColor.fairway)
+                    }
                     if !lesson.tips.isEmpty {
                         Text("\(lesson.tips.count) Tipps")
                             .font(.caption)
@@ -1491,6 +2411,8 @@ struct LessonDetailView: View {
     @State private var isAddingPhotos = false
     @State private var previewImage: UIImage? = nil
     @State private var previewIndex: Int? = nil
+    @State private var selectedPoolItem: ContentItem? = nil
+    @State private var showAddPoolContent = false
 
     init(lesson: Lesson, onEdit: (() -> Void)? = nil) {
         self.lesson = lesson
@@ -1501,6 +2423,49 @@ struct LessonDetailView: View {
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
     var isCompleted: Bool { store.isCompleted(lesson.id) }
 
+    /// Inhalte, die diese Lektion zusätzlich aus dem zentralen Datenpool bezieht.
+    var poolItems: [ContentItem] { store.contentItems(for: currentLesson) }
+
+    var poolContentSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Inhalte aus dem Datenpool", systemImage: "square.grid.2x2.fill")
+                    .font(.headline)
+                    .foregroundStyle(ALColor.green)
+                Spacer()
+                if isTeacher {
+                    Button {
+                        showAddPoolContent = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(ALColor.green)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Inhalte aus dem Datenpool ergänzen")
+                }
+            }
+
+            if poolItems.isEmpty {
+                Text("Noch keine Inhalte aus dem Datenpool zugeordnet. Du kannst jederzeit weitere Bilder, Videos, PDFs, Audios oder Texte nachliefern.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    ForEach(poolItems) { item in
+                        Button { selectedPoolItem = item } label: {
+                            ContentItemTile(item: item)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -1509,6 +2474,12 @@ struct LessonDetailView: View {
                     // Bilder Galerie (immer zeigen wenn Lehrer, auch leer für Add-Button)
                     if isTeacher || !currentLesson.imageFilenames.isEmpty {
                         imageGallery
+                    }
+
+                    // Inhalte aus dem Datenpool (Bilder, Videos, PDFs, Audio, Text) —
+                    // für den Lehrer immer sichtbar (auch leer, zum Nachliefern), für Schüler nur mit Inhalt
+                    if isTeacher || !poolItems.isEmpty {
+                        poolContentSection
                     }
 
                     // Beschreibung
@@ -1652,6 +2623,15 @@ struct LessonDetailView: View {
                     previewIndex = nil
                 }
             }
+            .sheet(item: $selectedPoolItem) { item in
+                ContentItemDetailView(item: item)
+            }
+            .sheet(isPresented: $showAddPoolContent) {
+                ContentPoolPickerView(initialSelection: currentLesson.contentItemIDs) { newSelection in
+                    currentLesson.contentItemIDs = newSelection
+                    store.updateLesson(currentLesson)
+                }
+            }
         }
     }
 
@@ -1768,10 +2748,34 @@ struct LessonRowView: View {
     let lesson: Lesson
     @EnvironmentObject var store: AppStore
 
+    var previewImage: UIImage? {
+        if let first = lesson.imageFilenames.first,
+           let img = UIImage(contentsOfFile: store.imageURL(for: first).path) {
+            return img
+        }
+        for item in store.contentItems(for: lesson) {
+            if item.type == .image, let img = UIImage(contentsOfFile: store.imageURL(for: item.filename).path) {
+                return img
+            }
+            if let thumb = item.thumbnailFilename, let img = UIImage(contentsOfFile: store.imageURL(for: thumb).path) {
+                return img
+            }
+        }
+        return nil
+    }
+
+    var infoLine: String {
+        var parts: [String] = []
+        if !lesson.steps.isEmpty { parts.append("\(lesson.steps.count) Schritte") }
+        if !lesson.tips.isEmpty { parts.append("\(lesson.tips.count) Tipps") }
+        let poolCount = store.contentItems(for: lesson).count
+        if poolCount > 0 { parts.append("\(poolCount) aus Datenpool") }
+        return parts.isEmpty ? "Lektion" : parts.joined(separator: " · ")
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            if let first = lesson.imageFilenames.first,
-               let img = UIImage(contentsOfFile: store.imageURL(for: first).path) {
+            if let img = previewImage {
                 Image(uiImage: img)
                     .resizable().scaledToFill()
                     .frame(width: 56, height: 56).clipped()
@@ -1784,7 +2788,7 @@ struct LessonRowView: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(lesson.title).font(.subheadline.bold())
-                Text("\(lesson.steps.count) Schritte · \(lesson.tips.count) Tipps")
+                Text(infoLine)
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
@@ -4891,6 +5895,8 @@ struct LessonEditorView: View {
     @State private var imageFilenames: [String] = []
     @State private var isAddingPhotos = false
     @State private var previewIndex: Int? = nil
+    @State private var contentItemIDs: [UUID] = []
+    @State private var showPoolPicker = false
     @FocusState private var focusedField: Field?
 
     enum Field { case title, description, tip }
@@ -4906,6 +5912,12 @@ struct LessonEditorView: View {
 
     var isEditing: Bool { existingLesson != nil }
     var canSave: Bool { !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// Datenpool-Inhalte in der Reihenfolge der Auswahl, für die Vorschau im Editor.
+    var poolContentItems: [ContentItem] {
+        let lookup = Dictionary(uniqueKeysWithValues: store.contentPool.map { ($0.id, $0) })
+        return contentItemIDs.compactMap { lookup[$0] }
+    }
 
     var body: some View {
         NavigationStack {
@@ -5044,6 +6056,56 @@ struct LessonEditorView: View {
                         }
                     }
 
+                    // ── Inhalte aus dem Datenpool ──
+                    editorCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Inhalte aus dem Datenpool", systemImage: "square.grid.2x2.fill")
+                                .font(.caption.bold()).foregroundStyle(.secondary)
+
+                            if poolContentItems.isEmpty {
+                                Text("Stelle diese Lektion aus Bildern, Videos, PDFs oder Audio zusammen, die du bereits in deinem Datenpool gesammelt hast.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 10) {
+                                        ForEach(poolContentItems) { item in
+                                            ZStack(alignment: .topTrailing) {
+                                                PoolItemThumb(item: item)
+                                                Button {
+                                                    contentItemIDs.removeAll { $0 == item.id }
+                                                } label: {
+                                                    Image(systemName: "xmark.circle.fill")
+                                                        .font(.title3)
+                                                        .foregroundStyle(.white)
+                                                        .background(Color.black.opacity(0.5).clipShape(Circle()))
+                                                }
+                                                .padding(4)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Button { showPoolPicker = true } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "tray.full.fill")
+                                    Text(poolContentItems.isEmpty ? "Aus Datenpool auswählen" : "Auswahl bearbeiten")
+                                }
+                                .font(.subheadline)
+                                .foregroundStyle(ALColor.green)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(ALColor.green.opacity(0.10))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(ALColor.green.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5, 3]))
+                                )
+                            }
+                        }
+                    }
+
                     // ── Profi-Tipps ──
                     editorCard {
                         VStack(alignment: .leading, spacing: 10) {
@@ -5113,6 +6175,11 @@ struct LessonEditorView: View {
                     previewIndex = nil
                 }
             }
+            .sheet(isPresented: $showPoolPicker) {
+                ContentPoolPickerView(initialSelection: contentItemIDs) { newSelection in
+                    contentItemIDs = newSelection
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Abbrechen") {
@@ -5161,6 +6228,7 @@ struct LessonEditorView: View {
         selectedIcon = l.icon
         tips = l.tips
         imageFilenames = l.imageFilenames
+        contentItemIDs = l.contentItemIDs
     }
 
     func save() {
@@ -5173,6 +6241,7 @@ struct LessonEditorView: View {
             lesson.icon = selectedIcon
             lesson.tips = tips
             lesson.imageFilenames = imageFilenames
+            lesson.contentItemIDs = contentItemIDs
             store.updateLesson(lesson)
         } else {
             var lesson = Lesson(folderID: folderID, title: t)
@@ -5180,9 +6249,170 @@ struct LessonEditorView: View {
             lesson.icon = selectedIcon
             lesson.tips = tips
             lesson.imageFilenames = imageFilenames
+            lesson.contentItemIDs = contentItemIDs
             store.lessons.append(lesson)
         }
         dismiss()
+    }
+}
+
+// MARK: - Pool Item Thumb (kompakte Vorschau in Auswahl-Listen)
+
+struct PoolItemThumb: View {
+    let item: ContentItem
+    @EnvironmentObject var store: AppStore
+
+    var typeColor: Color { Color(hex: item.type.colorHex) }
+
+    var thumbImage: UIImage? {
+        if item.type == .image {
+            return UIImage(contentsOfFile: store.imageURL(for: item.filename).path)
+        }
+        if let thumb = item.thumbnailFilename {
+            return UIImage(contentsOfFile: store.imageURL(for: thumb).path)
+        }
+        return nil
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                if let img = thumbImage {
+                    Image(uiImage: img).resizable().scaledToFill()
+                } else {
+                    Rectangle().fill(typeColor.opacity(0.12))
+                    Image(systemName: item.type.icon)
+                        .font(.system(size: 18))
+                        .foregroundStyle(typeColor)
+                }
+            }
+            .frame(width: 92, height: 70)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            Text(item.title)
+                .font(.caption2)
+                .lineLimit(1)
+                .frame(width: 92)
+        }
+    }
+}
+
+// MARK: - Datenpool-Auswahl (Lektionen aus Pool-Inhalten zusammenstellen)
+
+struct ContentPoolPickerView: View {
+    let initialSelection: [UUID]
+    let onDone: ([UUID]) -> Void
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+
+    @State private var selection: [UUID] = []
+    @State private var filterType: ContentType? = nil
+
+    var filteredItems: [ContentItem] {
+        guard let filterType else { return store.contentPool }
+        return store.contentPool.filter { $0.type == filterType }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if store.contentPool.isEmpty {
+                    ContentUnavailableView("Datenpool ist leer", systemImage: "tray",
+                                           description: Text("Importiere zuerst Inhalte im Datenpool-Tab — danach kannst du sie hier für Lektionen auswählen."))
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            filterBar
+                            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                                ForEach(filteredItems) { item in
+                                    Button { toggle(item) } label: {
+                                        ZStack(alignment: .topLeading) {
+                                            ContentItemTile(item: item)
+                                            selectionBadge(isSelected: selection.contains(item.id))
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        .padding(16)
+                        .padding(.bottom, 30)
+                    }
+                }
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Inhalte auswählen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(selection.isEmpty ? "Übernehmen" : "Übernehmen (\(selection.count))") {
+                        onDone(selection)
+                        dismiss()
+                    }
+                    .bold()
+                }
+            }
+        }
+        .onAppear { selection = initialSelection }
+        .presentationDetents([.large])
+    }
+
+    var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterChip(nil, label: "Alle")
+                ForEach(ContentType.allCases, id: \.self) { type in
+                    filterChip(type, label: type.label)
+                }
+            }
+        }
+    }
+
+    func filterChip(_ type: ContentType?, label: String) -> some View {
+        let isSelected = filterType == type
+        let color = type.map { Color(hex: $0.colorHex) } ?? ALColor.green
+        return Button {
+            filterType = type
+        } label: {
+            HStack(spacing: 6) {
+                if let type {
+                    Image(systemName: type.icon).font(.caption2)
+                }
+                Text(label).font(.subheadline)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(isSelected ? color : Color(.secondarySystemGroupedBackground))
+            .foregroundStyle(isSelected ? .white : .primary)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    func selectionBadge(isSelected: Bool) -> some View {
+        ZStack {
+            Circle()
+                .fill(isSelected ? ALColor.green : Color.black.opacity(0.25))
+                .frame(width: 24, height: 24)
+                .overlay(Circle().stroke(.white, lineWidth: 1.5))
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .padding(8)
+    }
+
+    func toggle(_ item: ContentItem) {
+        if let idx = selection.firstIndex(of: item.id) {
+            selection.remove(at: idx)
+        } else {
+            selection.append(item.id)
+        }
     }
 }
 

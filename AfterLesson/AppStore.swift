@@ -23,6 +23,9 @@ final class AppStore: ObservableObject {
     @Published var proNotes: [ProNote] = [] {
         didSet { saveProNotes() }
     }
+    @Published var contentPool: [ContentItem] = [] {
+        didSet { saveContentPool() }
+    }
     @Published var sessions: [TrainingSession] = [] {
         didSet { saveSessions() }
     }
@@ -269,6 +272,48 @@ final class AppStore: ObservableObject {
         try? data.write(to: imageURL(for: filename))
     }
 
+    // MARK: - Content Pool (Datenpool)
+
+    func addContentItem(_ item: ContentItem) {
+        contentPool.insert(item, at: 0)
+    }
+
+    func updateContentItem(_ item: ContentItem) {
+        if let idx = contentPool.firstIndex(where: { $0.id == item.id }) {
+            contentPool[idx] = item
+        }
+    }
+
+    func deleteContentItem(_ item: ContentItem) {
+        try? FileManager.default.removeItem(at: imageURL(for: item.filename))
+        if let thumb = item.thumbnailFilename {
+            try? FileManager.default.removeItem(at: imageURL(for: thumb))
+        }
+        contentPool.removeAll { $0.id == item.id }
+    }
+
+    /// Löst die im Datenpool referenzierten Inhalte einer Lektion auf — in der
+    /// Reihenfolge, in der sie der Lektion zugeordnet wurden.
+    func contentItems(for lesson: Lesson) -> [ContentItem] {
+        guard !lesson.contentItemIDs.isEmpty else { return [] }
+        let lookup = Dictionary(uniqueKeysWithValues: contentPool.map { ($0.id, $0) })
+        return lesson.contentItemIDs.compactMap { lookup[$0] }
+    }
+
+    /// Hängt einen Datenpool-Inhalt an eine bestehende Lektion an ("nachliefern"),
+    /// ohne die Lektion sonst zu verändern. Verhindert doppelte Verknüpfung.
+    func addContentItem(_ item: ContentItem, toLesson lesson: Lesson) {
+        guard let idx = lessons.firstIndex(where: { $0.id == lesson.id }) else { return }
+        guard !lessons[idx].contentItemIDs.contains(item.id) else { return }
+        lessons[idx].contentItemIDs.append(item.id)
+    }
+
+    private func saveContentPool() {
+        if let data = try? JSONEncoder().encode(contentPool) {
+            UserDefaults.standard.set(data, forKey: "al_contentpool")
+        }
+    }
+
     // MARK: - Progress
 
     func markCompleted(_ lessonID: UUID) {
@@ -293,9 +338,23 @@ final class AppStore: ObservableObject {
                 imageData[filename] = data
             }
         }
+        // Datenpool-Inhalte der Lektion mit einbetten (Datei + ggf. Thumbnail
+        // sowie die ContentItem-Metadaten), damit das Paket beim Schüler
+        // weiterhin "self-contained" ankommt — inkl. nachträglich gelieferter Inhalte.
+        let poolItems = contentItems(for: lesson)
+        for item in poolItems {
+            if let data = try? Data(contentsOf: imageURL(for: item.filename)) {
+                imageData[item.filename] = data
+            }
+            if let thumb = item.thumbnailFilename,
+               let data = try? Data(contentsOf: imageURL(for: thumb)) {
+                imageData[thumb] = data
+            }
+        }
         let package = AfterLessonShare(
             lesson: lesson,
             imageData: imageData,
+            contentItems: poolItems,
             exportDate: Date(),
             teacherName: teacherName
         )
@@ -316,6 +375,15 @@ final class AppStore: ObservableObject {
         for (filename, imgData) in package.imageData {
             saveImage(imgData, filename: filename)
         }
+        // Mitgelieferte Datenpool-Inhalte unter denselben IDs registrieren, damit
+        // contentItemIDs der importierten Lektion auflösbar bleiben — und doppelte
+        // Einträge vermeiden, falls derselbe Inhalt schon vorhanden ist.
+        let newPoolItems = package.contentItems.filter { item in
+            !contentPool.contains(where: { $0.id == item.id })
+        }
+        if !newPoolItems.isEmpty {
+            contentPool.insert(contentsOf: newPoolItems, at: 0)
+        }
         var newLesson = package.lesson
         newLesson.id = UUID()
         if !folders.contains(where: { $0.id == newLesson.folderID }) {
@@ -330,10 +398,26 @@ final class AppStore: ObservableObject {
     func exportFolder(_ folder: LessonFolder) -> URL? {
         let folderLessons = lessonsIn(folder)
         var imageData: [String: Data] = [:]
+        var seenContentIDs: Set<UUID> = []
+        var poolItems: [ContentItem] = []
         for lesson in folderLessons {
             for filename in lesson.imageFilenames {
                 if let data = try? Data(contentsOf: imageURL(for: filename)) {
                     imageData[filename] = data
+                }
+            }
+            // Datenpool-Inhalte aller Lektionen des Ordners einsammeln — dedupliziert,
+            // falls mehrere Lektionen denselben Inhalt referenzieren (z.B. ein Video,
+            // das in zwei Lektionen verwendet wird, soll nur einmal eingebettet werden).
+            for item in contentItems(for: lesson) where !seenContentIDs.contains(item.id) {
+                seenContentIDs.insert(item.id)
+                poolItems.append(item)
+                if let data = try? Data(contentsOf: imageURL(for: item.filename)) {
+                    imageData[item.filename] = data
+                }
+                if let thumb = item.thumbnailFilename,
+                   let data = try? Data(contentsOf: imageURL(for: thumb)) {
+                    imageData[thumb] = data
                 }
             }
         }
@@ -341,6 +425,7 @@ final class AppStore: ObservableObject {
             folder: folder,
             lessons: folderLessons,
             imageData: imageData,
+            contentItems: poolItems,
             exportDate: Date(),
             teacherName: teacherName
         )
@@ -458,6 +543,10 @@ final class AppStore: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "al_pronotes"),
            let decoded = try? JSONDecoder().decode([ProNote].self, from: data) {
             proNotes = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: "al_contentpool"),
+           let decoded = try? JSONDecoder().decode([ContentItem].self, from: data) {
+            contentPool = decoded
         }
         if let data = UserDefaults.standard.data(forKey: "al_sessions"),
            let decoded = try? JSONDecoder().decode([TrainingSession].self, from: data) {
