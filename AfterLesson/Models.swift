@@ -167,6 +167,21 @@ enum ContentSource: String, Codable {
     case recorded   // direkt in der App aufgenommen/gefilmt
 }
 
+// MARK: - Content Class (Klasse im Datenpool)
+//
+// Eine "Klasse" ist ein Ordner im Datenpool: Der Pro strukturiert damit seine
+// Inhalte (z.B. "Abschlag", "Putten", "Theorie"). Jeder Inhalt gehört zu
+// höchstens einer Klasse — Inhalte ohne Klasse erscheinen unter "Unsortiert".
+
+struct ContentClass: Identifiable, Codable, Hashable {
+    var id = UUID()
+    var title: String
+    var icon: String = "folder.fill"
+    var colorHex: String = "2C5F2D"
+    var sortIndex: Int = 0
+    var dateCreated: Date = Date()
+}
+
 struct ContentItem: Identifiable, Codable, Hashable {
     var id = UUID()
     var title: String
@@ -177,6 +192,9 @@ struct ContentItem: Identifiable, Codable, Hashable {
     var dateCreated: Date = Date()
     var tags: [String] = []
     var notes: String = ""
+    var classID: UUID? = nil                // Zugehörige Klasse (Ordner) — nil = "Unsortiert".
+                                            // Optional, daher decodiert Swift fehlende Schlüssel
+                                            // in alten Daten/Paketen automatisch als nil.
 }
 
 // MARK: - Student Progress

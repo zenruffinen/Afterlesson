@@ -26,6 +26,9 @@ final class AppStore: ObservableObject {
     @Published var contentPool: [ContentItem] = [] {
         didSet { saveContentPool() }
     }
+    @Published var contentClasses: [ContentClass] = [] {
+        didSet { saveContentClasses() }
+    }
     @Published var sessions: [TrainingSession] = [] {
         didSet { saveSessions() }
     }
@@ -314,6 +317,50 @@ final class AppStore: ObservableObject {
         }
     }
 
+    // MARK: - Content Classes (Klassen im Datenpool)
+
+    func addContentClass(title: String, icon: String = "folder.fill", colorHex: String = "2C5F2D") {
+        let c = ContentClass(title: title, icon: icon, colorHex: colorHex, sortIndex: contentClasses.count)
+        contentClasses.append(c)
+    }
+
+    func updateContentClass(_ contentClass: ContentClass) {
+        if let idx = contentClasses.firstIndex(where: { $0.id == contentClass.id }) {
+            contentClasses[idx] = contentClass
+        }
+    }
+
+    /// Löscht eine Klasse. Die enthaltenen Inhalte bleiben erhalten und
+    /// wandern zurück nach "Unsortiert" (classID = nil) — es gehen also
+    /// nie Dateien verloren, nur die Ordner-Zuordnung.
+    func deleteContentClass(_ contentClass: ContentClass) {
+        for i in contentPool.indices where contentPool[i].classID == contentClass.id {
+            contentPool[i].classID = nil
+        }
+        contentClasses.removeAll { $0.id == contentClass.id }
+    }
+
+    func items(in contentClass: ContentClass) -> [ContentItem] {
+        contentPool.filter { $0.classID == contentClass.id }
+    }
+
+    /// Inhalte, die noch keiner Klasse zugeordnet sind.
+    var unclassifiedItems: [ContentItem] {
+        contentPool.filter { $0.classID == nil }
+    }
+
+    /// Verschiebt einen Inhalt in eine Klasse (oder mit nil nach "Unsortiert").
+    func move(_ item: ContentItem, toClass classID: UUID?) {
+        guard let idx = contentPool.firstIndex(where: { $0.id == item.id }) else { return }
+        contentPool[idx].classID = classID
+    }
+
+    private func saveContentClasses() {
+        if let data = try? JSONEncoder().encode(contentClasses) {
+            UserDefaults.standard.set(data, forKey: "al_contentclasses")
+        }
+    }
+
     // MARK: - Progress
 
     func markCompleted(_ lessonID: UUID) {
@@ -378,8 +425,17 @@ final class AppStore: ObservableObject {
         // Mitgelieferte Datenpool-Inhalte unter denselben IDs registrieren, damit
         // contentItemIDs der importierten Lektion auflösbar bleiben — und doppelte
         // Einträge vermeiden, falls derselbe Inhalt schon vorhanden ist.
-        let newPoolItems = package.contentItems.filter { item in
+        var newPoolItems = package.contentItems.filter { item in
             !contentPool.contains(where: { $0.id == item.id })
+        }
+        // classID des Absenders zeigt auf eine Klasse, die es auf diesem Gerät
+        // nicht gibt — zurücksetzen, sonst wäre der Inhalt im Datenpool unsichtbar
+        // (weder in einer Klasse noch unter "Unsortiert" auffindbar).
+        for i in newPoolItems.indices {
+            if let cid = newPoolItems[i].classID,
+               !contentClasses.contains(where: { $0.id == cid }) {
+                newPoolItems[i].classID = nil
+            }
         }
         if !newPoolItems.isEmpty {
             contentPool.insert(contentsOf: newPoolItems, at: 0)
@@ -547,6 +603,10 @@ final class AppStore: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "al_contentpool"),
            let decoded = try? JSONDecoder().decode([ContentItem].self, from: data) {
             contentPool = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: "al_contentclasses"),
+           let decoded = try? JSONDecoder().decode([ContentClass].self, from: data) {
+            contentClasses = decoded
         }
         if let data = UserDefaults.standard.data(forKey: "al_sessions"),
            let decoded = try? JSONDecoder().decode([TrainingSession].self, from: data) {

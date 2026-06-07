@@ -1035,6 +1035,167 @@ struct QuickTile: View {
 
 struct DatenpoolView: View {
     @EnvironmentObject var store: AppStore
+    @State private var editingClass: ContentClass? = nil
+    @State private var showNewClassSheet = false
+
+    var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if store.contentClasses.isEmpty && store.contentPool.isEmpty {
+                    emptyState
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            classGrid
+                        }
+                        .padding(16)
+                        .padding(.bottom, 30)
+                    }
+                }
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Datenpool")
+            .toolbar {
+                if isTeacher {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { showNewClassSheet = true } label: {
+                            Image(systemName: "folder.badge.plus")
+                                .font(.system(size: 18))
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showNewClassSheet) {
+                ContentClassEditorSheet(existingClass: nil)
+            }
+            .sheet(item: $editingClass) { c in
+                ContentClassEditorSheet(existingClass: c)
+            }
+        }
+    }
+
+    // MARK: Klassen-Grid (Ordner-Übersicht)
+
+    var classGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            ForEach(store.contentClasses.sorted(by: { $0.sortIndex < $1.sortIndex })) { c in
+                NavigationLink {
+                    ClassContentView(contentClass: c)
+                } label: {
+                    ContentClassTile(contentClass: c, count: store.items(in: c).count)
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    if isTeacher {
+                        Button { editingClass = c } label: {
+                            Label("Bearbeiten", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            store.deleteContentClass(c)
+                        } label: {
+                            Label("Klasse löschen", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+
+            // "Unsortiert" — alle Inhalte ohne Klasse. Immer sichtbar, damit
+            // neue Importe sofort einen Ort haben und nichts "verschwindet".
+            NavigationLink {
+                ClassContentView(contentClass: nil)
+            } label: {
+                ContentClassTile(contentClass: nil, count: store.unclassifiedItems.count)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: Empty State (noch keine Klassen & keine Inhalte)
+
+    var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "folder.fill.badge.plus")
+                .font(.system(size: 60))
+                .foregroundStyle(ALColor.green.opacity(0.35))
+            Text("Datenpool ist leer")
+                .font(.title3.bold())
+            Text("Lege Klassen an, um deine Inhalte zu strukturieren –\nz.B. Abschlag, Putten oder Theorie")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            if isTeacher {
+                Button { showNewClassSheet = true } label: {
+                    Label("Neue Klasse", systemImage: "folder.badge.plus")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 12)
+                        .background(ALColor.green)
+                        .clipShape(Capsule())
+                }
+                .padding(.top, 8)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGroupedBackground))
+    }
+}
+
+// MARK: - Klassen-Kachel (Ordner im Datenpool)
+
+struct ContentClassTile: View {
+    let contentClass: ContentClass?     // nil = "Unsortiert"
+    let count: Int
+
+    var color: Color {
+        contentClass.map { Color(hex: $0.colorHex) } ?? Color(.systemGray)
+    }
+    var icon: String { contentClass?.icon ?? "tray.fill" }
+    var title: String { contentClass?.title ?? "Unsortiert" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(color.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(color)
+                }
+                Spacer()
+                Text("\(count)")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(color)
+                    .clipShape(Capsule())
+            }
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+            Text(count == 1 ? "1 Inhalt" : "\(count) Inhalte")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+// MARK: - Klassen-Inhalt (Grid der Inhalte einer Klasse bzw. "Unsortiert")
+
+struct ClassContentView: View {
+    let contentClass: ContentClass?     // nil = "Unsortiert"
+    @EnvironmentObject var store: AppStore
     @State private var photoPickerItems: [PhotosPickerItem] = []
     @State private var showPhotosPicker = false
     @State private var showFileImporter = false
@@ -1047,74 +1208,78 @@ struct DatenpoolView: View {
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
-    /// Alle im Pool vergebenen Themen ("Gruppierungen"), alphabetisch — Grundlage
-    /// für die Themen-Filterleiste. Bleibt leer, solange noch nichts zugeordnet wurde.
+    /// Die Inhalte dieser Klasse (bzw. alle ohne Klasse bei "Unsortiert").
+    var classItems: [ContentItem] {
+        store.contentPool.filter { $0.classID == contentClass?.id }
+    }
+
+    /// Alle in dieser Klasse vergebenen Themen ("Gruppierungen"), alphabetisch —
+    /// Grundlage für die Themen-Filterleiste. Bleibt leer, solange noch nichts zugeordnet wurde.
     var allThemes: [String] {
-        Array(Set(store.contentPool.flatMap { $0.tags })).sorted()
+        Array(Set(classItems.flatMap { $0.tags })).sorted()
     }
 
     var filteredItems: [ContentItem] {
-        store.contentPool.filter { item in
+        classItems.filter { item in
             (filterType == nil || item.type == filterType)
             && (filterTheme == nil || item.tags.contains(filterTheme!))
         }
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if store.contentPool.isEmpty {
-                    emptyState
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            filterBar
-                            themeFilterBar
-                            grid
-                        }
-                        .padding(16)
-                        .padding(.bottom, 30)
+        Group {
+            if classItems.isEmpty {
+                emptyState
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        filterBar
+                        themeFilterBar
+                        grid
                     }
+                    .padding(16)
+                    .padding(.bottom, 30)
                 }
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Datenpool")
-            .toolbar {
-                if isTeacher {
-                    ToolbarItem(placement: .primaryAction) {
-                        addMenu
-                    }
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle(contentClass?.title ?? "Unsortiert")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isTeacher {
+                ToolbarItem(placement: .primaryAction) {
+                    addMenu
                 }
             }
-            .onChange(of: photoPickerItems) { _, items in
-                guard !items.isEmpty else { return }
-                importFromPhotos(items)
+        }
+        .onChange(of: photoPickerItems) { _, items in
+            guard !items.isEmpty else { return }
+            importFromPhotos(items)
+        }
+        .photosPicker(isPresented: $showPhotosPicker, selection: $photoPickerItems,
+                      maxSelectionCount: 20, matching: .any(of: [.images, .videos]))
+        .fileImporter(isPresented: $showFileImporter,
+                      allowedContentTypes: [.pdf, .movie, .image, .audio, .plainText, .data],
+                      allowsMultipleSelection: true) { result in
+            handleFileImport(result)
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            VideoCameraView { url in
+                importRecordedVideo(from: url)
             }
-            .photosPicker(isPresented: $showPhotosPicker, selection: $photoPickerItems,
-                          maxSelectionCount: 20, matching: .any(of: [.images, .videos]))
-            .fileImporter(isPresented: $showFileImporter,
-                          allowedContentTypes: [.pdf, .movie, .image, .audio, .plainText, .data],
-                          allowsMultipleSelection: true) { result in
-                handleFileImport(result)
-            }
-            .fullScreenCover(isPresented: $showCamera) {
-                VideoCameraView { url in
-                    importRecordedVideo(from: url)
-                }
-                .ignoresSafeArea()
-            }
-            .sheet(item: $selectedItem) { item in
-                ContentItemDetailView(item: item)
-            }
-            .overlay {
-                if isImporting { importOverlay }
-            }
-            .alert("Import fehlgeschlagen",
-                   isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
-                Button("OK", role: .cancel) { importError = nil }
-            } message: {
-                Text(importError ?? "")
-            }
+            .ignoresSafeArea()
+        }
+        .sheet(item: $selectedItem) { item in
+            ContentItemDetailView(item: item)
+        }
+        .overlay {
+            if isImporting { importOverlay }
+        }
+        .alert("Import fehlgeschlagen",
+               isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
+            Button("OK", role: .cancel) { importError = nil }
+        } message: {
+            Text(importError ?? "")
         }
     }
 
@@ -1144,7 +1309,7 @@ struct DatenpoolView: View {
             Image(systemName: "tray.full.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(ALColor.green.opacity(0.35))
-            Text("Datenpool ist leer")
+            Text(contentClass == nil ? "Keine unsortierten Inhalte" : "Diese Klasse ist leer")
                 .font(.title3.bold())
             Text("Importiere Fotos, Videos und PDFs\noder nimm direkt etwas Neues auf")
                 .font(.subheadline)
@@ -1263,6 +1428,28 @@ struct DatenpoolView: View {
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
+                    if isTeacher {
+                        Menu {
+                            ForEach(store.contentClasses.sorted(by: { $0.sortIndex < $1.sortIndex })) { c in
+                                if c.id != contentClass?.id {
+                                    Button {
+                                        store.move(item, toClass: c.id)
+                                    } label: {
+                                        Label(c.title, systemImage: c.icon)
+                                    }
+                                }
+                            }
+                            if contentClass != nil {
+                                Button {
+                                    store.move(item, toClass: nil)
+                                } label: {
+                                    Label("Unsortiert", systemImage: "tray.fill")
+                                }
+                            }
+                        } label: {
+                            Label("In Klasse verschieben", systemImage: "folder")
+                        }
+                    }
                     Button(role: .destructive) {
                         store.deleteContentItem(item)
                     } label: {
@@ -1310,7 +1497,7 @@ struct DatenpoolView: View {
                 let newItem = ContentItem(title: isVideo ? "Video \(dateStamp())" : "Bild \(dateStamp())",
                                           type: isVideo ? .video : .image,
                                           filename: filename, thumbnailFilename: thumbFilename,
-                                          source: .imported)
+                                          source: .imported, classID: contentClass?.id)
                 store.addContentItem(newItem)
             }
             photoPickerItems = []
@@ -1354,7 +1541,7 @@ struct DatenpoolView: View {
         let rawTitle = url.deletingPathExtension().lastPathComponent
         let newItem = ContentItem(title: rawTitle.isEmpty ? type.label : rawTitle,
                                   type: type, filename: filename, thumbnailFilename: thumbFilename,
-                                  source: .imported)
+                                  source: .imported, classID: contentClass?.id)
         store.addContentItem(newItem)
     }
 
@@ -1383,7 +1570,7 @@ struct DatenpoolView: View {
             }
             let newItem = ContentItem(title: "Aufnahme \(dateStamp())", type: .video,
                                       filename: filename, thumbnailFilename: thumbFilename,
-                                      source: .recorded)
+                                      source: .recorded, classID: contentClass?.id)
             store.addContentItem(newItem)
             try? FileManager.default.removeItem(at: url)
             isImporting = false
@@ -1404,6 +1591,148 @@ struct DatenpoolView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd.MM. HH:mm"
         return formatter.string(from: Date())
+    }
+}
+
+// MARK: - Klassen-Editor (Neue Klasse anlegen / bearbeiten)
+
+struct ContentClassEditorSheet: View {
+    let existingClass: ContentClass?
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+
+    @State private var title = ""
+    @State private var selectedIcon = "folder.fill"
+    @State private var selectedColor = "2C5F2D"
+
+    var isEditing: Bool { existingClass != nil }
+
+    let classIcons = [
+        "folder.fill", "figure.golf", "figure.stand", "sportscourt.fill",
+        "trophy.fill", "flag.fill", "star.fill", "bolt.fill",
+        "scope", "target", "brain.head.profile", "eye.fill",
+        "sun.max.fill", "leaf.fill", "video.fill", "photo.fill",
+        "doc.richtext.fill", "waveform", "book.fill", "lightbulb.fill",
+        "timer", "repeat", "checkmark.seal.fill", "graduationcap.fill"
+    ]
+
+    let colors: [(String, String)] = [
+        ("1B5E20", "Dunkelgrün"), ("2C5F2D", "Golf-Grün"), ("1565C0", "Blau"),
+        ("4A148C", "Lila"),      ("E65100", "Orange"),    ("37474F", "Grau"),
+        ("880E4F", "Pink"),      ("006064", "Türkis"),    ("BF360C", "Rot"),
+        ("F57F17", "Gold"),      ("263238", "Anthrazit"), ("4E342E", "Braun")
+    ]
+
+    var canSave: Bool { !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+
+                    // Vorschau
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(hex: selectedColor))
+                            .frame(width: 72, height: 72)
+                        Image(systemName: selectedIcon)
+                            .font(.system(size: 30))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.top, 8)
+
+                    // Name
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Name").font(.caption.bold()).foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                        TextField("z.B. Abschlag, Putten, Theorie", text: $title)
+                            .padding(12)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(10)
+                    }
+
+                    // Icon-Picker
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Icon").font(.caption.bold()).foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
+                            ForEach(classIcons, id: \.self) { icon in
+                                Button { selectedIcon = icon } label: {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(selectedIcon == icon
+                                                  ? Color(hex: selectedColor)
+                                                  : Color(.tertiarySystemFill))
+                                            .frame(height: 44)
+                                        Image(systemName: icon)
+                                            .font(.system(size: 17))
+                                            .foregroundStyle(selectedIcon == icon ? .white : .primary)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    // Farb-Picker
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Farbe").font(.caption.bold()).foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
+                            ForEach(colors, id: \.0) { hex, _ in
+                                Button { selectedColor = hex } label: {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color(hex: hex))
+                                            .frame(width: 38, height: 38)
+                                        if selectedColor == hex {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+                .padding(.bottom, 30)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle(isEditing ? "Klasse bearbeiten" : "Neue Klasse")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                if let c = existingClass {
+                    title = c.title
+                    selectedIcon = c.icon
+                    selectedColor = c.colorHex
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isEditing ? "Speichern" : "Erstellen") {
+                        let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if isEditing, var c = existingClass {
+                            c.title = t
+                            c.icon = selectedIcon
+                            c.colorHex = selectedColor
+                            store.updateContentClass(c)
+                        } else {
+                            store.addContentClass(title: t, icon: selectedIcon, colorHex: selectedColor)
+                        }
+                        dismiss()
+                    }
+                    .bold()
+                    .disabled(!canSave)
+                }
+            }
+        }
+        .presentationDetents([.large])
     }
 }
 
