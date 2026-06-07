@@ -54,6 +54,29 @@ final class AppStore: ObservableObject {
         if folders.isEmpty {
             createDefaultFolders()
         }
+        // Standard-Klassen nur einmalig anlegen (Flag statt isEmpty-Prüfung,
+        // damit bewusst gelöschte Klassen nicht beim nächsten Start zurückkehren).
+        if !UserDefaults.standard.bool(forKey: "al_defaultclasses_created") {
+            if contentClasses.isEmpty {
+                createDefaultContentClasses()
+            }
+            UserDefaults.standard.set(true, forKey: "al_defaultclasses_created")
+        }
+    }
+
+    // MARK: - Default Content Classes (Golf-Klassen im Datenpool)
+
+    private func createDefaultContentClasses() {
+        let defaults: [(String, String, String)] = [
+            ("Putten",       "flag.circle.fill", "1565C0"),
+            ("Chippen",      "arrow.up.right",   "4A148C"),
+            ("Pitchen",      "target",           "006064"),
+            ("Bunker",       "sun.max.fill",     "E65100"),
+            ("Langes Spiel", "figure.golf",      "1B5E20"),
+        ]
+        contentClasses = defaults.enumerated().map { i, d in
+            ContentClass(title: d.0, icon: d.1, colorHex: d.2, sortIndex: i)
+        }
     }
 
     // MARK: - Default Folders (Golf-Themen)
