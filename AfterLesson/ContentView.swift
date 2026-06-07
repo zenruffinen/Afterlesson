@@ -265,6 +265,8 @@ struct HomeView: View {
                     Text(label)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color(hex: "1A1A1A"))
+                        .lineLimit(1)                  // kein Umbruch mitten im Wort ("Datenp ool")
+                        .minimumScaleFactor(0.65)      // lange Wörter werden stattdessen etwas kleiner
                     Text(value)
                         .font(.system(size: 12))
                         .foregroundStyle(Color(hex: "AAAAAA"))
