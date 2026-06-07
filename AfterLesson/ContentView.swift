@@ -1066,6 +1066,7 @@ struct DatenpoolView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
+                            inboxRow
                             classGrid
                         }
                         .padding(16)
@@ -1131,6 +1132,52 @@ struct DatenpoolView: View {
         }
     }
 
+    // MARK: Eingang-Feld (breite Zeile ganz oben)
+    //
+    // Der Eingang ist der Sammelplatz für alle neuen, noch nicht einsortierten
+    // Inhalte — deshalb prominent als breites Feld über den Klassen. Drinnen
+    // gibt es oben rechts das Plus zum Importieren und Aufnehmen.
+
+    var inboxRow: some View {
+        NavigationLink {
+            ClassContentView(contentClass: nil)
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(ALColor.gold.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "tray.and.arrow.down.fill")
+                        .font(.title3)
+                        .foregroundStyle(ALColor.gold)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Eingang")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("Neue Inhalte hinzufügen & einsortieren")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("\(store.unclassifiedItems.count)")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(ALColor.gold)
+                    .clipShape(Capsule())
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(14)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: Klassen-Grid (Ordner-Übersicht)
 
     var classGrid: some View {
@@ -1155,15 +1202,6 @@ struct DatenpoolView: View {
                     }
                 }
             }
-
-            // "Unsortiert" — alle Inhalte ohne Klasse. Immer sichtbar, damit
-            // neue Importe sofort einen Ort haben und nichts "verschwindet".
-            NavigationLink {
-                ClassContentView(contentClass: nil)
-            } label: {
-                ContentClassTile(contentClass: nil, count: store.unclassifiedItems.count)
-            }
-            .buttonStyle(.plain)
         }
     }
 
