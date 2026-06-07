@@ -191,8 +191,8 @@ struct HomeView: View {
                         value: "\(store.students.count)",
                         color: ALColor.green) { selectedTab = .students }
                 navTile(icon: "rectangle.stack.fill",
-                        label: "Vorlagen",
-                        value: "\(store.lessons.count)",
+                        label: "Datenpool",
+                        value: "\(store.contentPool.count)",
                         color: ALColor.gold,
                         assetImage: "Golfschmiede") { selectedTab = .lessons }
                 navTile(icon: "gearshape.fill",
