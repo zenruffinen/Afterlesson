@@ -195,6 +195,7 @@ struct ContentItem: Identifiable, Codable, Hashable {
     var classID: UUID? = nil                // Zugehörige Klasse (Ordner) — nil = "Unsortiert".
                                             // Optional, daher decodiert Swift fehlende Schlüssel
                                             // in alten Daten/Paketen automatisch als nil.
+    var tileColorHex: String? = nil         // Eigene Kachel-Farbe — nil = Standardfarbe des Typs.
 }
 
 // MARK: - Student Progress

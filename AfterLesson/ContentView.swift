@@ -1037,13 +1037,31 @@ struct DatenpoolView: View {
     @EnvironmentObject var store: AppStore
     @State private var editingClass: ContentClass? = nil
     @State private var showNewClassSheet = false
+    @State private var searchText = ""
+    @State private var searchSelectedItem: ContentItem? = nil
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
+
+    var isSearching: Bool {
+        !searchText.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// Suchtreffer über ALLE Klassen hinweg — nach Name oder Thema.
+    var searchResults: [ContentItem] {
+        let q = searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return [] }
+        return store.contentPool.filter { item in
+            item.title.lowercased().contains(q)
+            || item.tags.contains(where: { $0.lowercased().contains(q) })
+        }
+    }
 
     var body: some View {
         NavigationStack {
             Group {
-                if store.contentClasses.isEmpty && store.contentPool.isEmpty {
+                if isSearching {
+                    searchResultsView
+                } else if store.contentClasses.isEmpty && store.contentPool.isEmpty {
                     emptyState
                 } else {
                     ScrollView {
@@ -1057,6 +1075,7 @@ struct DatenpoolView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Datenpool")
+            .searchable(text: $searchText, prompt: "Inhalte suchen")
             .toolbar {
                 if isTeacher {
                     ToolbarItem(placement: .primaryAction) {
@@ -1072,6 +1091,42 @@ struct DatenpoolView: View {
             }
             .sheet(item: $editingClass) { c in
                 ContentClassEditorSheet(existingClass: c)
+            }
+            .sheet(item: $searchSelectedItem) { item in
+                ContentItemDetailView(item: item)
+            }
+        }
+    }
+
+    // MARK: Suchergebnisse (über alle Klassen)
+
+    @ViewBuilder
+    var searchResultsView: some View {
+        if searchResults.isEmpty {
+            ContentUnavailableView.search(text: searchText)
+        } else {
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                    ForEach(searchResults) { item in
+                        Button { searchSelectedItem = item } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ContentItemTile(item: item)
+                                // Fundort anzeigen: in welcher Klasse liegt der Treffer?
+                                HStack(spacing: 4) {
+                                    Image(systemName: "folder.fill")
+                                        .font(.system(size: 8))
+                                    Text(store.contentClasses.first(where: { $0.id == item.classID })?.title ?? "Eingang")
+                                        .font(.caption2)
+                                        .lineLimit(1)
+                                }
+                                .foregroundStyle(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(16)
+                .padding(.bottom, 30)
             }
         }
     }
@@ -1205,6 +1260,8 @@ struct ClassContentView: View {
     @State private var filterTheme: String? = nil
     @State private var isImporting = false
     @State private var importError: String? = nil
+    @State private var selectionMode = false            // Mehrfachauswahl aktiv?
+    @State private var selectedIDs: Set<UUID> = []      // Ausgewählte Inhalte
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -1255,9 +1312,23 @@ struct ClassContentView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isTeacher {
+                if !classItems.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(selectionMode ? "Fertig" : "Auswählen") {
+                            selectionMode.toggle()
+                            selectedIDs.removeAll()
+                        }
+                        .font(.subheadline)
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     addMenu
                 }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if selectionMode && !selectedIDs.isEmpty {
+                moveBar
             }
         }
         .onChange(of: photoPickerItems) { _, items in
@@ -1457,8 +1528,28 @@ struct ClassContentView: View {
     var grid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
             ForEach(filteredItems) { item in
-                Button { selectedItem = item } label: {
+                Button {
+                    if selectionMode {
+                        if selectedIDs.contains(item.id) {
+                            selectedIDs.remove(item.id)
+                        } else {
+                            selectedIDs.insert(item.id)
+                        }
+                    } else {
+                        selectedItem = item
+                    }
+                } label: {
                     ContentItemTile(item: item)
+                        .overlay(alignment: .topLeading) {
+                            if selectionMode {
+                                Image(systemName: selectedIDs.contains(item.id) ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(selectedIDs.contains(item.id) ? ALColor.green : Color(.systemGray3))
+                                    .background(Circle().fill(.white))
+                                    .padding(6)
+                            }
+                        }
+                        .opacity(selectionMode && !selectedIDs.contains(item.id) ? 0.55 : 1)
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
@@ -1492,6 +1583,55 @@ struct ClassContentView: View {
                 }
             }
         }
+    }
+
+    // MARK: Verschieben-Leiste (Mehrfachauswahl)
+
+    var moveBar: some View {
+        HStack {
+            Text(selectedIDs.count == 1 ? "1 ausgewählt" : "\(selectedIDs.count) ausgewählt")
+                .font(.subheadline.bold())
+            Spacer()
+            Menu {
+                ForEach(store.contentClasses.sorted(by: { $0.sortIndex < $1.sortIndex })) { c in
+                    if c.id != contentClass?.id {
+                        Button {
+                            moveSelected(to: c.id)
+                        } label: {
+                            Label(c.title, systemImage: c.icon)
+                        }
+                    }
+                }
+                if contentClass != nil {
+                    Button {
+                        moveSelected(to: nil)
+                    } label: {
+                        Label("Eingang", systemImage: "tray.and.arrow.down.fill")
+                    }
+                }
+            } label: {
+                Label("Verschieben", systemImage: "folder")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(ALColor.green)
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.thinMaterial)
+    }
+
+    func moveSelected(to classID: UUID?) {
+        for id in selectedIDs {
+            if let item = store.contentPool.first(where: { $0.id == id }) {
+                store.move(item, toClass: classID)
+            }
+        }
+        selectedIDs.removeAll()
+        selectionMode = false
     }
 
     var importOverlay: some View {
@@ -1776,7 +1916,8 @@ struct ContentItemTile: View {
     let item: ContentItem
     @EnvironmentObject var store: AppStore
 
-    var typeColor: Color { Color(hex: item.type.colorHex) }
+    // Eigene Kachel-Farbe des Inhalts, falls gewählt — sonst die Standardfarbe des Typs.
+    var typeColor: Color { Color(hex: item.tileColorHex ?? item.type.colorHex) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1858,11 +1999,32 @@ struct ContentItemDetailView: View {
     @State private var showAddToLesson = false
     @State private var showTagEditor = false
     @State private var tags: [String]
+    @State private var editTitle: String
 
     init(item: ContentItem) {
         self.item = item
         _tags = State(initialValue: item.tags)
+        _editTitle = State(initialValue: item.title)
     }
+
+    /// Aktueller Stand des Inhalts aus dem Store — `item` ist nur der Stand
+    /// beim Öffnen; Klasse/Farbe können sich währenddessen ändern.
+    var currentItem: ContentItem {
+        store.contentPool.first(where: { $0.id == item.id }) ?? item
+    }
+
+    /// Ändert den Inhalt im Store über eine Mutations-Closure — so gehen
+    /// parallel gemachte Änderungen (z.B. Themen) nicht verloren.
+    func updateItem(_ mutate: (inout ContentItem) -> Void) {
+        var updated = currentItem
+        mutate(&updated)
+        store.updateContentItem(updated)
+    }
+
+    let tileColors: [String] = [
+        "1B5E20", "2C5F2D", "1565C0", "4A148C", "E65100", "37474F",
+        "880E4F", "006064", "BF360C", "F57F17"
+    ]
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -1897,14 +2059,18 @@ struct ContentItemDetailView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 if isTeacher {
+                    editBar
                     themesBar
                 }
             }
-            .navigationTitle(item.title)
+            .navigationTitle(editTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { dismiss() }
+                    Button("Fertig") {
+                        saveTitle()
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -1935,12 +2101,114 @@ struct ContentItemDetailView: View {
                 TagEditorSheet(themes: $tags, suggestions: allPoolThemes)
             }
             .onChange(of: tags) { _, newThemes in
-                guard newThemes != item.tags else { return }
-                var updated = item
-                updated.tags = newThemes
-                store.updateContentItem(updated)
+                guard newThemes != currentItem.tags else { return }
+                updateItem { $0.tags = newThemes }
             }
         }
+    }
+
+    func saveTitle() {
+        let t = editTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty, t != currentItem.title else { return }
+        updateItem { $0.title = t }
+    }
+
+    // MARK: Editor-Leiste (Name, Klasse, Kachel-Farbe)
+
+    var editBar: some View {
+        VStack(alignment: .leading, spacing: 10) {
+
+            // Name ändern
+            HStack(spacing: 8) {
+                Image(systemName: "pencil")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField("Name", text: $editTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .submitLabel(.done)
+                    .onSubmit { saveTitle() }
+            }
+            .padding(10)
+            .background(Color(.tertiarySystemFill))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            HStack(spacing: 10) {
+
+                // Klasse wechseln
+                Menu {
+                    ForEach(store.contentClasses.sorted(by: { $0.sortIndex < $1.sortIndex })) { c in
+                        Button {
+                            updateItem { $0.classID = c.id }
+                        } label: {
+                            Label(c.title, systemImage: currentItem.classID == c.id ? "checkmark" : c.icon)
+                        }
+                    }
+                    Button {
+                        updateItem { $0.classID = nil }
+                    } label: {
+                        Label("Eingang", systemImage: currentItem.classID == nil ? "checkmark" : "tray.and.arrow.down.fill")
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "folder.fill")
+                            .font(.caption)
+                        Text(store.contentClasses.first(where: { $0.id == currentItem.classID })?.title ?? "Eingang")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 9))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(ALColor.green.opacity(0.12))
+                    .foregroundStyle(ALColor.green)
+                    .clipShape(Capsule())
+                }
+
+                // Kachel-Farbe wählen
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        // "Standard" = Typ-Farbe (tileColorHex = nil)
+                        Button {
+                            updateItem { $0.tileColorHex = nil }
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .strokeBorder(Color(hex: currentItem.type.colorHex), lineWidth: 2)
+                                    .frame(width: 26, height: 26)
+                                if currentItem.tileColorHex == nil {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(Color(hex: currentItem.type.colorHex))
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        ForEach(tileColors, id: \.self) { hex in
+                            Button {
+                                updateItem { $0.tileColorHex = hex }
+                            } label: {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(hex: hex))
+                                        .frame(width: 26, height: 26)
+                                    if currentItem.tileColorHex == hex {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.thinMaterial)
     }
 
     // MARK: Themen-Leiste
