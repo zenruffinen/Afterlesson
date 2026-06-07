@@ -1075,6 +1075,9 @@ struct DatenpoolView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             inboxRow
+                            if isTeacher {
+                                newClassRow
+                            }
                             classGrid
                         }
                         .padding(16)
@@ -1085,16 +1088,6 @@ struct DatenpoolView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Datenpool")
             .searchable(text: $searchText, prompt: "Inhalte suchen")
-            .toolbar {
-                if isTeacher {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button { showNewClassSheet = true } label: {
-                            Image(systemName: "folder.badge.plus")
-                                .font(.system(size: 18))
-                        }
-                    }
-                }
-            }
             .sheet(isPresented: $showNewClassSheet) {
                 ContentClassEditorSheet(existingClass: nil)
             }
@@ -1253,6 +1246,39 @@ struct DatenpoolView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.title3)
                     .foregroundStyle(ALColor.gold)
+            }
+            .padding(14)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Klasse-erstellen-Feld (breite Zeile unter dem Eingang)
+
+    var newClassRow: some View {
+        Button { showNewClassSheet = true } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(ALColor.green.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "folder.badge.plus")
+                        .font(.title3)
+                        .foregroundStyle(ALColor.green)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Klasse erstellen")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("Neuen Ordner für deine Inhalte anlegen")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "plus.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(ALColor.green)
             }
             .padding(14)
             .background(Color(.secondarySystemGroupedBackground))
