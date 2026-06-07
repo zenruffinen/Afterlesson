@@ -193,7 +193,8 @@ struct HomeView: View {
                 navTile(icon: "rectangle.stack.fill",
                         label: "Vorlagen",
                         value: "\(store.lessons.count)",
-                        color: ALColor.gold) { selectedTab = .lessons }
+                        color: ALColor.gold,
+                        assetImage: "Golfschmiede") { selectedTab = .lessons }
                 navTile(icon: "gearshape.fill",
                         label: "Einstellungen",
                         value: "",
@@ -239,16 +240,26 @@ struct HomeView: View {
     // MARK: Nav Tile
     @ViewBuilder
     func navTile(icon: String, label: String, value: String, color: Color,
+                 assetImage: String? = nil,
                  action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(color.opacity(0.12))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: icon)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(color)
+                    // Eigenes Bild (z.B. Golfschmiede-Logo) statt SF-Symbol, falls angegeben
+                    if let assetImage {
+                        Image(assetImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 40, height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(color.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(color)
+                    }
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     Text(label)
