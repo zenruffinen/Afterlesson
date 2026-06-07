@@ -1,5 +1,8 @@
 import SwiftUI
 import Combine
+import PhotosUI
+import AVFoundation
+import UniformTypeIdentifiers
 
 final class AppStore: ObservableObject {
 
@@ -359,6 +362,103 @@ final class AppStore: ObservableObject {
         if let data = try? JSONEncoder().encode(contentClasses) {
             UserDefaults.standard.set(data, forKey: "al_contentclasses")
         }
+    }
+
+    // MARK: - Datenpool-Import
+    //
+    // Zentrale Import-Logik, genutzt von der Datenpool-Übersicht (Kachel
+    // "Golf-Inhalte erfassen" → Eingang) und der Klassen-Ansicht (→ jeweilige
+    // Klasse). `classID` bestimmt, wo der neue Inhalt landet (nil = Eingang).
+
+    @MainActor
+    func importPhotoItems(_ items: [PhotosPickerItem], into classID: UUID?) async {
+        for item in items {
+            let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .movie) || $0.conforms(to: .video) }
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+
+            let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? (isVideo ? "mov" : "jpg")
+            let filename = "pool_\(UUID().uuidString).\(ext)"
+            saveImage(data, filename: filename)
+
+            var thumbFilename: String? = nil
+            if isVideo, let thumbData = await generateVideoThumbnail(url: imageURL(for: filename)) {
+                thumbFilename = "pool_thumb_\(UUID().uuidString).jpg"
+                saveImage(thumbData, filename: thumbFilename!)
+            }
+
+            let newItem = ContentItem(title: isVideo ? "Video \(importDateStamp())" : "Bild \(importDateStamp())",
+                                      type: isVideo ? .video : .image,
+                                      filename: filename, thumbnailFilename: thumbFilename,
+                                      source: .imported, classID: classID)
+            addContentItem(newItem)
+        }
+    }
+
+    @MainActor
+    func importFiles(_ urls: [URL], into classID: UUID?) async {
+        for url in urls {
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            guard let data = try? Data(contentsOf: url) else { continue }
+
+            let ext = url.pathExtension.isEmpty ? "dat" : url.pathExtension
+            let filename = "pool_\(UUID().uuidString).\(ext)"
+            saveImage(data, filename: filename)
+
+            let type = contentType(forExtension: url.pathExtension)
+            var thumbFilename: String? = nil
+            if type == .video, let thumbData = await generateVideoThumbnail(url: imageURL(for: filename)) {
+                thumbFilename = "pool_thumb_\(UUID().uuidString).jpg"
+                saveImage(thumbData, filename: thumbFilename!)
+            }
+
+            let rawTitle = url.deletingPathExtension().lastPathComponent
+            let newItem = ContentItem(title: rawTitle.isEmpty ? type.label : rawTitle,
+                                      type: type, filename: filename, thumbnailFilename: thumbFilename,
+                                      source: .imported, classID: classID)
+            addContentItem(newItem)
+        }
+    }
+
+    @MainActor
+    func importRecordedVideo(from url: URL, into classID: UUID?) async {
+        guard let data = try? Data(contentsOf: url) else { return }
+        let filename = "pool_\(UUID().uuidString).mov"
+        saveImage(data, filename: filename)
+
+        var thumbFilename: String? = nil
+        if let thumbData = await generateVideoThumbnail(url: imageURL(for: filename)) {
+            thumbFilename = "pool_thumb_\(UUID().uuidString).jpg"
+            saveImage(thumbData, filename: thumbFilename!)
+        }
+        let newItem = ContentItem(title: "Aufnahme \(importDateStamp())", type: .video,
+                                  filename: filename, thumbnailFilename: thumbFilename,
+                                  source: .recorded, classID: classID)
+        addContentItem(newItem)
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    func contentType(forExtension ext: String) -> ContentType {
+        guard let utType = UTType(filenameExtension: ext) else { return .text }
+        if utType.conforms(to: .pdf) { return .pdf }
+        if utType.conforms(to: .movie) || utType.conforms(to: .video) { return .video }
+        if utType.conforms(to: .image) { return .image }
+        if utType.conforms(to: .audio) { return .audio }
+        return .text
+    }
+
+    private func generateVideoThumbnail(url: URL) async -> Data? {
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        guard let result = try? await generator.image(at: CMTime(seconds: 0.5, preferredTimescale: 60)) else { return nil }
+        return UIImage(cgImage: result.image).jpegData(compressionQuality: 0.7)
+    }
+
+    private func importDateStamp() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM. HH:mm"
+        return formatter.string(from: Date())
     }
 
     // MARK: - Progress

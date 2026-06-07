@@ -1039,6 +1039,14 @@ struct DatenpoolView: View {
     @State private var showNewClassSheet = false
     @State private var searchText = ""
     @State private var searchSelectedItem: ContentItem? = nil
+    // Erfassen direkt von der Kachel aus (Import landet im Eingang)
+    @State private var photoPickerItems: [PhotosPickerItem] = []
+    @State private var showPhotosPicker = false
+    @State private var showFileImporter = false
+    @State private var showCamera = false
+    @State private var showInbox = false
+    @State private var isImporting = false
+    @State private var importError: String? = nil
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -1096,6 +1104,69 @@ struct DatenpoolView: View {
             .sheet(item: $searchSelectedItem) { item in
                 ContentItemDetailView(item: item)
             }
+            .navigationDestination(isPresented: $showInbox) {
+                ClassContentView(contentClass: nil)
+            }
+            .onChange(of: photoPickerItems) { _, items in
+                guard !items.isEmpty else { return }
+                isImporting = true
+                Task {
+                    await store.importPhotoItems(items, into: nil)
+                    photoPickerItems = []
+                    isImporting = false
+                    showInbox = true
+                }
+            }
+            .photosPicker(isPresented: $showPhotosPicker, selection: $photoPickerItems,
+                          maxSelectionCount: 20, matching: .any(of: [.images, .videos]))
+            .fileImporter(isPresented: $showFileImporter,
+                          allowedContentTypes: [.pdf, .movie, .image, .audio, .plainText, .data],
+                          allowsMultipleSelection: true) { result in
+                switch result {
+                case .success(let urls):
+                    isImporting = true
+                    Task {
+                        await store.importFiles(urls, into: nil)
+                        isImporting = false
+                        showInbox = true
+                    }
+                case .failure(let error):
+                    importError = error.localizedDescription
+                }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                VideoCameraView { url in
+                    isImporting = true
+                    Task {
+                        await store.importRecordedVideo(from: url, into: nil)
+                        isImporting = false
+                        showInbox = true
+                    }
+                }
+                .ignoresSafeArea()
+            }
+            .overlay {
+                if isImporting {
+                    ZStack {
+                        Color.black.opacity(0.25).ignoresSafeArea()
+                        VStack(spacing: 12) {
+                            ProgressView().tint(.white).scaleEffect(1.3)
+                            Text("Wird importiert …")
+                                .font(.subheadline)
+                                .foregroundStyle(.white)
+                        }
+                        .padding(24)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                }
+            }
+            .alert("Import fehlgeschlagen",
+                   isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
+                Button("OK", role: .cancel) { importError = nil }
+            } message: {
+                Text(importError ?? "")
+            }
         }
     }
 
@@ -1139,8 +1210,20 @@ struct DatenpoolView: View {
     // gibt es oben rechts das Plus zum Importieren und Aufnehmen.
 
     var inboxRow: some View {
-        NavigationLink {
-            ClassContentView(contentClass: nil)
+        Menu {
+            Button { showPhotosPicker = true } label: {
+                Label("Fotos & Videos", systemImage: "photo.on.rectangle")
+            }
+            Button { showFileImporter = true } label: {
+                Label("Datei importieren", systemImage: "doc.badge.plus")
+            }
+            Button { showCamera = true } label: {
+                Label("Video aufnehmen", systemImage: "video.badge.plus")
+            }
+            Divider()
+            Button { showInbox = true } label: {
+                Label("Eingang öffnen", systemImage: "tray.and.arrow.down.fill")
+            }
         } label: {
             HStack(spacing: 14) {
                 ZStack {
@@ -1167,9 +1250,9 @@ struct DatenpoolView: View {
                     .padding(.vertical, 4)
                     .background(ALColor.gold)
                     .clipShape(Capsule())
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                Image(systemName: "plus.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(ALColor.gold)
             }
             .padding(14)
             .background(Color(.secondarySystemGroupedBackground))
@@ -1687,46 +1770,24 @@ struct ClassContentView: View {
         }
     }
 
-    // MARK: Import – Fotos & Videos aus der Mediathek
+    // MARK: Import — delegiert an die zentrale Logik im AppStore
+    // (gemeinsam mit der Datenpool-Übersicht, siehe AppStore "Datenpool-Import")
 
     func importFromPhotos(_ items: [PhotosPickerItem]) {
         isImporting = true
         Task {
-            for item in items {
-                let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .movie) || $0.conforms(to: .video) }
-                guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
-
-                let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? (isVideo ? "mov" : "jpg")
-                let filename = "pool_\(UUID().uuidString).\(ext)"
-                store.saveImage(data, filename: filename)
-
-                var thumbFilename: String? = nil
-                if isVideo, let thumbData = await generateVideoThumbnail(url: store.imageURL(for: filename)) {
-                    thumbFilename = "pool_thumb_\(UUID().uuidString).jpg"
-                    store.saveImage(thumbData, filename: thumbFilename!)
-                }
-
-                let newItem = ContentItem(title: isVideo ? "Video \(dateStamp())" : "Bild \(dateStamp())",
-                                          type: isVideo ? .video : .image,
-                                          filename: filename, thumbnailFilename: thumbFilename,
-                                          source: .imported, classID: contentClass?.id)
-                store.addContentItem(newItem)
-            }
+            await store.importPhotoItems(items, into: contentClass?.id)
             photoPickerItems = []
             isImporting = false
         }
     }
-
-    // MARK: Import – Dateien (PDF, Audio, Text, …)
 
     func handleFileImport(_ result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
             isImporting = true
             Task {
-                for url in urls {
-                    await importFile(from: url)
-                }
+                await store.importFiles(urls, into: contentClass?.id)
                 isImporting = false
             }
         case .failure(let error):
@@ -1734,75 +1795,12 @@ struct ClassContentView: View {
         }
     }
 
-    func importFile(from url: URL) async {
-        let accessing = url.startAccessingSecurityScopedResource()
-        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-        guard let data = try? Data(contentsOf: url) else { return }
-
-        let ext = url.pathExtension.isEmpty ? "dat" : url.pathExtension
-        let filename = "pool_\(UUID().uuidString).\(ext)"
-        store.saveImage(data, filename: filename)
-
-        let type = contentType(forExtension: url.pathExtension)
-        var thumbFilename: String? = nil
-        if type == .video, let thumbData = await generateVideoThumbnail(url: store.imageURL(for: filename)) {
-            thumbFilename = "pool_thumb_\(UUID().uuidString).jpg"
-            store.saveImage(thumbData, filename: thumbFilename!)
-        }
-
-        let rawTitle = url.deletingPathExtension().lastPathComponent
-        let newItem = ContentItem(title: rawTitle.isEmpty ? type.label : rawTitle,
-                                  type: type, filename: filename, thumbnailFilename: thumbFilename,
-                                  source: .imported, classID: contentClass?.id)
-        store.addContentItem(newItem)
-    }
-
-    func contentType(forExtension ext: String) -> ContentType {
-        guard let utType = UTType(filenameExtension: ext) else { return .text }
-        if utType.conforms(to: .pdf) { return .pdf }
-        if utType.conforms(to: .movie) || utType.conforms(to: .video) { return .video }
-        if utType.conforms(to: .image) { return .image }
-        if utType.conforms(to: .audio) { return .audio }
-        return .text
-    }
-
-    // MARK: Aufnahme – Video direkt filmen
-
     func importRecordedVideo(from url: URL) {
-        guard let data = try? Data(contentsOf: url) else { return }
-        let filename = "pool_\(UUID().uuidString).mov"
-        store.saveImage(data, filename: filename)
-
         isImporting = true
         Task {
-            var thumbFilename: String? = nil
-            if let thumbData = await generateVideoThumbnail(url: store.imageURL(for: filename)) {
-                thumbFilename = "pool_thumb_\(UUID().uuidString).jpg"
-                store.saveImage(thumbData, filename: thumbFilename!)
-            }
-            let newItem = ContentItem(title: "Aufnahme \(dateStamp())", type: .video,
-                                      filename: filename, thumbnailFilename: thumbFilename,
-                                      source: .recorded, classID: contentClass?.id)
-            store.addContentItem(newItem)
-            try? FileManager.default.removeItem(at: url)
+            await store.importRecordedVideo(from: url, into: contentClass?.id)
             isImporting = false
         }
-    }
-
-    // MARK: Hilfsfunktionen
-
-    func generateVideoThumbnail(url: URL) async -> Data? {
-        let asset = AVURLAsset(url: url)
-        let generator = AVAssetImageGenerator(asset: asset)
-        generator.appliesPreferredTrackTransform = true
-        guard let result = try? await generator.image(at: CMTime(seconds: 0.5, preferredTimescale: 60)) else { return nil }
-        return UIImage(cgImage: result.image).jpegData(compressionQuality: 0.7)
-    }
-
-    func dateStamp() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM. HH:mm"
-        return formatter.string(from: Date())
     }
 }
 
