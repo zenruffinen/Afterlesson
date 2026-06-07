@@ -10,7 +10,7 @@ struct ContentView: View {
     @EnvironmentObject var store: AppStore
     @State private var selectedTab: Tab = .home
 
-    enum Tab { case home, lessons, groups, students, notes, settings }
+    enum Tab { case home, lessons, students, notes, settings }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -18,7 +18,6 @@ struct ContentView: View {
                 switch selectedTab {
                 case .home:     HomeView(selectedTab: $selectedTab)
                 case .lessons:  FoldersView()
-                case .groups:   GruppenView()
                 case .students: StudentsView()
                 case .notes:    NotesView()
                 case .settings: SettingsView()
@@ -41,11 +40,11 @@ struct AfterLessonTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            tabItem(.home,     icon: "house.fill",            label: "Start")
-            tabItem(.lessons,  icon: "rectangle.stack.fill",  label: "Vorlagen")
-            tabItem(.students, icon: "figure.golf",           label: "Schüler")
-            tabItem(.notes,    icon: "pencil.tip",            label: "Notizen")
-            tabItem(.settings, icon: "gearshape.fill",        label: "Einstellungen")
+            tabItem(.home,     icon: "house.fill",           label: "Start")
+            tabItem(.lessons,  icon: "rectangle.stack.fill", label: "Vorlagen")
+            tabItem(.students, icon: "figure.golf",          label: "Schüler")
+            tabItem(.notes,    icon: "pencil.tip",           label: "Notizen")
+            tabItem(.settings, icon: "gearshape.fill",       label: "Einstellungen")
         }
         .padding(.bottom, 28)
         .background(Color(hex: "0D160D"))
@@ -96,360 +95,483 @@ enum ALColor {
 struct HomeView: View {
     @EnvironmentObject var store: AppStore
     @Binding var selectedTab: ContentView.Tab
-    @State private var showTeacherDashboard = false
     @State private var showQuickCapture = false
+    @State private var showTeacherDashboard = false
     @State private var selectedSession: TrainingSession? = nil
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
-
-                    // Hero Banner (zentriert, groß)
-                    heroBanner
-                        .padding(.horizontal, 16)
-
-                    // Karte + AfterLesson im gleichen Padding
-                    VStack(spacing: 12) {
-
-                        // Gepinnte Notiz
-                        PinnedNoteCard()
-
-                        // Karte inkl. AfterLesson-Zeile
-                        quickAccess
-
-                        // Sessions (je nach Modus)
-                        if isTeacher {
-                            if !store.createdSessions.isEmpty {
-                                recentSessions.padding(.top, 4)
-                            }
-                        } else {
-                            receivedSessionsSection.padding(.top, 4)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 40)
-                }
-            }
-            .background(Color(hex: "F0EDE6"))
-            .navigationBarHidden(true)
-        }
-        .sheet(isPresented: $showQuickCapture) {
-            QuickCaptureSheet()
-        }
-        .sheet(item: $selectedSession) { session in
-            SessionDetailSheet(session: session)
-        }
-    }
-
-    // MARK: Hero
-    var heroBanner: some View {
-        VStack(spacing: 8) {
-
-            // Gold-Ring + Avatar — kompakt
-            ZStack {
-                Circle()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [Color(hex: "D4A840"), Color(hex: "8B6210"), Color(hex: "D4A840")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 2.5
-                    )
-                    .frame(width: 72, height: 72)
-
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "D4A840"), Color(hex: "8B6210")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 64, height: 64)
-                    .shadow(color: Color(hex: "C9A84C").opacity(0.35), radius: 7, x: 0, y: 4)
-
-                Image(systemName: "figure.golf")
-                    .font(.system(size: 28, weight: .regular))
-                    .foregroundStyle(.white)
-            }
-
-            // Name — elegant, aber zurückhaltend
-            Text(store.teacherName)
-                .font(.system(size: 24, weight: .bold, design: .serif))
-                .foregroundStyle(Color(hex: "111111"))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-
-            // Höchster Titel
-            Text(store.teacherTitle)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color(hex: "666666"))
-                .tracking(0.6)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .overlay(alignment: .trailing) {
-            Image(systemName: "figure.golf")
-                .font(.system(size: 110, weight: .thin))
-                .foregroundStyle(Color(hex: "909090").opacity(0.12))
-                .offset(x: 14, y: 6)
-                .allowsHitTesting(false)
-        }
-        .clipped()
-        .padding(.top, 20)
-        .padding(.bottom, 26)
-    }
-
-    // MARK: AfterLesson – Hauptaktion (gleiche Zeilenhöhe wie andere Rows)
-    var neueLektion: some View {
-        Button {
-            showQuickCapture = true
-        } label: {
-            HStack(spacing: 13) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "D4A840"), Color(hex: "8B6410")],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("AfterLesson")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                    Text("Stunde dokumentieren")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.white.opacity(0.65))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(ALColor.gold.opacity(0.7))
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(ALColor.green)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(ALColor.gold.opacity(0.40), lineWidth: 1.2)
-            )
-            .shadow(color: ALColor.green.opacity(0.25), radius: 6, x: 0, y: 3)
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: Training Studio
-    var modeBanner: some View {
-        Button {
-            if isTeacher { showTeacherDashboard = true }
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(ALColor.green)
-                        .frame(width: 52, height: 52)
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Training Studio")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.primary)
-                    Text("\(store.folders.count) Vorlagen · \(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color(.tertiaryLabel))
-            }
-            .padding(16)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-        .buttonStyle(.plain)
-        .sheet(isPresented: $showTeacherDashboard) {
-            TeacherDashboardView()
-        }
-    }
-
-    // MARK: Quick Access
-    var quickAccess: some View {
         VStack(spacing: 0) {
-
-            // Workspace-Header-Balken — gleiche Höhe wie AfterLesson unten
-            HStack(spacing: 13) {
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "figure.golf")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Workspace")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                    Text(store.teacherName)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.white.opacity(0.65))
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(ALColor.green)
-
-            // Navigation-Zeilen
-            homeRow(icon: "figure.golf", title: "Schüler",
-                    subtitle: "\(store.students.count) \(store.students.count == 1 ? "Schüler" : "Schüler")",
-                    color: ALColor.green) { selectedTab = .students }
-            rowDivider
-            homeRow(icon: "rectangle.stack.fill", title: "Trainingsvorlagen",
-                    subtitle: "\(store.lessons.count) \(store.lessons.count == 1 ? "Lektion" : "Lektionen")",
-                    color: ALColor.gold) { selectedTab = .lessons }
-            rowDivider
-            homeRow(icon: "road.lanes", title: "Lernpfade",
-                    subtitle: "\(store.groups.count) \(store.groups.count == 1 ? "Lernpfad" : "Lernpfade")",
-                    color: ALColor.green) { selectedTab = .groups }
-            rowDivider
-            homeRow(icon: "pencil.tip", title: "Notizen",
-                    subtitle: "\(store.proNotes.count) \(store.proNotes.count == 1 ? "Notiz" : "Notizen")",
-                    color: ALColor.green) { selectedTab = .notes }
-
-            // Trennlinie zum AfterLesson-Bereich
+            headerBar
             Rectangle()
-                .fill(ALColor.gold.opacity(0.30))
+                .fill(Color(hex: "E2DDD5"))
                 .frame(height: 1)
-
-            // AfterLesson – als letzte Zeile, grüner Hintergrund
-            Button { showQuickCapture = true } label: {
-                HStack(spacing: 13) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: "D4A840"), Color(hex: "8B6410")],
-                                    startPoint: .topLeading, endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 40, height: 40)
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("AfterLesson")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-                        Text("Stunde dokumentieren")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color.white.opacity(0.70))
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(ALColor.gold.opacity(0.80))
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(ALColor.green)
+            if isTeacher {
+                teacherContent
+            } else {
+                studentContent
             }
-            .buttonStyle(.plain)
         }
         .background(Color(hex: "F0EDE6"))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: Color.black.opacity(0.10), radius: 8, x: 0, y: 3)
+        .sheet(isPresented: $showQuickCapture) { AfterLessonFlowSheet() }
+        .sheet(isPresented: $showTeacherDashboard) { TeacherDashboardView() }
+        .sheet(item: $selectedSession) { session in SessionDetailSheet(session: session) }
     }
 
-    var rowDivider: some View {
-        Divider().padding(.leading, 72)
+    // MARK: Header Bar
+    var headerBar: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(
+                        colors: [Color(hex: "D4A840"), Color(hex: "8B6210")],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 46, height: 46)
+                    .shadow(color: Color(hex: "C9A84C").opacity(0.35), radius: 5, x: 0, y: 3)
+                Image(systemName: "figure.golf")
+                    .font(.system(size: 20, weight: .regular))
+                    .foregroundStyle(.white)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(store.teacherName)
+                    .font(.system(size: 17, weight: .bold, design: .serif))
+                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .lineLimit(1)
+                if isTeacher && !store.teacherTitle.isEmpty {
+                    Text(store.teacherTitle)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(hex: "888888"))
+                        .tracking(0.3)
+                        .lineLimit(1)
+                }
+            }
+            Spacer()
+            if isTeacher {
+                Button { showTeacherDashboard = true } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 12))
+                        Text("Senden")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(ALColor.green)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
     }
 
+    // MARK: Teacher Content (kein Scroll)
+    var teacherContent: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 16)
+
+            AfterLessonOrb { showQuickCapture = true }
+
+            Spacer(minLength: 12)
+
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 12),
+                          GridItem(.flexible(), spacing: 12)],
+                spacing: 12
+            ) {
+                navTile(icon: "figure.golf",
+                        label: "Schüler",
+                        value: "\(store.students.count)",
+                        color: ALColor.green) { selectedTab = .students }
+                navTile(icon: "rectangle.stack.fill",
+                        label: "Vorlagen",
+                        value: "\(store.lessons.count)",
+                        color: ALColor.gold) { selectedTab = .lessons }
+                navTile(icon: "gearshape.fill",
+                        label: "Einstellungen",
+                        value: "",
+                        color: Color(hex: "555555")) { selectedTab = .settings }
+                navTile(icon: "pencil.tip",
+                        label: "Notizen",
+                        value: "\(store.proNotes.count)",
+                        color: Color(hex: "880E4F")) { selectedTab = .notes }
+            }
+            .padding(.horizontal, 20)
+
+            Spacer(minLength: 16)
+
+            recentSection
+                .padding(.horizontal, 20)
+
+            Spacer(minLength: 16)
+        }
+    }
+
+    // MARK: Student Content (kein Scroll)
+    var studentContent: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 16)
+            if store.receivedSessions.isEmpty {
+                StudentEmptyPlaceholder()
+                    .padding(.horizontal, 20)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Meine Trainings")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color(hex: "666666"))
+                        .padding(.horizontal, 20)
+                    ForEach(store.receivedSessions.prefix(5)) { session in
+                        sessionRow(session).padding(.horizontal, 20)
+                    }
+                }
+            }
+            Spacer(minLength: 16)
+        }
+    }
+
+    // MARK: Nav Tile
     @ViewBuilder
-    func homeRow(icon: String, title: String, subtitle: String,
-                 color: Color, action: @escaping () -> Void) -> some View {
+    func navTile(icon: String, label: String, value: String, color: Color,
+                 action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 13) {
+            HStack(spacing: 12) {
                 ZStack {
-                    Circle()
-                        .fill(color)
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(color.opacity(0.12))
                         .frame(width: 40, height: 40)
                     Image(systemName: icon)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(color)
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
+                    Text(label)
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color(hex: "1A1A1A"))
-                    Text(subtitle)
+                    Text(value)
                         .font(.system(size: 12))
-                        .foregroundStyle(Color(hex: "999999"))
+                        .foregroundStyle(Color(hex: "AAAAAA"))
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color(hex: "CCCCCC"))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color(hex: "DDDDDD"))
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
         }
         .buttonStyle(.plain)
     }
 
-    // MARK: Letzte Trainings (Pro-Ansicht)
-    var recentSessions: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    // MARK: Recent Section — Letzte Stunde pro Schüler
+
+    var recentSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Letzte Trainings")
-                    .font(.headline)
+                Text("Letzte Stunde")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color(hex: "888888"))
                 Spacer()
                 Button { showQuickCapture = true } label: {
-                    Text("Neue Stunde")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(ALColor.gold)
+                    HStack(spacing: 3) {
+                        Image(systemName: "plus").font(.system(size: 11, weight: .bold))
+                        Text("Erfassen").font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundStyle(ALColor.gold)
                 }
             }
-            ForEach(store.createdSessions.prefix(3)) { session in
-                SessionRowView(session: session) {
-                    selectedSession = session
+
+            let studentRows: [(Student, TrainingSession)] = store.students.compactMap { student in
+                guard let last = store.sessionsFor(student).sorted(by: { $0.date > $1.date }).first
+                else { return nil }
+                return (student, last)
+            }.sorted { $0.1.date > $1.1.date }
+
+            if studentRows.isEmpty {
+                // Leerzustand
+                Button { showQuickCapture = true } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 15))
+                            .foregroundStyle(ALColor.gold.opacity(0.7))
+                            .frame(width: 38, height: 38)
+                            .background(ALColor.gold.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        Text("Erste Stunde erfassen …")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color(hex: "BBBBBB"))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(Color.white.opacity(0.7))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(ALColor.gold.opacity(0.20),
+                                      style: StrokeStyle(lineWidth: 1, dash: [5, 3])))
+                }
+                .buttonStyle(.plain)
+
+                // Schüler ohne Stunden anzeigen
+                ForEach(store.students.filter { student in
+                    !studentRows.map(\.0.id).contains(student.id)
+                }) { student in
+                    studentNoSessionRow(student: student)
+                }
+            } else {
+                ForEach(studentRows, id: \.0.id) { (student, session) in
+                    studentLastSessionRow(student: student, session: session)
+                }
+                // Schüler ohne Stunden darunter
+                let withSession = Set(studentRows.map(\.0.id))
+                ForEach(store.students.filter { !withSession.contains($0.id) }) { student in
+                    studentNoSessionRow(student: student)
                 }
             }
         }
     }
 
-    // MARK: Meine Trainings (Schüler-Ansicht)
-    var receivedSessionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if store.receivedSessions.isEmpty {
-                StudentEmptyPlaceholder()
-            } else {
-                Text("Meine Trainings")
-                    .font(.headline)
-                ForEach(store.receivedSessions.prefix(5)) { session in
-                    SessionRowView(session: session) {
-                        selectedSession = session
+    // Schüler-Karte MIT letzter Stunde
+    func studentLastSessionRow(student: Student, session: TrainingSession) -> some View {
+        Button { selectedSession = session } label: {
+            HStack(spacing: 12) {
+                // Avatar
+                studentAvatar(student, size: 40)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(student.name)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color(hex: "1A1A1A"))
+                        if !student.handicap.isEmpty {
+                            Text("HCP \(student.handicap)")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(ALColor.gold)
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(ALColor.gold.opacity(0.12))
+                                .clipShape(Capsule())
+                        }
                     }
+                    // Letzte Stunde Info
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock").font(.system(size: 9)).foregroundStyle(ALColor.green)
+                        Text(session.date.formatted(date: .abbreviated, time: .omitted))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(ALColor.green)
+                        if !session.trained.isEmpty {
+                            Text("· \(session.trained)")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color(hex: "AAAAAA"))
+                                .lineLimit(1)
+                        } else if !session.title.isEmpty {
+                            Text("· \(session.title)")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color(hex: "AAAAAA"))
+                                .lineLimit(1)
+                        }
+                    }
+                }
+
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color(hex: "CCCCCC"))
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 1)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Schüler-Karte OHNE Stunden
+    func studentNoSessionRow(student: Student) -> some View {
+        HStack(spacing: 12) {
+            studentAvatar(student, size: 40)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(student.name)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
+                    if !student.handicap.isEmpty {
+                        Text("HCP \(student.handicap)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(ALColor.gold)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(ALColor.gold.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                }
+                Text("Noch keine Stunde erfasst")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color(hex: "CCCCCC"))
+            }
+            Spacer()
+            Image(systemName: "figure.golf")
+                .font(.system(size: 13))
+                .foregroundStyle(Color(hex: "DDDDDD"))
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(Color.white.opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .strokeBorder(Color(hex: "EEEEEE"), lineWidth: 1))
+    }
+
+    // Avatar Helper
+    func studentAvatar(_ student: Student, size: CGFloat) -> some View {
+        Group {
+            if let filename = student.photoFilename,
+               let img = UIImage(contentsOfFile: store.imageURL(for: filename).path) {
+                Image(uiImage: img)
+                    .resizable().scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+            } else {
+                Circle()
+                    .fill(Color(hex: student.avatarColor))
+                    .frame(width: size, height: size)
+                    .overlay(
+                        Text(String(student.name.prefix(1)).uppercased())
+                            .font(.system(size: size * 0.38, weight: .bold))
+                            .foregroundStyle(.white)
+                    )
+            }
+        }
+    }
+
+    // Session Row (für eventuelle andere Nutzung)
+    @ViewBuilder
+    func sessionRow(_ session: TrainingSession) -> some View {
+        Button { selectedSession = session } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(ALColor.green.opacity(0.10))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "figure.golf")
+                        .font(.system(size: 15))
+                        .foregroundStyle(ALColor.green)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(session.title.isEmpty ? "Trainingsstunde" : session.title)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color(hex: "1A1A1A")).lineLimit(1)
+                    if let sid = session.studentID,
+                       let s = store.students.first(where: { $0.id == sid }) {
+                        Text(s.name).font(.system(size: 11)).foregroundStyle(Color(hex: "AAAAAA"))
+                    }
+                }
+                Spacer()
+                Text(session.date, style: .date).font(.system(size: 11)).foregroundStyle(Color(hex: "CCCCCC"))
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 1)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - AfterLesson Orb
+
+struct AfterLessonOrb: View {
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 16) {
+
+                ZStack {
+                    // Pulsierende Ringe (3 Ringe, versetzt)
+                    ForEach(0..<3, id: \.self) { i in
+                        PulseRing(
+                            color: ALColor.gold,
+                            size: 122,
+                            delay: Double(i) * 0.7
+                        )
+                    }
+
+                    // Statischer Goldring
+                    Circle()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Color(hex: "D4A840"), Color(hex: "A07820"),
+                                         Color(hex: "D4A840"), Color(hex: "8B6210")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 3
+                        )
+                        .frame(width: 128, height: 128)
+
+                    // Haupt-Kreis Golf-Grün
+                    Circle()
+                        .fill(LinearGradient(
+                            colors: [Color(hex: "2D6A30"), Color(hex: "173D1A")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                        .frame(width: 122, height: 122)
+                        .shadow(color: ALColor.green.opacity(0.55), radius: 20, x: 0, y: 10)
+
+                    // Golfer + Mic
+                    VStack(spacing: 4) {
+                        Image(systemName: "figure.golf")
+                            .font(.system(size: 44, weight: .thin))
+                            .foregroundStyle(.white.opacity(0.95))
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(Color(hex: "D4A840"))
+                    }
+                }
+                .frame(width: 200, height: 200)
+
+                // Label
+                VStack(spacing: 4) {
+                    Text("AfterLesson")
+                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
+                    Text("Stunde erfassen")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color(hex: "999999"))
+                        .tracking(0.3)
                 }
             }
         }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Pulse Ring
+
+struct PulseRing: View {
+    let color: Color
+    let size: CGFloat
+    let delay: Double
+    @State private var animate = false
+
+    var body: some View {
+        Circle()
+            .stroke(color.opacity(animate ? 0 : 0.50), lineWidth: 1.5)
+            .frame(width: size, height: size)
+            .scaleEffect(animate ? 1.9 : 1.0)
+            .onAppear {
+                withAnimation(
+                    .easeOut(duration: 2.4)
+                    .repeatForever(autoreverses: false)
+                    .delay(delay)
+                ) {
+                    animate = true
+                }
+            }
     }
 }
 
@@ -3150,13 +3272,354 @@ struct VoiceInputField: View {
 
 // MARK: - Quick Capture Sheet
 
+// MARK: - AfterLesson Flow Sheet
+
+struct AfterLessonFlowSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+    @State private var path: [Student] = []
+    @State private var showCapture = false
+    @State private var captureStudentID: UUID? = nil
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            studentListView
+                .navigationDestination(for: Student.self) { student in
+                    StudentAfterLessonView(student: student) {
+                        captureStudentID = student.id
+                        showCapture = true
+                    }
+                }
+        }
+        .sheet(isPresented: $showCapture) {
+            QuickCaptureSheet(preselectedStudentID: captureStudentID)
+        }
+    }
+
+    // MARK: Schülerliste
+    var studentListView: some View {
+        Group {
+            if store.students.isEmpty {
+                VStack(spacing: 20) {
+                    Image(systemName: "figure.golf")
+                        .font(.system(size: 64))
+                        .foregroundStyle(ALColor.green.opacity(0.25))
+                    Text("Noch keine Schüler")
+                        .font(.system(size: 20, weight: .bold, design: .serif))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
+                    Text("Lege Schüler im Schüler-Tab an\num sie hier zu sehen.")
+                        .font(.subheadline)
+                        .foregroundStyle(Color(hex: "888888"))
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(hex: "F0EDE6"))
+            } else {
+                ScrollView {
+                    VStack(spacing: 10) {
+                        ForEach(store.students) { student in
+                            Button { path.append(student) } label: {
+                                studentRow(student)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(16)
+                }
+                .background(Color(hex: "F0EDE6"))
+            }
+        }
+        .navigationTitle("AfterLesson")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Fertig") { dismiss() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    func studentRow(_ student: Student) -> some View {
+        let lessons = store.assignedLessonsFor(student)
+        let notes   = store.notesFor(student: student)
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: student.avatarColor))
+                    .frame(width: 52, height: 52)
+                    .shadow(color: Color(hex: student.avatarColor).opacity(0.35), radius: 6, x: 0, y: 3)
+                Text(String(student.name.prefix(1)).uppercased())
+                    .font(.title3.bold())
+                    .foregroundStyle(.white)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(student.name)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color(hex: "1A1A1A"))
+                HStack(spacing: 10) {
+                    if !student.handicap.isEmpty {
+                        Label("HCP \(student.handicap)", systemImage: "flag.fill")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(ALColor.green)
+                    }
+                    Label("\(lessons.count)", systemImage: "rectangle.stack.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Label("\(notes.count)", systemImage: "pencil.tip")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color(hex: "CCCCCC"))
+        }
+        .padding(16)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
+    }
+}
+
+// MARK: - Student AfterLesson View
+
+struct StudentAfterLessonView: View {
+    @EnvironmentObject var store: AppStore
+    let student: Student
+    let onCapture: () -> Void
+
+    var lessons: [Lesson]  { store.assignedLessonsFor(student) }
+    var notes:   [ProNote] { store.notesFor(student: student) }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+
+                // Schüler-Banner
+                studentBanner
+
+                // Lektionen
+                if !lessons.isEmpty {
+                    sectionBlock(title: "Lektionen", icon: "rectangle.stack.fill", color: ALColor.gold) {
+                        ForEach(lessons) { lessonCard($0) }
+                    }
+                }
+
+                // Notizen
+                if !notes.isEmpty {
+                    sectionBlock(title: "Notizen", icon: "pencil.tip", color: ALColor.green) {
+                        ForEach(notes) { noteCard($0) }
+                    }
+                }
+
+                // Leer-Hinweis
+                if lessons.isEmpty && notes.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "tray")
+                            .font(.system(size: 44))
+                            .foregroundStyle(ALColor.gold.opacity(0.35))
+                        Text("Noch keine Inhalte zugewiesen")
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.secondary)
+                        Text("Weise im Schüler-Tab Lektionen und Notizen zu.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(40)
+                }
+
+                Color.clear.frame(height: 80)
+            }
+            .padding(16)
+        }
+        .background(Color(hex: "F0EDE6"))
+        .navigationTitle(student.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) { captureBar }
+    }
+
+    // MARK: Banner
+    var studentBanner: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: student.avatarColor))
+                    .frame(width: 56, height: 56)
+                    .shadow(color: Color(hex: student.avatarColor).opacity(0.4), radius: 8, x: 0, y: 4)
+                Text(String(student.name.prefix(1)).uppercased())
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(student.name)
+                    .font(.system(size: 18, weight: .bold, design: .serif))
+                    .foregroundStyle(Color(hex: "1A1A1A"))
+                HStack(spacing: 12) {
+                    if !student.handicap.isEmpty {
+                        Label("HCP \(student.handicap)", systemImage: "flag.fill")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(ALColor.green)
+                    }
+                    Text("\(lessons.count) Lektionen · \(notes.count) Notizen")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+        }
+        .padding(16)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
+    }
+
+    // MARK: Section
+    @ViewBuilder
+    func sectionBlock<Content: View>(title: String, icon: String, color: Color, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 7) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(color)
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color(hex: "666666"))
+            }
+            .padding(.leading, 4)
+            content()
+        }
+    }
+
+    // MARK: Lektion Card
+    @ViewBuilder
+    func lessonCard(_ lesson: Lesson) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(ALColor.gold.opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: lesson.icon)
+                    .font(.system(size: 18))
+                    .foregroundStyle(ALColor.gold)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(lesson.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color(hex: "1A1A1A"))
+                if !lesson.description.isEmpty {
+                    Text(lesson.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                HStack(spacing: 8) {
+                    if !lesson.tips.isEmpty {
+                        Text("\(lesson.tips.count) Tipps")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(ALColor.gold)
+                    }
+                    if !lesson.steps.isEmpty {
+                        Text("\(lesson.steps.count) Schritte")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    if !lesson.imageFilenames.isEmpty {
+                        Label("\(lesson.imageFilenames.count)", systemImage: "photo")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 1)
+    }
+
+    // MARK: Notiz Card
+    @ViewBuilder
+    func noteCard(_ note: ProNote) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(hex: note.colorHex).opacity(0.14))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "pencil.tip")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color(hex: note.colorHex))
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                if !note.title.isEmpty {
+                    Text(note.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
+                }
+                if !note.text.isEmpty {
+                    Text(note.text)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 1)
+    }
+
+    // MARK: Capture Bar
+    var captureBar: some View {
+        Button(action: onCapture) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(
+                            colors: [Color(hex: "D4A840"), Color(hex: "8B6410")],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                Text("Stunde erfassen")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(ALColor.gold.opacity(0.8))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(ALColor.green)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Quick Capture Sheet
+
 struct QuickCaptureSheet: View {
+    var preselectedStudentID: UUID? = nil
+
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
 
     @StateObject private var transcriber = SpeechTranscriber()
 
     @State private var selectedStudentID: UUID? = nil
+
+    init(preselectedStudentID: UUID? = nil) {
+        self.preselectedStudentID = preselectedStudentID
+        _selectedStudentID = State(initialValue: preselectedStudentID)
+    }
     @State private var title: String = ""
     @State private var trained: String = ""
     @State private var corrections: String = ""
@@ -3878,315 +4341,46 @@ struct StudentDetailView: View {
     @State private var photosItem: PhotosPickerItem? = nil
 
     var currentStudent: Student { store.currentStudent(student) ?? student }
-
-    var assignedLessons: [Lesson] {
-        store.assignedLessonsFor(currentStudent)
-    }
+    var assignedLessons: [Lesson]  { store.assignedLessonsFor(currentStudent) }
+    var trainingSessions: [TrainingSession] { store.sessionsFor(currentStudent).sorted { $0.date > $1.date } }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
 
-                // ── Profil Header ──
-                VStack(spacing: 0) {
-                    HStack(spacing: 16) {
-                        // Foto / Avatar — tippbar für PhotosPicker
-                        PhotosPicker(selection: $photosItem, matching: .images) {
-                            ZStack(alignment: .bottomTrailing) {
-                                if let filename = currentStudent.photoFilename,
-                                   let img = UIImage(contentsOfFile: store.imageURL(for: filename).path) {
-                                    Image(uiImage: img)
-                                        .resizable().scaledToFill()
-                                        .frame(width: 64, height: 64)
-                                        .clipShape(Circle())
-                                } else {
-                                    Circle()
-                                        .fill(Color(hex: student.avatarColor))
-                                        .frame(width: 64, height: 64)
-                                        .overlay(
-                                            Text(String(student.name.prefix(1)).uppercased())
-                                                .font(.title.bold()).foregroundStyle(.white)
-                                        )
-                                }
-                                // Kamera-Badge
-                                ZStack {
-                                    Circle().fill(ALColor.green).frame(width: 22, height: 22)
-                                    Image(systemName: "camera.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(.white)
-                                }
-                                .offset(x: 4, y: 4)
-                            }
-                        }
-                        .onChange(of: photosItem) { _, newItem in
-                            Task {
-                                if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                                    let filename = "student_\(student.id.uuidString).jpg"
-                                    store.saveImage(data, filename: filename)
-                                    var updated = currentStudent
-                                    updated.photoFilename = filename
-                                    store.updateStudent(updated)
-                                }
-                            }
-                        }
+                // ── Kartei Header ──
+                karteiBanner
+                    .background(Color(.systemBackground))
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(student.name).font(.title3.bold())
-                            HStack(spacing: 10) {
-                                if !currentStudent.handicap.isEmpty {
-                                    Label("HCP \(currentStudent.handicap)", systemImage: "flag.fill")
-                                        .font(.caption).foregroundStyle(ALColor.gold)
-                                }
-                                if let b = currentStudent.birthday {
-                                    Label(b.formatted(.dateTime.day().month().year()), systemImage: "gift")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                            Text("\(assignedLessons.count) Lektionen zugewiesen")
-                                .font(.caption).foregroundStyle(.secondary)
-                            if let last = currentStudent.lastActiveDate {
-                                Label("Zuletzt: \(last.formatted(.relative(presentation: .named)))",
-                                      systemImage: "clock")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
+                Divider()
 
-                        Spacer()
-
-                        // Senden Button
-                        if !assignedLessons.isEmpty {
-                            Button { showSendSheet = true } label: {
-                                VStack(spacing: 3) {
-                                    Image(systemName: "paperplane.fill")
-                                        .font(.system(size: 18))
-                                    Text("Senden")
-                                        .font(.caption.bold())
-                                }
-                                .foregroundStyle(.white)
-                                .frame(width: 60, height: 52)
-                                .background(ALColor.green)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                        }
-                    }
-                    .padding(16)
-
-                    // Fortschritts-Balken
-                    let prog = store.progressFor(currentStudent)
-                    if prog.total > 0 {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("Fortschritt")
-                                    .font(.caption.bold())
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Text("\(prog.viewed) von \(prog.total) gesehen")
-                                    .font(.caption)
-                                    .foregroundStyle(prog.viewed == prog.total ? .green : .secondary)
-                            }
-                            ProgressView(value: Double(prog.viewed), total: Double(prog.total))
-                                .tint(prog.viewed == prog.total ? .green : ALColor.green)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
-                    }
+                // ── Segment ──
+                Picker("", selection: $tab) {
+                    Text("Kartei").tag(0)
+                    Text("Lektionen").tag(1)
+                    Text("Verlauf").tag(2)
                 }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
                 .background(Color(.systemBackground))
 
                 Divider()
 
-                // Segment: Lektionen | Klassen | Verlauf
-                Picker("", selection: $tab) {
-                    Text("Lektionen").tag(0)
-                    Text("Lernpfade").tag(1)
-                    Text("Verlauf").tag(2)
-                }
-                .pickerStyle(.segmented)
-                .padding(12)
-
-                if tab == 0 {
-                    // Lektionen zuweisen + als gesehen markieren
-                    List {
-                        ForEach(store.folders) { folder in
-                            let folderLessons = store.lessonsIn(folder)
-                            if !folderLessons.isEmpty {
-                                Section {
-                                    ForEach(folderLessons) { lesson in
-                                        let cs = currentStudent
-                                        let assigned = cs.assignedLessonIDs.contains(lesson.id)
-                                        let viewed  = cs.viewedLessonIDs.contains(lesson.id)
-                                        HStack(spacing: 12) {
-                                            // Zuweisen Toggle
-                                            Button {
-                                                store.toggleLessonForStudent(lesson, student: student)
-                                            } label: {
-                                                Image(systemName: assigned ? "checkmark.circle.fill" : "circle")
-                                                    .foregroundStyle(assigned ? ALColor.green : .secondary)
-                                                    .font(.title3)
-                                            }
-                                            .buttonStyle(.plain)
-
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(lesson.title).foregroundStyle(.primary)
-                                                if !lesson.description.isEmpty {
-                                                    Text(lesson.description)
-                                                        .font(.caption).foregroundStyle(.secondary)
-                                                        .lineLimit(1)
-                                                }
-                                            }
-                                            Spacer()
-
-                                            // Gesehen Toggle (nur wenn zugewiesen)
-                                            if assigned {
-                                                Button {
-                                                    store.toggleLessonViewed(lesson, for: student)
-                                                } label: {
-                                                    Image(systemName: viewed ? "eye.fill" : "eye")
-                                                        .foregroundStyle(viewed ? ALColor.gold : .secondary)
-                                                        .font(.subheadline)
-                                                }
-                                                .buttonStyle(.plain)
-                                            }
-                                        }
-                                    }
-                                } header: {
-                                    Label(folder.title, systemImage: folder.icon)
-                                        .foregroundStyle(Color(hex: folder.colorHex))
-                                }
-                            }
-                        }
-                        if store.lessons.isEmpty {
-                            Section {
-                                Text("Zuerst Vorlagen im Vorlagen-Tab anlegen")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .listStyle(.insetGrouped)
-
-                } else if tab == 1 {
-                    // Klassen anzeigen
-                    List {
-                        let studentClasses = store.groups.filter { $0.studentIDs.contains(student.id) }
-                        if studentClasses.isEmpty {
-                            Section {
-                                Text("Noch keinem Lernpfad zugeordnet")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        } else {
-                            ForEach(studentClasses) { group in
-                                HStack(spacing: 12) {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color(hex: group.colorHex))
-                                            .frame(width: 36, height: 36)
-                                        Image(systemName: group.icon)
-                                            .font(.system(size: 16))
-                                            .foregroundStyle(.white)
-                                    }
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(group.name).font(.subheadline.bold())
-                                        Text("\(store.lessonsIn(group).count) Lektionen")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                }
-                                .padding(.vertical, 2)
-                            }
-                        }
-                    }
-                    .listStyle(.insetGrouped)
-
-                } else {
-                    // Verlauf + Anmerkungen
-                    List {
-                        // Pro-Notizen (nur für Lehrer sichtbar)
-                        if store.appMode == AppMode.teacher.rawValue {
-                            Section {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Label("Pro-Notizen (nur für dich)", systemImage: "lock.fill")
-                                        .font(.caption.bold())
-                                        .foregroundStyle(ALColor.green)
-                                    TextField("Private Beobachtungen, Hinweise…", text: Binding(
-                                        get: { currentStudent.notes },
-                                        set: { newVal in
-                                            var updated = currentStudent
-                                            updated.notes = newVal
-                                            store.updateStudent(updated)
-                                        }
-                                    ), axis: .vertical)
-                                    .lineLimit(3...8)
-                                    .font(.subheadline)
-                                }
-                                .padding(.vertical, 4)
-                            }
-                        }
-
-                        // Anmerkungen des Schülers
-                        Section {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Label("Anmerkungen des Schülers", systemImage: "text.bubble")
-                                    .font(.caption.bold())
-                                    .foregroundStyle(.secondary)
-                                TextField("Notizen vom Schüler für den Pro…", text: Binding(
-                                    get: { currentStudent.remarks },
-                                    set: { newVal in
-                                        var updated = currentStudent
-                                        updated.remarks = newVal
-                                        store.updateStudent(updated)
-                                    }
-                                ), axis: .vertical)
-                                .lineLimit(3...6)
-                                .font(.subheadline)
-                            }
-                            .padding(.vertical, 4)
-                        }
-
-                        // Gesendet-Verlauf
-                        Section("Gesendet") {
-                            if currentStudent.sentHistory.isEmpty {
-                                Text("Noch nichts gesendet")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(currentStudent.sentHistory) { pkg in
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        HStack {
-                                            Image(systemName: "paperplane.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(ALColor.green)
-                                            Text(pkg.date.formatted(date: .abbreviated, time: .shortened))
-                                                .font(.caption.bold())
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        ForEach(pkg.lessonTitles, id: \.self) { title in
-                                            HStack(spacing: 6) {
-                                                Circle()
-                                                    .fill(ALColor.green)
-                                                    .frame(width: 5, height: 5)
-                                                Text(title)
-                                                    .font(.subheadline)
-                                            }
-                                        }
-                                        if !pkg.note.isEmpty {
-                                            Text("\"\(pkg.note)\"")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                                .italic()
-                                        }
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                            }
-                        }
-                    }
-                    .listStyle(.insetGrouped)
+                // ── Tab Content ──
+                Group {
+                    if tab == 0 { karteiTab }
+                    else if tab == 1 { lektionenTab }
+                    else { verlaufTab }
                 }
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle(student.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(student.name)
+                        .font(.system(size: 16, weight: .semibold, design: .serif))
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fertig") { dismiss() }
                 }
@@ -4201,6 +4395,406 @@ struct StudentDetailView: View {
                 }
             }
         }
+    }
+
+    // MARK: Banner
+
+    var karteiBanner: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 20) {
+                // Großer Avatar
+                PhotosPicker(selection: $photosItem, matching: .images) {
+                    ZStack(alignment: .bottomTrailing) {
+                        let prog = store.progressFor(currentStudent)
+                        if prog.total > 0 {
+                            Circle().stroke(ALColor.green.opacity(0.15), lineWidth: 4).frame(width: 88, height: 88)
+                            Circle()
+                                .trim(from: 0, to: CGFloat(prog.viewed) / CGFloat(prog.total))
+                                .stroke(ALColor.green, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                                .frame(width: 88, height: 88)
+                                .rotationEffect(.degrees(-90))
+                        }
+                        if let filename = currentStudent.photoFilename,
+                           let img = UIImage(contentsOfFile: store.imageURL(for: filename).path) {
+                            Image(uiImage: img)
+                                .resizable().scaledToFill()
+                                .frame(width: 80, height: 80).clipShape(Circle())
+                        } else {
+                            Circle()
+                                .fill(LinearGradient(
+                                    colors: [Color(hex: currentStudent.avatarColor), Color(hex: currentStudent.avatarColor).opacity(0.7)],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .frame(width: 80, height: 80)
+                                .overlay(
+                                    Text(String(student.name.prefix(1)).uppercased())
+                                        .font(.system(size: 32, weight: .bold, design: .serif))
+                                        .foregroundStyle(.white)
+                                )
+                        }
+                        ZStack {
+                            Circle().fill(ALColor.green).frame(width: 24, height: 24)
+                            Image(systemName: "camera.fill").font(.system(size: 11)).foregroundStyle(.white)
+                        }
+                        .offset(x: 4, y: 4)
+                    }
+                }
+                .onChange(of: photosItem) { _, newItem in
+                    Task {
+                        if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                            let filename = "student_\(student.id.uuidString).jpg"
+                            store.saveImage(data, filename: filename)
+                            var updated = currentStudent
+                            updated.photoFilename = filename
+                            store.updateStudent(updated)
+                        }
+                    }
+                }
+
+                // Name + Infos
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(student.name)
+                        .font(.system(size: 22, weight: .bold, design: .serif))
+                    // Badges-Zeile
+                    HStack(spacing: 8) {
+                        if !currentStudent.handicap.isEmpty {
+                            HStack(spacing: 4) {
+                                Image(systemName: "flag.fill").font(.system(size: 10))
+                                Text("HCP \(currentStudent.handicap)").font(.system(size: 12, weight: .bold))
+                            }
+                            .padding(.horizontal, 9).padding(.vertical, 4)
+                            .background(ALColor.gold.opacity(0.15))
+                            .foregroundStyle(ALColor.gold)
+                            .clipShape(Capsule())
+                        }
+                        if let b = currentStudent.birthday {
+                            HStack(spacing: 4) {
+                                Image(systemName: "gift").font(.system(size: 10))
+                                Text(b.formatted(.dateTime.day().month()))
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .padding(.horizontal, 9).padding(.vertical, 4)
+                            .background(Color.secondary.opacity(0.1))
+                            .foregroundStyle(.secondary)
+                            .clipShape(Capsule())
+                        }
+                    }
+                    // Stats
+                    HStack(spacing: 12) {
+                        statPill(icon: "rectangle.stack.fill", value: "\(assignedLessons.count)", label: "Lektionen", color: ALColor.green)
+                        statPill(icon: "figure.golf",          value: "\(trainingSessions.count)", label: "Stunden",   color: Color(hex: "1565C0"))
+                    }
+                }
+
+                Spacer()
+
+                // Senden-Button
+                if !assignedLessons.isEmpty {
+                    Button { showSendSheet = true } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: "paperplane.fill").font(.system(size: 17))
+                            Text("Senden").font(.caption.bold())
+                        }
+                        .foregroundStyle(.white)
+                        .frame(width: 58, height: 50)
+                        .background(ALColor.green)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+
+            // Fortschritts-Balken
+            let prog = store.progressFor(currentStudent)
+            if prog.total > 0 {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Lernfortschritt").font(.caption.bold()).foregroundStyle(.secondary)
+                        Spacer()
+                        Text("\(prog.viewed)/\(prog.total) gesehen")
+                            .font(.caption).foregroundStyle(prog.viewed == prog.total ? .green : .secondary)
+                    }
+                    ProgressView(value: Double(prog.viewed), total: Double(prog.total))
+                        .tint(prog.viewed == prog.total ? .green : ALColor.green)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+            } else {
+                Spacer().frame(height: 4)
+            }
+        }
+    }
+
+    func statPill(icon: String, value: String, label: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon).font(.system(size: 10)).foregroundStyle(color)
+            Text(value).font(.system(size: 13, weight: .bold)).foregroundStyle(color)
+            Text(label).font(.system(size: 12)).foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: Tab 0 — Kartei (Persönliche Infos)
+
+    var karteiTab: some View {
+        List {
+            // Kontakt
+            Section {
+                if !currentStudent.phone.isEmpty {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8).fill(ALColor.green.opacity(0.12)).frame(width: 34, height: 34)
+                            Image(systemName: "phone.fill").font(.system(size: 14)).foregroundStyle(ALColor.green)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Telefon").font(.caption).foregroundStyle(.secondary)
+                            Text(currentStudent.phone).font(.subheadline)
+                        }
+                        Spacer()
+                        Button {
+                            if let url = URL(string: "tel://\(currentStudent.phone.filter { $0.isNumber || $0 == "+" })") {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            Image(systemName: "phone.arrow.up.right")
+                                .font(.system(size: 16))
+                                .foregroundStyle(ALColor.green)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                if let b = currentStudent.birthday {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8).fill(ALColor.gold.opacity(0.12)).frame(width: 34, height: 34)
+                            Image(systemName: "gift.fill").font(.system(size: 14)).foregroundStyle(ALColor.gold)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Geburtstag").font(.caption).foregroundStyle(.secondary)
+                            Text(b.formatted(.dateTime.day().month().year())).font(.subheadline)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                if currentStudent.phone.isEmpty && currentStudent.birthday == nil {
+                    Text("Keine Kontaktdaten eingetragen")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            } header: {
+                Label("Kontakt", systemImage: "person.text.rectangle")
+            }
+
+            // Pro-Notizen (nur Lehrer)
+            if store.appMode == AppMode.teacher.rawValue {
+                Section {
+                    TextField("Private Beobachtungen, Technik-Hinweise…", text: Binding(
+                        get: { currentStudent.notes },
+                        set: { newVal in var u = currentStudent; u.notes = newVal; store.updateStudent(u) }
+                    ), axis: .vertical)
+                    .lineLimit(3...8)
+                    .font(.subheadline)
+                } header: {
+                    Label("Pro-Notizen (nur für dich)", systemImage: "lock.fill")
+                        .foregroundStyle(ALColor.green)
+                }
+            }
+
+            // Schüler-Anmerkungen
+            Section {
+                TextField("Notizen des Schülers für den Pro…", text: Binding(
+                    get: { currentStudent.remarks },
+                    set: { newVal in var u = currentStudent; u.remarks = newVal; store.updateStudent(u) }
+                ), axis: .vertical)
+                .lineLimit(3...6)
+                .font(.subheadline)
+            } header: {
+                Label("Anmerkungen des Schülers", systemImage: "text.bubble")
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    // MARK: Tab 1 — Lektionen zuweisen
+
+    var lektionenTab: some View {
+        List {
+            ForEach(store.folders) { folder in
+                let folderLessons = store.lessonsIn(folder)
+                if !folderLessons.isEmpty {
+                    Section {
+                        ForEach(folderLessons) { lesson in
+                            let cs = currentStudent
+                            let assigned = cs.assignedLessonIDs.contains(lesson.id)
+                            let viewed   = cs.viewedLessonIDs.contains(lesson.id)
+                            HStack(spacing: 12) {
+                                Button { store.toggleLessonForStudent(lesson, student: student) } label: {
+                                    Image(systemName: assigned ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(assigned ? ALColor.green : .secondary)
+                                        .font(.title3)
+                                }
+                                .buttonStyle(.plain)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(lesson.title).foregroundStyle(.primary)
+                                    if !lesson.description.isEmpty {
+                                        Text(lesson.description).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                    }
+                                }
+                                Spacer()
+                                if assigned {
+                                    Button { store.toggleLessonViewed(lesson, for: student) } label: {
+                                        Image(systemName: viewed ? "eye.fill" : "eye")
+                                            .foregroundStyle(viewed ? ALColor.gold : .secondary)
+                                            .font(.subheadline)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    } header: {
+                        Label(folder.title, systemImage: folder.icon)
+                            .foregroundStyle(Color(hex: folder.colorHex))
+                    }
+                }
+            }
+            if store.lessons.isEmpty {
+                Section {
+                    Text("Zuerst Vorlagen im Vorlagen-Tab anlegen")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    // MARK: Tab 2 — Verlauf (Sessions + Gesendet)
+
+    var verlaufTab: some View {
+        List {
+            // Training Sessions
+            Section {
+                if trainingSessions.isEmpty {
+                    HStack(spacing: 12) {
+                        Image(systemName: "figure.golf")
+                            .font(.system(size: 28))
+                            .foregroundStyle(ALColor.green.opacity(0.3))
+                        Text("Noch keine Stunden dokumentiert")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                } else {
+                    ForEach(trainingSessions) { session in
+                        VStack(alignment: .leading, spacing: 8) {
+                            // Datum + Titel
+                            HStack {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(ALColor.green.opacity(0.12))
+                                        .frame(width: 34, height: 34)
+                                    Image(systemName: "figure.golf")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(ALColor.green)
+                                }
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(session.title.isEmpty ? "Trainingseinheit" : session.title)
+                                        .font(.subheadline.bold())
+                                    Text(session.date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                            }
+                            // Inhalte als Chips
+                            if !session.trained.isEmpty {
+                                sessionChip(icon: "figure.walk", text: session.trained, color: ALColor.green)
+                            }
+                            if !session.corrections.isEmpty {
+                                sessionChip(icon: "pencil.tip", text: session.corrections, color: Color(hex: "1565C0"))
+                            }
+                            if !session.exercises.isEmpty {
+                                sessionChip(icon: "repeat", text: session.exercises, color: ALColor.gold)
+                            }
+                            if !session.homework.isEmpty {
+                                sessionChip(icon: "house.fill", text: session.homework, color: Color(hex: "880E4F"))
+                            }
+                            if !session.imageFilenames.isEmpty {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "photo.fill").font(.caption2).foregroundStyle(.secondary)
+                                    Text("\(session.imageFilenames.count) Fotos")
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            } header: {
+                Label("Dokumentierte Stunden (\(trainingSessions.count))", systemImage: "figure.golf")
+                    .foregroundStyle(ALColor.green)
+            }
+
+            // Gesendet-Verlauf
+            Section {
+                if currentStudent.sentHistory.isEmpty {
+                    HStack(spacing: 12) {
+                        Image(systemName: "paperplane")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Color(hex: "1565C0").opacity(0.3))
+                        Text("Noch nichts gesendet")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                } else {
+                    ForEach(currentStudent.sentHistory) { pkg in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color(hex: "1565C0").opacity(0.12))
+                                        .frame(width: 34, height: 34)
+                                    Image(systemName: "paperplane.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Color(hex: "1565C0"))
+                                }
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(pkg.date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.subheadline.bold())
+                                    Text("\(pkg.lessonTitles.count) Lektionen gesendet")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            ForEach(pkg.lessonTitles, id: \.self) { title in
+                                HStack(spacing: 6) {
+                                    RoundedRectangle(cornerRadius: 2).fill(ALColor.green).frame(width: 3, height: 14)
+                                    Text(title).font(.subheadline).foregroundStyle(.primary)
+                                }
+                            }
+                            if !pkg.note.isEmpty {
+                                Text("\u{201E}\(pkg.note)\u{201C}")
+                                    .font(.caption).foregroundStyle(.secondary).italic()
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            } header: {
+                Label("Gesendet (\(currentStudent.sentHistory.count))", systemImage: "paperplane.fill")
+                    .foregroundStyle(Color(hex: "1565C0"))
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    func sessionChip(icon: String, text: String, color: Color) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundStyle(color)
+                .padding(.top, 2)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+        }
+        .padding(.leading, 4)
     }
 }
 
