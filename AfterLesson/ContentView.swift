@@ -99,7 +99,6 @@ struct HomeView: View {
     @EnvironmentObject var store: AppStore
     @Binding var selectedTab: ContentView.Tab
     @State private var showQuickCapture = false
-    @State private var showTeacherDashboard = false
     @State private var selectedSession: TrainingSession? = nil
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
@@ -118,7 +117,6 @@ struct HomeView: View {
         }
         .background(Color(hex: "F0EDE6"))
         .sheet(isPresented: $showQuickCapture) { AfterLessonFlowSheet() }
-        .sheet(isPresented: $showTeacherDashboard) { TeacherDashboardView() }
         .sheet(item: $selectedSession) { session in SessionDetailSheet(session: session) }
     }
 
@@ -159,10 +157,6 @@ struct HomeView: View {
     // MARK: Teacher Content (kein Scroll)
     var teacherContent: some View {
         VStack(spacing: 0) {
-            teacherQuickActions
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-
             ActivityFeedSection(items: store.teacherActivityFeed())
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -204,39 +198,6 @@ struct HomeView: View {
 
             Spacer(minLength: 16)
         }
-    }
-
-    var teacherQuickActions: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                quickActionChip(icon: "plus.circle.fill", label: "Stunde erfassen", color: ALColor.gold) {
-                    showQuickCapture = true
-                }
-                quickActionChip(icon: "paperplane.fill", label: "Lektion senden", color: ALColor.green) {
-                    showTeacherDashboard = true
-                }
-                quickActionChip(icon: "person.badge.plus", label: "Schüler", color: Color(hex: "1565C0")) {
-                    selectedTab = .students
-                }
-            }
-        }
-    }
-
-    func quickActionChip(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
-                Text(label)
-                    .font(.system(size: 12, weight: .semibold))
-            }
-            .foregroundStyle(color)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .background(color.opacity(0.10), in: Capsule())
-            .overlay(Capsule().strokeBorder(color.opacity(0.22), lineWidth: 0.5))
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: Student Content (kein Scroll)
