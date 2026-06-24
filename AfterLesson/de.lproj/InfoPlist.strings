@@ -1,5 +1,5 @@
-"NSCameraUsageDescription" = "AfterLesson benötigt die Kamera, um Lerninhalte direkt aufzunehmen.";
-"NSMicrophoneUsageDescription" = "AfterLesson benötigt das Mikrofon für Sprachnotizen.";
-"NSPhotoLibraryUsageDescription" = "AfterLesson benötigt Zugriff auf deine Fotos für Lektionsbilder.";
-"NSSpeechRecognitionUsageDescription" = "AfterLesson nutzt Spracherkennung um Trainingsstunden zu transkribieren.";
-"NSFaceIDUsageDescription" = "AfterLesson nutzt Face ID, um die App nach dem Verlassen zu entsperren.";
+"NSCameraUsageDescription" = "Grünbuch benötigt die Kamera, um Lerninhalte direkt aufzunehmen.";
+"NSMicrophoneUsageDescription" = "Grünbuch benötigt das Mikrofon für Sprachnotizen.";
+"NSPhotoLibraryUsageDescription" = "Grünbuch benötigt Zugriff auf deine Fotos für Lektionsbilder.";
+"NSSpeechRecognitionUsageDescription" = "Grünbuch nutzt Spracherkennung um Trainingsstunden zu transkribieren.";
+"NSFaceIDUsageDescription" = "Grünbuch nutzt Face ID, um die App nach dem Verlassen zu entsperren.";

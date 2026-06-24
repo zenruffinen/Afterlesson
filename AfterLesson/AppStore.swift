@@ -869,18 +869,18 @@ final class AppStore: ObservableObject {
     }
 
     static let feedbackShareHint = """
-    AfterLesson Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). \
-    Er öffnet die Datei in AfterLesson und sieht deine Nachricht im Aktivitäts-Feed.
+    Grünbuch Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). \
+    Er öffnet die Datei in Grünbuch und sieht deine Nachricht.
     """
 
     static let sessionShareHint = """
-    AfterLesson Trainingsprotokoll — bitte an deinen Schüler senden (AirDrop, WhatsApp oder E-Mail). \
-    Der Schüler öffnet die Datei in AfterLesson im Schüler-Modus.
+    Grünbuch Trainingsprotokoll — bitte an deinen Schüler senden (AirDrop, WhatsApp oder E-Mail). \
+    Der Schüler öffnet die Datei in Grünbuch im Schüler-Modus.
     """
 
     static let lessonShareHint = """
-    AfterLesson Lektion — bitte an deinen Schüler senden (AirDrop, WhatsApp oder E-Mail). \
-    Der Schüler tippt die Datei an und sie erscheint in AfterLesson.
+    Grünbuch Lektion — bitte an deinen Schüler senden (AirDrop, WhatsApp oder E-Mail). \
+    Der Schüler tippt die Datei an und sie erscheint in Grünbuch.
     """
 
     func importFeedbackShare(from url: URL) -> Bool {

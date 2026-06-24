@@ -2,14 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Dokumenttypen: sagt iOS, dass AfterLesson diese Dateien öffnen kann.
+	<!-- Dokumenttypen: sagt iOS, dass Grünbuch diese Dateien öffnen kann.
 	     Damit erscheint die App, wenn ein Schüler ein .afterlesson-Paket
 	     per AirDrop/WhatsApp empfängt und antippt. -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>AfterLesson Lektion</string>
+			<string>Grünbuch Lektion</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
@@ -21,7 +21,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>AfterLesson Stunde</string>
+			<string>Grünbuch Stunde</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
@@ -33,7 +33,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>AfterLesson Ordner-Paket</string>
+			<string>Grünbuch Ordner-Paket</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
@@ -45,7 +45,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>AfterLesson Rückmeldung</string>
+			<string>Grünbuch Rückmeldung</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
@@ -56,14 +56,14 @@
 			</array>
 		</dict>
 	</array>
-	<!-- Eigene Dateitypen (UTIs) für die AfterLesson-Pakete deklarieren -->
+	<!-- Eigene Dateitypen (UTIs) für die Grünbuch-Pakete deklarieren -->
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
 			<key>UTTypeIdentifier</key>
 			<string>com.hansruffin.afterlesson.lesson</string>
 			<key>UTTypeDescription</key>
-			<string>AfterLesson Lektion</string>
+			<string>Grünbuch Lektion</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
@@ -81,7 +81,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.hansruffin.afterlesson.session</string>
 			<key>UTTypeDescription</key>
-			<string>AfterLesson Stunde</string>
+			<string>Grünbuch Stunde</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
@@ -99,7 +99,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.hansruffin.afterlesson.folderpackage</string>
 			<key>UTTypeDescription</key>
-			<string>AfterLesson Ordner-Paket</string>
+			<string>Grünbuch Ordner-Paket</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
@@ -117,7 +117,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.hansruffin.afterlesson.feedback</string>
 			<key>UTTypeDescription</key>
-			<string>AfterLesson Rückmeldung</string>
+			<string>Grünbuch Rückmeldung</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>

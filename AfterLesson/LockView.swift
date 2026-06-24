@@ -78,7 +78,7 @@ struct AfterLessonPINSetupView: View {
                     AfterLessonGlassMark(size: 88)
 
                     VStack(spacing: 8) {
-                        Text("AfterLesson schützen")
+                        Text("Grünbuch schützen")
                             .font(.title2.bold())
                             .foregroundStyle(.white)
                         Text(step == .create ? "Erstelle deinen 4-stelligen PIN" : "PIN zur Bestätigung wiederholen")
@@ -178,7 +178,7 @@ struct AfterLessonPINEntryView: View {
                     AfterLessonGlassMark(size: 92)
 
                     VStack(spacing: 6) {
-                        Text("AfterLesson")
+                        Text("Grünbuch")
                             .font(.system(size: 26, weight: .bold, design: .serif))
                             .foregroundStyle(.white)
                         Text("PIN eingeben")
@@ -248,7 +248,7 @@ struct AfterLessonPINEntryView: View {
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else { return }
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                               localizedReason: "AfterLesson entsperren") { success, _ in
+                               localizedReason: "Grünbuch entsperren") { success, _ in
             DispatchQueue.main.async {
                 if success { isUnlocked = true }
             }

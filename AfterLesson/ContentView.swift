@@ -103,55 +103,37 @@ struct HomeView: View {
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
+    private var roleLabel: String {
+        let name = store.teacherName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if isTeacher {
+            return "Pro: \(name.isEmpty ? "Golf Pro" : name)"
+        }
+        return "Schüler: \(name.isEmpty ? "—" : name)"
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            headerBar
-            Rectangle()
-                .fill(Color(hex: "E2DDD5"))
-                .frame(height: 1)
-            if isTeacher {
-                teacherContent
-            } else {
-                studentContent
+        ZStack {
+            GrünbuchHomeBackground()
+
+            VStack(spacing: 0) {
+                headerBar
+                if isTeacher {
+                    teacherContent
+                } else {
+                    studentContent
+                }
             }
         }
-        .background(Color(hex: "F0EDE6"))
         .sheet(isPresented: $showQuickCapture) { AfterLessonFlowSheet() }
         .sheet(item: $selectedSession) { session in SessionDetailSheet(session: session) }
     }
 
     // MARK: Header Bar
     var headerBar: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(LinearGradient(
-                        colors: [Color(hex: "D4A840"), Color(hex: "8B6210")],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 46, height: 46)
-                    .shadow(color: Color(hex: "C9A84C").opacity(0.35), radius: 5, x: 0, y: 3)
-                Image(systemName: "figure.golf")
-                    .font(.system(size: 20, weight: .regular))
-                    .foregroundStyle(.white)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(store.teacherName.isEmpty ? (isTeacher ? "Golf Pro" : "Schüler") : store.teacherName)
-                    .font(.system(size: 17, weight: .bold, design: .serif))
-                    .foregroundStyle(Color(hex: "1A1A1A"))
-                    .lineLimit(1)
-                if isTeacher && !store.teacherTitle.isEmpty {
-                    Text(store.teacherTitle)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(Color(hex: "888888"))
-                        .tracking(0.3)
-                        .lineLimit(1)
-                }
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        GrünbuchHomeHeader(roleLabel: roleLabel)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
     }
 
     // MARK: Teacher Content (kein Scroll)
@@ -159,31 +141,29 @@ struct HomeView: View {
         VStack(spacing: 0) {
             Spacer(minLength: 8)
 
-            LazyVGrid(
-                columns: [GridItem(.flexible(), spacing: 12),
-                          GridItem(.flexible(), spacing: 12)],
-                spacing: 12
-            ) {
-                navTile(icon: "figure.golf",
-                        label: "Schüler",
-                        value: "\(store.students.count)",
-                        color: ALColor.green) { selectedTab = .students }
-                navTile(icon: "square.grid.2x2.fill",
-                        label: "Datenpool",
-                        value: "\(store.contentPool.count)",
-                        color: ALColor.gold) { selectedTab = .lessons }
-                navTile(icon: "gearshape.fill",
-                        label: "Einstellungen",
-                        value: "",
-                        color: Color(hex: "555555")) { selectedTab = .settings }
-                navTile(icon: "pencil.tip",
-                        label: "Notizen",
-                        value: "\(store.proNotes.count)",
-                        color: Color(hex: "880E4F")) { selectedTab = .notes }
+            VStack(spacing: 10) {
+                GrünbuchNavPill(
+                    icon: "figure.golf",
+                    label: "Schüler",
+                    value: "\(store.students.count)",
+                    tint: ALColor.green
+                ) { selectedTab = .students }
+                GrünbuchNavPill(
+                    icon: "square.grid.2x2.fill",
+                    label: "Datenpool",
+                    value: "\(store.contentPool.count)",
+                    tint: ALColor.gold
+                ) { selectedTab = .lessons }
+                GrünbuchNavPill(
+                    icon: "pencil.tip",
+                    label: "Notizen",
+                    value: "\(store.proNotes.count)",
+                    tint: Color(hex: "C2185B")
+                ) { selectedTab = .notes }
             }
             .padding(.horizontal, 20)
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 16)
 
             AfterLessonOrb { showQuickCapture = true }
 
@@ -216,7 +196,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Meine Trainings")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color(hex: "666666"))
+                        .foregroundStyle(.white.opacity(0.65))
                         .padding(.horizontal, 20)
                     ForEach(store.receivedSessions.prefix(5)) { session in
                         studentSessionRow(session).padding(.horizontal, 20)
@@ -231,40 +211,40 @@ struct HomeView: View {
     func studentSessionRow(_ session: TrainingSession) -> some View {
         Button { selectedSession = session } label: {
             HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 9)
-                        .fill(ALColor.green.opacity(0.10))
-                        .frame(width: 38, height: 38)
-                    Image(systemName: "figure.golf")
-                        .font(.system(size: 15))
-                        .foregroundStyle(ALColor.green)
-                }
+                Image(systemName: "figure.golf")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(ALColor.green)
+                    .alIconTile(tint: ALColor.green, size: 38)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(session.title.isEmpty ? "Trainingsstunde" : session.title)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Color(hex: "1A1A1A")).lineLimit(1)
+                            .foregroundStyle(.white).lineLimit(1)
                         if session.openedDate == nil {
                             Text("Neu")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(ALColor.gold)
                                 .padding(.horizontal, 6).padding(.vertical, 2)
-                                .background(ALColor.gold.opacity(0.14), in: Capsule())
+                                .background(ALColor.gold.opacity(0.18), in: Capsule())
                         }
                     }
                     if !session.teacherName.isEmpty {
                         Text("von \(session.teacherName)")
                             .font(.system(size: 11))
-                            .foregroundStyle(Color(hex: "AAAAAA"))
+                            .foregroundStyle(.white.opacity(0.55))
                     }
                 }
                 Spacer()
-                Text(session.date, style: .date).font(.system(size: 11)).foregroundStyle(Color(hex: "CCCCCC"))
+                Text(session.date, style: .date)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.45))
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 1)
+            .alGlass(tint: ALColor.green.opacity(0.20), interactive: true, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+            )
         }
         .buttonStyle(.plain)
     }
@@ -536,9 +516,7 @@ struct AfterLessonOrb: View {
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 16) {
-
                 ZStack {
-                    // Pulsierende Ringe (3 Ringe, versetzt)
                     ForEach(0..<3, id: \.self) { i in
                         PulseRing(
                             color: ALColor.gold,
@@ -547,7 +525,6 @@ struct AfterLessonOrb: View {
                         )
                     }
 
-                    // Statischer Goldring
                     Circle()
                         .strokeBorder(
                             LinearGradient(
@@ -556,11 +533,11 @@ struct AfterLessonOrb: View {
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 3
+                            lineWidth: 2.5
                         )
-                        .frame(width: 128, height: 128)
+                        .frame(width: 134, height: 134)
+                        .alGlass(tint: ALColor.gold.opacity(0.15), in: Circle())
 
-                    // Haupt-Kreis Golf-Grün
                     Circle()
                         .fill(LinearGradient(
                             colors: [Color(hex: "2D6A30"), Color(hex: "173D1A")],
@@ -568,9 +545,9 @@ struct AfterLessonOrb: View {
                             endPoint: .bottomTrailing
                         ))
                         .frame(width: 122, height: 122)
-                        .shadow(color: ALColor.green.opacity(0.55), radius: 20, x: 0, y: 10)
+                        .alGlass(tint: ALColor.green.opacity(0.35), in: Circle())
+                        .shadow(color: ALColor.green.opacity(0.45), radius: 20, x: 0, y: 10)
 
-                    // Golfer + Mic
                     VStack(spacing: 4) {
                         Image(systemName: "figure.golf")
                             .font(.system(size: 44, weight: .thin))
@@ -582,16 +559,19 @@ struct AfterLessonOrb: View {
                 }
                 .frame(width: 200, height: 200)
 
-                // Label
                 VStack(spacing: 4) {
-                    Text("Grünbuch")
-                        .font(.system(size: 22, weight: .bold, design: .serif))
-                        .foregroundStyle(Color(hex: "1A1A1A"))
                     Text("Stunde erfassen")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color(hex: "999999"))
-                        .tracking(0.3)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text("Tippen zum Starten")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.55))
+                        .tracking(0.2)
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .alGlass(tint: ALColor.green.opacity(0.25), in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5))
             }
         }
         .buttonStyle(.plain)
@@ -7529,7 +7509,7 @@ struct StudentFeedbackSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Deine Nachricht geht als Datei an deinen Pro — per AirDrop, WhatsApp oder E-Mail. Er sieht sie im Aktivitäts-Feed.")
+                    Text("Deine Nachricht geht als Datei an deinen Pro — per AirDrop, WhatsApp oder E-Mail. Er sieht sie in Grünbuch.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

@@ -14,14 +14,14 @@ struct PrivacyPolicyView: View {
         privacySection(
           title: "Verantwortlich",
           body: """
-          AfterLesson wird von Hans Ruffin betrieben. Bei Fragen zum Datenschutz erreichst du uns unter support@hansruffin.ch.
+          Grünbuch wird von Hans Ruffin betrieben. Bei Fragen zum Datenschutz erreichst du uns unter support@hansruffin.ch.
           """
         )
 
         privacySection(
           title: "Grundsatz",
           body: """
-          AfterLesson speichert deine Unterrichtsdaten ausschliesslich lokal auf deinem Gerät. Es gibt keine Benutzerkonten, keine Cloud-Synchronisation und kein Tracking. Wir erheben keine personenbezogenen Daten auf Servern.
+          Grünbuch speichert deine Unterrichtsdaten ausschliesslich lokal auf deinem Gerät. Es gibt keine Benutzerkonten, keine Cloud-Synchronisation und kein Tracking. Wir erheben keine personenbezogenen Daten auf Servern.
           """
         )
 
@@ -35,7 +35,7 @@ struct PrivacyPolicyView: View {
         privacySection(
           title: "Kamera",
           body: """
-          Mit deiner Erlaubnis kannst du Fotos und Videos direkt in AfterLesson aufnehmen, z. B. für Lerninhalte oder Trainingsdokumentation. Aufnahmen werden nur lokal gespeichert, sofern du sie nicht selbst exportierst.
+          Mit deiner Erlaubnis kannst du Fotos und Videos direkt in Grünbuch aufnehmen, z. B. für Lerninhalte oder Trainingsdokumentation. Aufnahmen werden nur lokal gespeichert, sofern du sie nicht selbst exportierst.
           """
         )
 
@@ -49,21 +49,21 @@ struct PrivacyPolicyView: View {
         privacySection(
           title: "Fotos",
           body: """
-          Mit deiner Erlaubnis kannst du vorhandene Bilder aus deiner Mediathek in Lektionen einbinden. AfterLesson liest nur die von dir ausgewählten Fotos; sie werden lokal in der App abgelegt.
+          Mit deiner Erlaubnis kannst du vorhandene Bilder aus deiner Mediathek in Lektionen einbinden. Grünbuch liest nur die von dir ausgewählten Fotos; sie werden lokal in der App abgelegt.
           """
         )
 
         privacySection(
           title: "Spracherkennung",
           body: """
-          Mit deiner Erlaubnis kann AfterLesson gesprochene Trainingsstunden in Text umwandeln. Die Verarbeitung erfolgt über die Spracherkennung von Apple auf dem Gerät bzw. in dem von Apple vorgesehenen Rahmen; wir erhalten keine Transkripte.
+          Mit deiner Erlaubnis kann Grünbuch gesprochene Trainingsstunden in Text umwandeln. Die Verarbeitung erfolgt über die Spracherkennung von Apple auf dem Gerät bzw. in dem von Apple vorgesehenen Rahmen; wir erhalten keine Transkripte.
           """
         )
 
         privacySection(
           title: "Face ID / Touch ID",
           body: """
-          Optional kannst du die Bildschirmsperre mit Face ID oder Touch ID aktivieren. Biometrische Daten verbleiben im Secure Enclave deines Geräts; AfterLesson speichert sie nicht und hat keinen Zugriff darauf. Alternativ kannst du einen PIN verwenden, der sicher im Schlüsselbund deines Geräts hinterlegt wird.
+          Optional kannst du die Bildschirmsperre mit Face ID oder Touch ID aktivieren. Biometrische Daten verbleiben im Secure Enclave deines Geräts; Grünbuch speichert sie nicht und hat keinen Zugriff darauf. Alternativ kannst du einen PIN verwenden, der sicher im Schlüsselbund deines Geräts hinterlegt wird.
           """
         )
 
