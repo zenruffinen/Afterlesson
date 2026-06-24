@@ -206,7 +206,7 @@ struct HomeView: View {
                 GrünbuchHomeActionButton(
                     icon: "square.and.pencil",
                     title: "Composer",
-                    subtitle: "Zuweisen an Schüler",
+                    subtitle: "Paket zur Nachbesprechung",
                     tint: ALColor.green
                 ) {
                     composerPreselectedStudents = []
@@ -714,7 +714,7 @@ struct ComposerSheet: View {
                     Button {
                         assignAndShare()
                     } label: {
-                        Label("Paket senden", systemImage: "paperplane.fill")
+                        Label("Nachbesprechung starten", systemImage: "paperplane.fill")
                     }
                     .disabled(!canAssign)
                 }
@@ -724,8 +724,8 @@ struct ComposerSheet: View {
                     VStack(spacing: 10) {
                         Label {
                             Text(isSupplemental
-                                 ? "Übergib die Nachreichung persönlich per AirDrop — wenn ihr zusammen seid."
-                                 : "Übergib das Paket persönlich per AirDrop — am besten direkt nach der Lektion auf dem Platz.")
+                                 ? "Ergänze in der Nachbesprechung einzelne Lektionen oder Medien — persönlich per AirDrop, wenn ihr zusammen seid."
+                                 : "Die Nachbesprechung dauert ca. 5 Minuten: Paket persönlich per AirDrop übergeben und kurz besprechen — direkt nach der Lektion auf dem Platz.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.leading)
@@ -735,8 +735,13 @@ struct ComposerSheet: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
 
+                        Text("ca. 5 Minuten · persönlich am Platz")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
                         Button(action: assignAndShare) {
-                            Label("Paket an Schüler senden", systemImage: "paperplane.fill")
+                            Label("Paket zur Nachbesprechung", systemImage: "paperplane.fill")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -762,7 +767,7 @@ struct ComposerSheet: View {
                     Text("Ergänze einzelne Lektionen oder Medien — kein vollständiges Paket nötig.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text("Übergabe wie gewohnt persönlich per AirDrop, wenn ihr zusammen seid.")
+                    Text("Nachreichungen in der Nachbesprechung — persönlich per AirDrop, wenn ihr zusammen seid.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -923,8 +928,8 @@ struct ComposerSheet: View {
         Section {
             Label {
                 Text(isSupplemental
-                     ? "Nachreichungen übergibst du persönlich per AirDrop — am einfachsten, wenn ihr nach der Lektion noch zusammen seid."
-                     : "Das Paket übergibst du persönlich per AirDrop. Wähle im nächsten Schritt AirDrop und deinen Schüler — am besten direkt nach der Lektion auf dem Platz.")
+                     ? "Nachreichungen in der Nachbesprechung — persönlich per AirDrop, wenn ihr zusammen seid."
+                     : "Wähle im nächsten Schritt AirDrop und deinen Schüler. Die Nachbesprechung ist der professionelle Abschluss eurer Lektion — ca. 5 Minuten am Platz.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } icon: {
@@ -932,7 +937,7 @@ struct ComposerSheet: View {
                     .foregroundStyle(ALColor.green)
             }
         } header: {
-            Text("AirDrop-Hinweis")
+            Text("Nachbesprechung")
         }
     }
 
@@ -1187,8 +1192,8 @@ struct NewFromProBanner: View {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(teacherName.isEmpty
-                         ? String(localized: "Neu von deinem Pro")
-                         : String(format: String(localized: "Neu von %@"), teacherName))
+                         ? String(localized: "Deine Nachbesprechung von deinem Pro")
+                         : String(format: String(localized: "Deine Nachbesprechung von %@"), teacherName))
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Color(hex: "1A1A1A"))
                     Text(count == 1
@@ -1292,13 +1297,13 @@ struct StudentEmptyPlaceholder: View {
                     .foregroundStyle(Color(hex: "1A1A1A"))
                     .multilineTextAlignment(.center)
 
-                Text("Dein Pro schickt dir Lektionen per AirDrop, wenn ihr zusammen seid. Tippe auf die Datei, dann öffnet sich Grünbuch.")
+                Text("Dein Pro überreicht dir am Ende der Lektion deine Nachbesprechung — ca. 5 Minuten, persönlich auf dem Platz. Tippe die AirDrop-Datei an, dann öffnet sich Grünbuch.")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(hex: "888888"))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
 
-                Text("Empfangene Lektionen und Protokolle erscheinen hier unter „Zugewiesen“.")
+                Text("Lektionen und Protokolle aus der Nachbesprechung erscheinen hier unter „Zugewiesen“.")
                     .font(.system(size: 12))
                     .foregroundStyle(Color(hex: "AAAAAA"))
                     .multilineTextAlignment(.center)
@@ -4575,7 +4580,7 @@ struct TeacherDashboardView: View {
                     .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle("Senden")
+            .navigationTitle("Nachbesprechung")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -4632,7 +4637,7 @@ struct TeacherDashboardView: View {
                 Spacer()
                 HStack(spacing: 4) {
                     Image(systemName: "paperplane.fill")
-                    Text("Senden")
+                    Text("Nachbesprechung")
                 }
                 .font(.caption.bold())
                 .foregroundStyle(.white)
@@ -4825,7 +4830,7 @@ struct SendPackageSheet: View {
                             onSend(items)
                         }
                     } label: {
-                        Label("Senden (\(selectedLessonIDs.count))", systemImage: "paperplane.fill")
+                        Label("Nachbesprechung (\(selectedLessonIDs.count))", systemImage: "paperplane.fill")
                     }
                     .disabled(selectedLessonIDs.isEmpty)
                 }
@@ -4996,7 +5001,7 @@ struct LernpfadDetailView: View {
                             shareItems = store.exportGroup(currentGroup)
                             if !shareItems.isEmpty { showShareSheet = true }
                         } label: {
-                            Label("Alle Lektionen senden", systemImage: "paperplane.fill")
+                            Label("Alle Lektionen zur Nachbesprechung", systemImage: "paperplane.fill")
                         }
                     }
                 } label: {
@@ -5682,6 +5687,28 @@ struct VoiceInputField: View {
 
 // MARK: - Quick Capture Sheet
 
+enum QuickCaptureMediaKind: String, CaseIterable, Identifiable {
+    case photo, video, note
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .photo: return String(localized: "Foto")
+        case .video: return String(localized: "Video")
+        case .note:  return String(localized: "Notiz")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .photo: return "photo"
+        case .video: return "video.fill"
+        case .note:  return "note.text"
+        }
+    }
+}
+
 // MARK: - AfterLesson Flow Sheet
 
 struct AfterLessonFlowSheet: View {
@@ -5999,6 +6026,7 @@ struct QuickCaptureSheet: View {
 
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
+    @FocusState private var quickNoteFocused: Bool
 
     @StateObject private var transcriber = SpeechTranscriber()
 
@@ -6022,7 +6050,8 @@ struct QuickCaptureSheet: View {
     @State private var showPhotosPicker = false
     @State private var showCamera = false
     @State private var pendingPhotoData: [Data] = []
-    @State private var isSavingMedia = false
+    @State private var pendingVideoURLs: [URL] = []
+    @State private var selectedMediaKind: QuickCaptureMediaKind? = nil
 
     var selectedStudent: Student? {
         guard let id = selectedStudentID else { return nil }
@@ -6042,7 +6071,60 @@ struct QuickCaptureSheet: View {
             !trained.isEmpty || !corrections.isEmpty || !exercises.isEmpty || !homework.isEmpty
             || !quickTextNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !pendingPhotoData.isEmpty
+            || !pendingVideoURLs.isEmpty
         )
+    }
+
+    private func isMediaKindSelected(_ kind: QuickCaptureMediaKind) -> Bool {
+        if selectedMediaKind == kind { return true }
+        switch kind {
+        case .photo: return !pendingPhotoData.isEmpty
+        case .video: return !pendingVideoURLs.isEmpty
+        case .note:
+            return !quickTextNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    @ViewBuilder
+    private func captureMediaChip(_ kind: QuickCaptureMediaKind) -> some View {
+        let highlighted = isMediaKindSelected(kind)
+        Button {
+            selectedMediaKind = kind
+            switch kind {
+            case .photo:
+                showPhotosPicker = true
+            case .video:
+                showCamera = true
+            case .note:
+                quickNoteFocused = true
+            }
+        } label: {
+            Label(kind.label, systemImage: kind.icon)
+                .font(.caption.bold())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .foregroundStyle(highlighted ? .white : .primary)
+                .background(highlighted ? ALColor.green : Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(
+                            highlighted ? ALColor.green.opacity(0.55) : Color.clear,
+                            lineWidth: 1.5
+                        )
+                }
+        }
+        .buttonStyle(.plain)
+        .disabled(kind == .video && selectedStudentID == nil)
+        .opacity(kind == .video && selectedStudentID == nil ? 0.45 : 1)
+    }
+
+    private func cleanupPendingMedia() {
+        for url in pendingVideoURLs {
+            try? FileManager.default.removeItem(at: url)
+        }
+        pendingVideoURLs = []
+        pendingPhotoData = []
     }
 
     var body: some View {
@@ -6106,34 +6188,29 @@ struct QuickCaptureSheet: View {
 
                         TextField("Kurznotiz zur Stunde…", text: $quickTextNote, axis: .vertical)
                             .lineLimit(2...4)
+                            .focused($quickNoteFocused)
                             .padding(12)
                             .background(Color(.secondarySystemGroupedBackground))
                             .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(
+                                        isMediaKindSelected(.note) ? ALColor.green.opacity(0.55) : Color.clear,
+                                        lineWidth: 1.5
+                                    )
+                            )
+                            .onChange(of: quickTextNote) { _, text in
+                                if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    selectedMediaKind = .note
+                                }
+                            }
 
                         HStack(spacing: 10) {
-                            Button { showPhotosPicker = true } label: {
-                                Label("Foto", systemImage: "photo")
-                                    .font(.caption.bold())
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(Color(.tertiarySystemFill))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                            .buttonStyle(.plain)
-
-                            Button { showCamera = true } label: {
-                                Label("Video", systemImage: "video")
-                                    .font(.caption.bold())
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(Color(.tertiarySystemFill))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(selectedStudentID == nil)
+                            captureMediaChip(.photo)
+                            captureMediaChip(.video)
                         }
 
-                        if !pendingPhotoData.isEmpty {
+                        if !pendingPhotoData.isEmpty || !pendingVideoURLs.isEmpty {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     ForEach(Array(pendingPhotoData.enumerated()), id: \.offset) { idx, data in
@@ -6147,6 +6224,33 @@ struct QuickCaptureSheet: View {
                                             }
                                             Button {
                                                 pendingPhotoData.remove(at: idx)
+                                                if pendingPhotoData.isEmpty, selectedMediaKind == .photo {
+                                                    selectedMediaKind = nil
+                                                }
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.white, .black.opacity(0.5))
+                                            }
+                                            .offset(x: 4, y: -4)
+                                        }
+                                    }
+                                    ForEach(Array(pendingVideoURLs.enumerated()), id: \.offset) { idx, _ in
+                                        ZStack(alignment: .topTrailing) {
+                                            ZStack {
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(Color(hex: ContentType.video.colorHex).opacity(0.15))
+                                                    .frame(width: 72, height: 72)
+                                                Image(systemName: "play.circle.fill")
+                                                    .font(.title2)
+                                                    .foregroundStyle(Color(hex: ContentType.video.colorHex))
+                                            }
+                                            Button {
+                                                let url = pendingVideoURLs.remove(at: idx)
+                                                try? FileManager.default.removeItem(at: url)
+                                                if pendingVideoURLs.isEmpty, selectedMediaKind == .video {
+                                                    selectedMediaKind = nil
+                                                }
                                             } label: {
                                                 Image(systemName: "xmark.circle.fill")
                                                     .font(.caption)
@@ -6211,6 +6315,7 @@ struct QuickCaptureSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Abbrechen") {
                         transcriber.stop()
+                        cleanupPendingMedia()
                         dismiss()
                     }
                 }
@@ -6229,7 +6334,7 @@ struct QuickCaptureSheet: View {
                     } label: {
                         HStack(spacing: 10) {
                             Image(systemName: "paperplane.fill")
-                            Text("Speichern & an Schüler senden")
+                            Text("Speichern & Nachbesprechung")
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -6254,6 +6359,7 @@ struct QuickCaptureSheet: View {
                           maxSelectionCount: 10, matching: .images)
             .onChange(of: photoPickerItems) { _, items in
                 guard !items.isEmpty else { return }
+                selectedMediaKind = .photo
                 Task {
                     for item in items {
                         if let data = try? await item.loadTransferable(type: Data.self) {
@@ -6265,22 +6371,10 @@ struct QuickCaptureSheet: View {
             }
             .fullScreenCover(isPresented: $showCamera) {
                 VideoCameraView { url in
-                    guard let studentID = selectedStudentID else { return }
-                    isSavingMedia = true
-                    Task {
-                        await store.addStudentCaptureFromVideo(url: url, studentID: studentID)
-                        isSavingMedia = false
-                    }
+                    selectedMediaKind = .video
+                    pendingVideoURLs.append(url)
                 }
                 .ignoresSafeArea()
-            }
-            .overlay {
-                if isSavingMedia {
-                    ProgressView("Wird gespeichert …")
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
             }
             .alert("Spracherkennung nicht verfügbar",
                    isPresented: $transcriber.permissionDenied) {
@@ -6318,8 +6412,17 @@ struct QuickCaptureSheet: View {
                     sessionID: session.id
                 )
             }
+            for url in pendingVideoURLs {
+                await store.addStudentCaptureFromVideo(
+                    url: url,
+                    studentID: studentID,
+                    sessionID: session.id
+                )
+            }
             await MainActor.run {
                 pendingPhotoData = []
+                pendingVideoURLs = []
+                selectedMediaKind = nil
                 if thenSend, let url = store.exportSession(session) {
                     shareItems = [AppStore.sessionShareHint, url]
                     showShareSheet = true
@@ -6471,7 +6574,7 @@ struct SessionDetailSheet: View {
                         } label: {
                             HStack(spacing: 10) {
                                 Image(systemName: "paperplane.fill")
-                                Text("An Schüler senden")
+                                Text("Zur Nachbesprechung")
                                     .fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
@@ -7082,7 +7185,7 @@ struct StudentDetailView: View {
                         Button { showSendSheet = true } label: {
                             VStack(spacing: 3) {
                                 Image(systemName: "paperplane.fill").font(.system(size: 17))
-                                Text("Senden").font(.caption.bold())
+                                Text("Nachbesprechung").font(.caption.bold())
                             }
                             .foregroundStyle(.white)
                             .frame(width: 58, height: 50)
@@ -7129,7 +7232,7 @@ struct StudentDetailView: View {
             }
 
             Label {
-                Text("Senden und Nachreichung: persönlich per AirDrop übergeben — am besten direkt nach der Lektion, wenn ihr noch zusammen seid.")
+                Text("Nachbesprechung und Nachreichung: ca. 5 Minuten am Platz, persönlich per AirDrop — der professionelle Abschluss der Lektion.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } icon: {
@@ -7473,7 +7576,7 @@ struct StudentDetailView: View {
                         Image(systemName: "paperplane")
                             .font(.system(size: 28))
                             .foregroundStyle(Color(hex: "1565C0").opacity(0.3))
-                        Text("Noch keine Pakete gesendet — Composer erstellt AirDrop-Pakete aus der Bibliothek.")
+                        Text("Noch keine Nachbesprechung — Composer erstellt Pakete aus der Bibliothek.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -7515,7 +7618,7 @@ struct StudentDetailView: View {
                     }
                 }
             } header: {
-                Label("Gesendete Pakete (\(currentStudent.sentHistory.count))", systemImage: "paperplane.fill")
+                Label("Nachbesprechungen (\(currentStudent.sentHistory.count))", systemImage: "paperplane.fill")
                     .foregroundStyle(Color(hex: "1565C0"))
             }
         }
@@ -8314,7 +8417,7 @@ struct SendWithNoteSheet: View {
                     Text("\(lessons.count) Lektionen")
                 } footer: {
                     Label {
-                        Text("Übergib die Lektionen persönlich per AirDrop — am besten direkt nach der Lektion auf dem Platz.")
+                        Text("In der Nachbesprechung: Lektionen persönlich per AirDrop übergeben — ca. 5 Minuten am Platz, direkt nach der Lektion.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } icon: {
@@ -8323,7 +8426,7 @@ struct SendWithNoteSheet: View {
                     }
                 }
             }
-            .navigationTitle("Senden")
+            .navigationTitle("Nachbesprechung")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -8344,7 +8447,7 @@ struct SendWithNoteSheet: View {
                             onSend(items)
                         }
                     } label: {
-                        Label("Senden", systemImage: "paperplane.fill")
+                        Label("Nachbesprechung starten", systemImage: "paperplane.fill")
                     }
                     .disabled(lessons.isEmpty)
                 }
