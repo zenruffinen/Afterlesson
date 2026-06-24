@@ -32,6 +32,17 @@ struct ContentView: View {
             AfterLessonTabBar(selected: $selectedTab)
         }
         .ignoresSafeArea(edges: .bottom)
+        .alert(
+            "Empfangen",
+            isPresented: Binding(
+                get: { store.importConfirmation != nil },
+                set: { if !$0 { store.importConfirmation = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { store.importConfirmation = nil }
+        } message: {
+            Text(store.importConfirmation ?? "")
+        }
     }
 }
 
@@ -706,14 +717,29 @@ struct ComposerSheet: View {
             }
             .safeAreaInset(edge: .bottom) {
                 if canAssign {
-                    Button(action: assignAndShare) {
-                        Label("Paket an Schüler senden", systemImage: "paperplane.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                    VStack(spacing: 10) {
+                        Label {
+                            Text(isSupplemental
+                                 ? "Übergib die Nachreichung persönlich per AirDrop — wenn ihr zusammen seid."
+                                 : "Übergib das Paket persönlich per AirDrop — am besten direkt nach der Lektion auf dem Platz.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.leading)
+                        } icon: {
+                            Image(systemName: "airdrop")
+                                .foregroundStyle(ALColor.green)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Button(action: assignAndShare) {
+                            Label("Paket an Schüler senden", systemImage: "paperplane.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(ALColor.green)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(ALColor.green)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(.ultraThinMaterial)
@@ -728,9 +754,14 @@ struct ComposerSheet: View {
     private var supplementalBanner: some View {
         Section {
             Label {
-                Text("Ergänze einzelne Lektionen oder Medien — kein vollständiges Paket nötig.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Ergänze einzelne Lektionen oder Medien — kein vollständiges Paket nötig.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("Übergabe wie gewohnt persönlich per AirDrop, wenn ihr zusammen seid.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             } icon: {
                 Image(systemName: "tray.and.arrow.down.fill")
                     .foregroundStyle(ALColor.gold)
@@ -887,7 +918,9 @@ struct ComposerSheet: View {
     private var shareHintSection: some View {
         Section {
             Label {
-                Text(AppStore.composerShareHint)
+                Text(isSupplemental
+                     ? "Nachreichungen übergibst du persönlich per AirDrop — am einfachsten, wenn ihr nach der Lektion noch zusammen seid."
+                     : "Das Paket übergibst du persönlich per AirDrop. Wähle im nächsten Schritt AirDrop und deinen Schüler — am besten direkt nach der Lektion auf dem Platz.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } icon: {
@@ -1250,13 +1283,13 @@ struct StudentEmptyPlaceholder: View {
                     .foregroundStyle(Color(hex: "1A1A1A"))
                     .multilineTextAlignment(.center)
 
-                Text("Dein Pro sendet dir Lernpakete per AirDrop — sie erscheinen hier unter „Zugewiesen“.")
+                Text("Dein Pro schickt dir Lektionen per AirDrop, wenn ihr zusammen seid. Tippe auf die Datei, dann öffnet sich Grünbuch.")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(hex: "888888"))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
 
-                Text("Empfangene Lektionen und Protokolle\nerscheinen automatisch auf dem Startbildschirm.")
+                Text("Empfangene Lektionen und Protokolle erscheinen hier unter „Zugewiesen“.")
                     .font(.system(size: 12))
                     .foregroundStyle(Color(hex: "AAAAAA"))
                     .multilineTextAlignment(.center)
@@ -7085,6 +7118,17 @@ struct StudentDetailView: View {
             } else {
                 Spacer().frame(height: 4)
             }
+
+            Label {
+                Text("Senden und Nachreichung: persönlich per AirDrop übergeben — am besten direkt nach der Lektion, wenn ihr noch zusammen seid.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } icon: {
+                Image(systemName: "airdrop")
+                    .foregroundStyle(ALColor.green)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
         }
     }
 
@@ -7562,6 +7606,8 @@ struct SettingsView: View {
                     }
                 }
 
+                HandoffInfoSection(isTeacher: isTeacher)
+
                 Section("App") {
                     NavigationLink {
                         PrivacyPolicyView()
@@ -7579,6 +7625,53 @@ struct SettingsView: View {
                     get: { store.appMode == AppMode.teacher.rawValue },
                     set: { granted in if granted { store.appMode = AppMode.teacher.rawValue } }
                 ))
+            }
+        }
+    }
+}
+
+
+// MARK: - Handoff Info (Settings)
+
+struct HandoffInfoSection: View {
+    let isTeacher: Bool
+    @State private var isExpanded = false
+
+    private var bullets: [String] {
+        if isTeacher {
+            return [
+                "Paket im Composer zusammenstellen und Schüler zuweisen.",
+                "Persönlich per AirDrop übergeben — am besten direkt nach der Lektion auf dem Platz.",
+                "Nachreichungen jederzeit möglich, wenn ihr wieder zusammen seid."
+            ]
+        }
+        return [
+            "Dein Pro sendet Lektionen per AirDrop, wenn ihr zusammen seid.",
+            "Tippe auf die Grünbuch-Datei in der AirDrop-Meldung.",
+            "Alles erscheint unter „Zugewiesen“ auf dem Startbildschirm."
+        ]
+    }
+
+    var body: some View {
+        Section {
+            DisclosureGroup(isExpanded: $isExpanded) {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(bullets, id: \.self) { bullet in
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 5))
+                                .foregroundStyle(ALColor.green)
+                                .padding(.top, 6)
+                            Text(bullet)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            } label: {
+                Label("So funktioniert die Übergabe", systemImage: "airdrop")
+                    .foregroundStyle(ALColor.green)
             }
         }
     }
@@ -8354,6 +8447,15 @@ struct SendWithNoteSheet: View {
                     }
                 } header: {
                     Text("\(lessons.count) Lektionen")
+                } footer: {
+                    Label {
+                        Text("Übergib die Lektionen persönlich per AirDrop — am besten direkt nach der Lektion auf dem Platz.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } icon: {
+                        Image(systemName: "airdrop")
+                            .foregroundStyle(ALColor.green)
+                    }
                 }
             }
             .navigationTitle("Senden")

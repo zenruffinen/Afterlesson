@@ -44,6 +44,7 @@ final class AppStore: ObservableObject {
     @AppStorage("isLocked") var isLocked: Bool = false
     @AppStorage("lockEnabled") var lockEnabled: Bool = false
     @AppStorage("pinnedNoteID") var pinnedNoteID: String = ""
+    @Published var importConfirmation: String?
 
     var pinnedNote: ProNote? {
         guard !pinnedNoteID.isEmpty,
@@ -667,6 +668,10 @@ final class AppStore: ObservableObject {
             newLesson.folderID = folders.first?.id ?? UUID()
         }
         lessons.insert(newLesson, at: 0)
+        importConfirmation = NSLocalizedString(
+            "Alles klar — deine Lektion ist da. Findest du unter „Zugewiesen“ auf dem Startbildschirm.",
+            comment: "Import success after receiving a lesson"
+        )
         return true
     }
 
@@ -1030,6 +1035,10 @@ final class AppStore: ObservableObject {
         session.teacherName = package.teacherName
         session.openedDate = nil
         sessions.insert(session, at: 0)
+        importConfirmation = NSLocalizedString(
+            "Protokoll empfangen — findest du auf dem Startbildschirm.",
+            comment: "Import success after receiving a training session"
+        )
         return true
     }
 
@@ -1066,22 +1075,26 @@ final class AppStore: ObservableObject {
     Er öffnet die Datei in Grünbuch und sieht deine Nachricht.
     """
 
-    static let sessionShareHint = """
-    Grünbuch Trainingsprotokoll — bitte an deinen Schüler senden (AirDrop, WhatsApp oder E-Mail). \
-    Der Schüler öffnet die Datei in Grünbuch im Schüler-Modus.
-    """
+    static var sessionShareHint: String {
+        NSLocalizedString(
+            "Grünbuch Trainingsprotokoll — bitte persönlich per AirDrop an deinen Schüler übergeben. Der Schüler tippt die Datei an und öffnet Grünbuch.",
+            comment: "Share sheet hint for training session"
+        )
+    }
 
-    static let lessonShareHint = """
-    Grünbuch Lektion — bitte an deinen Schüler senden (AirDrop, WhatsApp oder E-Mail). \
-    Der Schüler öffnet die Datei in Grünbuch im Schüler-Modus; sie erscheint unter „Zugewiesen“.
-    """
+    static var lessonShareHint: String {
+        NSLocalizedString(
+            "Grünbuch Lektion — bitte persönlich per AirDrop an deinen Schüler übergeben. Der Schüler tippt die Datei an — sie erscheint in Grünbuch unter „Zugewiesen“.",
+            comment: "Share sheet hint for lesson resend"
+        )
+    }
 
-    static let composerShareHint = """
-    Grünbuch Lernpaket — per AirDrop an deinen Schüler senden (am einfachsten: AirDrop oben wählen). \
-    Der Schüler tippt die .afterlesson-Datei(en) an und öffnet sie in Grünbuch im Schüler-Modus — \
-    die Inhalte erscheinen unter „Zugewiesen“. Einzelne Lektionen oder Nachreichungen können später \
-    separat gesendet werden.
-    """
+    static var composerShareHint: String {
+        NSLocalizedString(
+            "Grünbuch Lernpaket — bitte persönlich per AirDrop übergeben, am besten direkt nach der Lektion auf dem Platz. Der Schüler tippt die Datei an und öffnet Grünbuch — alles erscheint unter „Zugewiesen“.",
+            comment: "Share sheet hint for composer package"
+        )
+    }
 
     func importFeedbackShare(from url: URL) -> Bool {
         let accessing = url.startAccessingSecurityScopedResource()

@@ -1,5 +1,11 @@
 # Grünbuch — Kommunikation Pro ↔ Schüler
 
+## AirDrop-Philosophie
+
+Grünbuch setzt auf **persönliche Übergabe per AirDrop** — nicht auf Cloud oder Fernversand. Lernpakete, Nachreichungen und Protokolle werden **direkt nach der Lektion** übergeben, wenn Pro und Schüler noch zusammen auf dem Platz sind. Das hält den Austausch nah am Unterricht, schützt die Privatsphäre und macht den Ablauf für beide Seiten einfach: Pro tippt „Senden“, wählt AirDrop, Schüler tippt die Datei an — fertig.
+
+---
+
 ## Kernunterscheidung
 
 | Pfad | Quelle | Ziel | Wann |
@@ -24,7 +30,7 @@ Der **Composer** bündelt **vorbereiteten** Lernstoff aus der Bibliothek und wei
    - **Einzelmedien** aus der Bibliothek (Video, Bild, Text, PDF, Audio)
    - Gemischte Pakete möglich
 4. Optional **persönliche Nachricht**
-5. **Paket an Schüler senden** — Zuordnung wird lokal gespeichert, Share-Sheet öffnet sich (AirDrop empfohlen)
+5. **Paket an Schüler senden** — Zuordnung wird lokal gespeichert, Share-Sheet öffnet sich (persönliche Übergabe per AirDrop)
 
 ### Paketformat
 
