@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate AfterLesson app icon — light Arca-style liquid glass aesthetic."""
+"""Generate Grünbuch app icon — light Arca-style liquid glass aesthetic."""
 
 import math
 import os
