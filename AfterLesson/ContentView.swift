@@ -151,22 +151,6 @@ struct HomeView: View {
                 }
             }
             Spacer()
-            if isTeacher {
-                Button { showTeacherDashboard = true } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 12))
-                        Text("Senden")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(ALColor.green)
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
