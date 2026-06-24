@@ -240,3 +240,104 @@
 "z.B. Drive-Technik Basics" = "e.g. Drive Technique Basics";
 "z.B. Konzentriere dich diese Woche auf die Rotation…" = "e.g. Focus on your rotation this week…";
 "z.B. Übe täglich 10 Minuten auf dem Chip..." = "e.g. Practice chipping 10 minutes daily...";
+
+/* Home — recent */
+"Tipps & Stoff" = "Tips & content";
+"Lernstoff & Tipps" = "Learning material & tips";
+"Lernstoff & Tipps — wiederverwendbar" = "Learning material & tips — reusable";
+"Stunde erfassen" = "Record session";
+"Direkt am Schüler — nicht Bibliothek" = "At the student — not in Library";
+"Letzte Stunde" = "Latest session";
+"Erste Stunde erfassen …" = "Record your first session …";
+"Noch keine Stunde erfasst" = "No session recorded yet";
+"Bereit für dein Training" = "Ready for your training";
+"Neu von deinem Pro" = "New from your Pro";
+"Neu von %@" = "New from %@";
+"von %@" = "from %@";
+"Pro: %@" = "Pro: %@";
+"Schüler: %@" = "Student: %@";
+"Nachricht" = "Message";
+"Lernpaket" = "Learning package";
+"Optional — wird als Textdatei mit dem Paket geteilt." = "Optional — shared as a text file with the package.";
+"Alle" = "All";
+"Alle ab" = "Deselect all";
+"Importiere wiederverwendbaren Lernstoff im Bibliothek-Tab (Film, Bild, Text, PDF, Audio)." = "Import reusable learning material in the Library tab (video, image, text, PDF, audio).";
+"Video, Bild, Text und weitere Formate — werden bei Bedarf zu einem Lernpaket gebündelt." = "Video, image, text, and more — bundled into a learning package when needed.";
+"Ergänze einzelne Lektionen oder Medien — kein vollständiges Paket nötig." = "Add individual lessons or media — no full package required.";
+"Lektionen und Einzelmedien werden als separate .afterlesson-Dateien geteilt." = "Lessons and individual media are shared as separate .afterlesson files.";
+"Einzelmedien werden zu einem Lernpaket gebündelt." = "Individual media are bundled into one learning package.";
+"Trainingsstunde" = "Training session";
+"Trainingsprotokoll" = "Training log";
+"Kein Schüler" = "No student";
+"Inhalte suchen" = "Search content";
+"Wird importiert …" = "Importing …";
+"Import fehlgeschlagen" = "Import failed";
+"Eingang" = "Inbox";
+"Eingang öffnen" = "Open inbox";
+"Eingang ist leer" = "Inbox is empty";
+"Diese Klasse ist leer" = "This class is empty";
+"Klasse erstellen" = "Create class";
+"Klasse löschen" = "Delete class";
+"Neue Klasse" = "New class";
+"Klasse bearbeiten" = "Edit class";
+"Noch keine Klassen" = "No classes yet";
+"Tippe auf + um eine Klasse anzulegen" = "Tap + to create a class";
+"Name der Klasse" = "Class name";
+"In Klasse verschieben" = "Move to class";
+"Fotos & Videos" = "Photos & videos";
+"Datei importieren" = "Import file";
+"Video aufnehmen" = "Record video";
+"Unbenannte Notiz" = "Untitled note";
+"Wichtige Notiz anheften …" = "Pin an important note …";
+"Noch keine Notizen" = "No notes yet";
+"Erstelle zuerst eine Notiz um sie anheften zu können." = "Create a note first to pin it.";
+"Notiz anheften" = "Pin note";
+"Lösen" = "Unpin";
+
+/* Lernpfade */
+"Lernpfade" = "Learning paths";
+"Noch keine Schüler oder Lernpfade" = "No students or learning paths yet";
+"Lege zuerst Schüler oder Lernpfade im jeweiligen Tab an" = "First add students or learning paths in the respective tab";
+
+/* Lock */
+"Grünbuch schützen" = "Protect Grünbuch";
+"Erstelle deinen 4-stelligen PIN" = "Create your 4-digit PIN";
+"PIN zur Bestätigung wiederholen" = "Repeat PIN to confirm";
+"PINs stimmen nicht überein" = "PINs do not match";
+"PIN eingeben" = "Enter PIN";
+"Falscher PIN" = "Wrong PIN";
+"Falscher PIN (%d Versuche)" = "Wrong PIN (%d attempts)";
+"Face ID / Touch ID" = "Face ID / Touch ID";
+"Grünbuch entsperren" = "Unlock Grünbuch";
+"Lehrer-Modus" = "Teacher mode";
+
+/* Privacy */
+"privacy.title" = "Privacy Policy";
+"privacy.updated" = "As of: June 2026";
+"privacy.responsible.title" = "Responsible party";
+"privacy.responsible.body" = "Grünbuch is operated by Hans Ruffin. For privacy questions, contact us at support@hansruffin.ch.";
+"privacy.principle.title" = "Principle";
+"privacy.principle.body" = "Grünbuch stores your coaching data exclusively on your device. There are no user accounts, no cloud sync, and no tracking. We do not collect personal data on servers.";
+"privacy.local.title" = "Locally stored data";
+"privacy.local.body" = "Lessons, sessions, student records, media, notes, and settings remain in the app on your iPhone or iPad. You can share content via AirDrop, Files, or other apps — then the privacy terms of that channel apply.";
+"privacy.camera.title" = "Camera";
+"privacy.camera.body" = "With your permission, you can capture photos and videos directly in Grünbuch, e.g. for learning content or training documentation. Recordings are stored locally unless you export them yourself.";
+"privacy.microphone.title" = "Microphone";
+"privacy.microphone.body" = "With your permission, you can record voice notes. Audio data is stored locally in the app and is not transmitted to us.";
+"privacy.photos.title" = "Photos";
+"privacy.photos.body" = "With your permission, you can include existing images from your photo library in lessons. Grünbuch reads only the photos you select; they are stored locally in the app.";
+"privacy.speech.title" = "Speech recognition";
+"privacy.speech.body" = "With your permission, Grünbuch can convert spoken training sessions to text. Processing uses Apple's on-device speech recognition; we do not receive transcripts.";
+"privacy.biometrics.title" = "Face ID / Touch ID";
+"privacy.biometrics.body" = "You can optionally enable screen lock with Face ID or Touch ID. Biometric data stays in your device's Secure Enclave; Grünbuch does not store or access it. Alternatively, you can use a PIN stored securely in your device's keychain.";
+"privacy.keychain.title" = "PIN & keychain";
+"privacy.keychain.body" = "When you set a PIN or teacher PIN, only a hash value is stored in the iOS keychain. The PIN itself never leaves your device.";
+"privacy.rights.title" = "Your rights";
+"privacy.rights.body" = "You can delete stored content in the app at any time or uninstall the app to remove all local data. There is no right of access with us, as we do not maintain centrally stored user data.";
+"privacy.changes.title" = "Changes";
+"privacy.changes.body" = "This privacy policy may be updated as needed. The current version is always available under Settings → Privacy in the app.";
+
+/* Share hints */
+"Grünbuch Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). Er öffnet die Datei in Grünbuch und sieht deine Nachricht." = "Grünbuch feedback — please send to your Golf Pro (AirDrop, WhatsApp, or email). They open the file in Grünbuch and see your message.";
+"1 Trainingsprotokoll wartet auf dich" = "1 training log is waiting for you";
+"%d Trainingsprotokolle warten auf dich" = "%d training logs are waiting for you";

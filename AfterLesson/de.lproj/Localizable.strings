@@ -228,3 +228,113 @@
 "z.B. Drive-Technik Basics" = "z.B. Drive-Technik Basics";
 "z.B. Konzentriere dich diese Woche auf die Rotation…" = "z.B. Konzentriere dich diese Woche auf die Rotation…";
 "z.B. Übe täglich 10 Minuten auf dem Chip..." = "z.B. Übe täglich 10 Minuten auf dem Chip...";
+
+/* Home — recent */
+"Tipps & Stoff" = "Tipps & Stoff";
+"Lernstoff & Tipps" = "Lernstoff & Tipps";
+"Lernstoff & Tipps — wiederverwendbar" = "Lernstoff & Tipps — wiederverwendbar";
+"Stunde erfassen" = "Stunde erfassen";
+"Direkt am Schüler — nicht Bibliothek" = "Direkt am Schüler — nicht Bibliothek";
+"Letzte Stunde" = "Letzte Stunde";
+"Erste Stunde erfassen …" = "Erste Stunde erfassen …";
+"Noch keine Stunde erfasst" = "Noch keine Stunde erfasst";
+"Bereit für dein Training" = "Bereit für dein Training";
+"Neu von deinem Pro" = "Neu von deinem Pro";
+"Neu von %@" = "Neu von %@";
+"von %@" = "von %@";
+"Pro: %@" = "Pro: %@";
+"Schüler: %@" = "Schüler: %@";
+"Nachricht" = "Nachricht";
+"Lernpaket" = "Lernpaket";
+"Optional — wird als Textdatei mit dem Paket geteilt." = "Optional — wird als Textdatei mit dem Paket geteilt.";
+"Alle" = "Alle";
+"Alle ab" = "Alle ab";
+"Importiere wiederverwendbaren Lernstoff im Bibliothek-Tab (Film, Bild, Text, PDF, Audio)." = "Importiere wiederverwendbaren Lernstoff im Bibliothek-Tab (Film, Bild, Text, PDF, Audio).";
+"Video, Bild, Text und weitere Formate — werden bei Bedarf zu einem Lernpaket gebündelt." = "Video, Bild, Text und weitere Formate — werden bei Bedarf zu einem Lernpaket gebündelt.";
+"Ergänze einzelne Lektionen oder Medien — kein vollständiges Paket nötig." = "Ergänze einzelne Lektionen oder Medien — kein vollständiges Paket nötig.";
+"Lektionen und Einzelmedien werden als separate .afterlesson-Dateien geteilt." = "Lektionen und Einzelmedien werden als separate .afterlesson-Dateien geteilt.";
+"Einzelmedien werden zu einem Lernpaket gebündelt." = "Einzelmedien werden zu einem Lernpaket gebündelt.";
+"Trainingsstunde" = "Trainingsstunde";
+"Trainingsprotokoll" = "Trainingsprotokoll";
+"Kein Schüler" = "Kein Schüler";
+"Inhalte suchen" = "Inhalte suchen";
+"Wird importiert …" = "Wird importiert …";
+"Import fehlgeschlagen" = "Import fehlgeschlagen";
+"Eingang" = "Eingang";
+"Eingang öffnen" = "Eingang öffnen";
+"Eingang ist leer" = "Eingang ist leer";
+"Diese Klasse ist leer" = "Diese Klasse ist leer";
+"Klasse erstellen" = "Klasse erstellen";
+"Klasse löschen" = "Klasse löschen";
+"Neue Klasse" = "Neue Klasse";
+"Klasse bearbeiten" = "Klasse bearbeiten";
+"In Klasse verschieben" = "In Klasse verschieben";
+"Fotos & Videos" = "Fotos & Videos";
+"Datei importieren" = "Datei importieren";
+"Video aufnehmen" = "Video aufnehmen";
+"Unbenannte Notiz" = "Unbenannte Notiz";
+"Wichtige Notiz anheften …" = "Wichtige Notiz anheften …";
+"Noch keine Notizen" = "Noch keine Notizen";
+"Erstelle zuerst eine Notiz um sie anheften zu können." = "Erstelle zuerst eine Notiz um sie anheften zu können.";
+"Notiz anheften" = "Notiz anheften";
+"Lösen" = "Lösen";
+
+/* Lernpfade */
+"Noch keine Lernpfade" = "Noch keine Lernpfade";
+"Tippe auf + um einen Lernpfad anzulegen" = "Tippe auf + um einen Lernpfad anzulegen";
+"Neuer Lernpfad" = "Neuer Lernpfad";
+"Lernpfad bearbeiten" = "Lernpfad bearbeiten";
+"Name des Lernpfads" = "Name des Lernpfads";
+"Beschreibung (optional)" = "Beschreibung (optional)";
+"Lektionen auswählen" = "Lektionen auswählen";
+"Schüler auswählen" = "Schüler auswählen";
+"Noch keine Lektionen" = "Noch keine Lektionen";
+"Alle Lektionen senden" = "Alle Lektionen senden";
+"Noch keine Lektionen im Pfad" = "Noch keine Lektionen im Pfad";
+"Hinzufügen" = "Hinzufügen";
+"Lernpfade" = "Lernpfade";
+"Noch keine Schüler oder Lernpfade" = "Noch keine Schüler oder Lernpfade";
+"Lege zuerst Schüler oder Lernpfade im jeweiligen Tab an" = "Lege zuerst Schüler oder Lernpfade im jeweiligen Tab an";
+
+/* Lock */
+"Grünbuch schützen" = "Grünbuch schützen";
+"Erstelle deinen 4-stelligen PIN" = "Erstelle deinen 4-stelligen PIN";
+"PIN zur Bestätigung wiederholen" = "PIN zur Bestätigung wiederholen";
+"PINs stimmen nicht überein" = "PINs stimmen nicht überein";
+"PIN eingeben" = "PIN eingeben";
+"Falscher PIN" = "Falscher PIN";
+"Falscher PIN (%d Versuche)" = "Falscher PIN (%d Versuche)";
+"Face ID / Touch ID" = "Face ID / Touch ID";
+"Grünbuch entsperren" = "Grünbuch entsperren";
+"Lehrer-Modus" = "Lehrer-Modus";
+
+/* Privacy */
+"privacy.title" = "Datenschutzerklärung";
+"privacy.updated" = "Stand: Juni 2026";
+"privacy.responsible.title" = "Verantwortlich";
+"privacy.responsible.body" = "Grünbuch wird von Hans Ruffin betrieben. Bei Fragen zum Datenschutz erreichst du uns unter support@hansruffin.ch.";
+"privacy.principle.title" = "Grundsatz";
+"privacy.principle.body" = "Grünbuch speichert deine Unterrichtsdaten ausschliesslich lokal auf deinem Gerät. Es gibt keine Benutzerkonten, keine Cloud-Synchronisation und kein Tracking. Wir erheben keine personenbezogenen Daten auf Servern.";
+"privacy.local.title" = "Lokal gespeicherte Daten";
+"privacy.local.body" = "Lektionen, Stunden, Schülerordner, Medien, Notizen und Einstellungen bleiben in der App auf deinem iPhone oder iPad. Du kannst Inhalte per AirDrop, Dateien oder andere Apps teilen – dann gelten die Datenschutzbestimmungen des gewählten Kanals.";
+"privacy.camera.title" = "Kamera";
+"privacy.camera.body" = "Mit deiner Erlaubnis kannst du Fotos und Videos direkt in Grünbuch aufnehmen, z. B. für Lerninhalte oder Trainingsdokumentation. Aufnahmen werden nur lokal gespeichert, sofern du sie nicht selbst exportierst.";
+"privacy.microphone.title" = "Mikrofon";
+"privacy.microphone.body" = "Mit deiner Erlaubnis kannst du Sprachnotizen aufnehmen. Die Audiodaten werden lokal in der App gespeichert und nicht an uns übermittelt.";
+"privacy.photos.title" = "Fotos";
+"privacy.photos.body" = "Mit deiner Erlaubnis kannst du vorhandene Bilder aus deiner Mediathek in Lektionen einbinden. Grünbuch liest nur die von dir ausgewählten Fotos; sie werden lokal in der App abgelegt.";
+"privacy.speech.title" = "Spracherkennung";
+"privacy.speech.body" = "Mit deiner Erlaubnis kann Grünbuch gesprochene Trainingsstunden in Text umwandeln. Die Verarbeitung erfolgt über die Spracherkennung von Apple auf dem Gerät bzw. in dem von Apple vorgesehenen Rahmen; wir erhalten keine Transkripte.";
+"privacy.biometrics.title" = "Face ID / Touch ID";
+"privacy.biometrics.body" = "Optional kannst du die Bildschirmsperre mit Face ID oder Touch ID aktivieren. Biometrische Daten verbleiben im Secure Enclave deines Geräts; Grünbuch speichert sie nicht und hat keinen Zugriff darauf. Alternativ kannst du einen PIN verwenden, der sicher im Schlüsselbund deines Geräts hinterlegt wird.";
+"privacy.keychain.title" = "PIN & Schlüsselbund";
+"privacy.keychain.body" = "Wenn du einen PIN oder Lehrer-PIN festlegst, wird nur ein Hash-Wert im iOS-Schlüsselbund gespeichert. Der PIN selbst verlässt dein Gerät nicht.";
+"privacy.rights.title" = "Deine Rechte";
+"privacy.rights.body" = "Du kannst gespeicherte Inhalte jederzeit in der App löschen oder die App deinstallieren, um alle lokalen Daten zu entfernen. Es besteht kein Anspruch auf Auskunft bei uns, da wir keine zentral gespeicherten Nutzerdaten führen.";
+"privacy.changes.title" = "Änderungen";
+"privacy.changes.body" = "Diese Datenschutzerklärung kann bei Bedarf angepasst werden. Die aktuelle Fassung findest du jederzeit unter Einstellungen → Datenschutz in der App.";
+
+/* Share hints */
+"Grünbuch Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). Er öffnet die Datei in Grünbuch und sieht deine Nachricht." = "Grünbuch Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). Er öffnet die Datei in Grünbuch und sieht deine Nachricht.";
+"1 Trainingsprotokoll wartet auf dich" = "1 Trainingsprotokoll wartet auf dich";
+"%d Trainingsprotokolle warten auf dich" = "%d Trainingsprotokolle warten auf dich";

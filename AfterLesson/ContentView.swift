@@ -68,7 +68,7 @@ struct AfterLessonTabBar: View {
     }
 
     @ViewBuilder
-    func tabItem(_ tab: ContentView.Tab, icon: String, label: String, subtitle: String? = nil) -> some View {
+    func tabItem(_ tab: ContentView.Tab, icon: String, label: LocalizedStringKey, subtitle: LocalizedStringKey? = nil) -> some View {
         Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 selected = tab
@@ -131,9 +131,13 @@ struct HomeView: View {
     private var roleLabel: String {
         let name = store.teacherName.trimmingCharacters(in: .whitespacesAndNewlines)
         if isTeacher {
-            return "Pro: \(name.isEmpty ? "Golf Pro" : name)"
+            let display = name.isEmpty
+                ? NSLocalizedString("Golf Pro", comment: "")
+                : name
+            return String(format: NSLocalizedString("Pro: %@", comment: ""), display)
         }
-        return "Schüler: \(name.isEmpty ? "—" : name)"
+        let display = name.isEmpty ? "—" : name
+        return String(format: NSLocalizedString("Schüler: %@", comment: ""), display)
     }
 
     var body: some View {
@@ -299,7 +303,7 @@ struct HomeView: View {
                         }
                     }
                     if !lesson.receivedFromPro.isEmpty {
-                        Text("von \(lesson.receivedFromPro)")
+                        Text(String(format: String(localized: "von %@"), lesson.receivedFromPro))
                             .font(.system(size: 11))
                             .foregroundStyle(.white.opacity(0.55))
                     }
@@ -769,7 +773,7 @@ struct ComposerSheet: View {
         }
     }
 
-    private func stepHeader(step: Int, title: String, icon: String) -> some View {
+    private func stepHeader(step: Int, title: LocalizedStringKey, icon: String) -> some View {
         Section {
             EmptyView()
         } header: {
@@ -1111,9 +1115,12 @@ struct SessionRowView: View {
 
     var subtitle: String {
         if session.source == .received {
-            return session.teacherName.isEmpty ? "Trainingsprotokoll" : "von \(session.teacherName)"
+            if session.teacherName.isEmpty {
+                return String(localized: "Trainingsprotokoll")
+            }
+            return String(format: String(localized: "von %@"), session.teacherName)
         }
-        return studentName.isEmpty ? "Kein Schüler" : studentName
+        return studentName.isEmpty ? String(localized: "Kein Schüler") : studentName
     }
 
     var body: some View {
@@ -1179,12 +1186,14 @@ struct NewFromProBanner: View {
                         .foregroundStyle(ALColor.gold)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(teacherName.isEmpty ? "Neu von deinem Pro" : "Neu von \(teacherName)")
+                    Text(teacherName.isEmpty
+                         ? String(localized: "Neu von deinem Pro")
+                         : String(format: String(localized: "Neu von %@"), teacherName))
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Color(hex: "1A1A1A"))
                     Text(count == 1
-                         ? "1 Trainingsprotokoll wartet auf dich"
-                         : "\(count) Trainingsprotokolle warten auf dich")
+                         ? String(localized: "1 Trainingsprotokoll wartet auf dich")
+                         : String(format: String(localized: "%d Trainingsprotokolle warten auf dich"), count))
                         .font(.system(size: 12))
                         .foregroundStyle(Color(hex: "888888"))
                 }

@@ -81,7 +81,9 @@ struct AfterLessonPINSetupView: View {
                         Text("Grünbuch schützen")
                             .font(.title2.bold())
                             .foregroundStyle(.white)
-                        Text(step == .create ? "Erstelle deinen 4-stelligen PIN" : "PIN zur Bestätigung wiederholen")
+                        Text(step == .create
+                             ? String(localized: "Erstelle deinen 4-stelligen PIN")
+                             : String(localized: "PIN zur Bestätigung wiederholen"))
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.72))
                             .multilineTextAlignment(.center)
@@ -131,7 +133,7 @@ struct AfterLessonPINSetupView: View {
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                         isUnlocked = true
                     } else {
-                        errorMessage = "PINs stimmen nicht überein"
+                        errorMessage = String(localized: "PINs stimmen nicht überein")
                         confirmPin = ""
                         pin = ""
                         step = .create
@@ -239,7 +241,9 @@ struct AfterLessonPINEntryView: View {
             shake = true
             UINotificationFeedbackGenerator().notificationOccurred(.error)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { shake = false }
-            errorMessage = attempts >= 3 ? "Falscher PIN (\(attempts) Versuche)" : "Falscher PIN"
+            errorMessage = attempts >= 3
+                ? String(format: String(localized: "Falscher PIN (%d Versuche)"), attempts)
+                : String(localized: "Falscher PIN")
         }
     }
 
@@ -248,7 +252,7 @@ struct AfterLessonPINEntryView: View {
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else { return }
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                               localizedReason: "Grünbuch entsperren") { success, _ in
+                               localizedReason: String(localized: "Grünbuch entsperren")) { success, _ in
             DispatchQueue.main.async {
                 if success { isUnlocked = true }
             }
@@ -395,7 +399,7 @@ struct TeacherModePINGate: View {
         } else {
             pin = ""
             shake = true
-            errorMessage = "Falscher PIN"
+            errorMessage = String(localized: "Falscher PIN")
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { shake = false }
         }
     }

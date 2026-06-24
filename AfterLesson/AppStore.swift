@@ -1072,10 +1072,10 @@ final class AppStore: ObservableObject {
         return url
     }
 
-    static let feedbackShareHint = """
-    Grünbuch Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). \
-    Er öffnet die Datei in Grünbuch und sieht deine Nachricht.
-    """
+    static let feedbackShareHint = NSLocalizedString(
+        "Grünbuch Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). Er öffnet die Datei in Grünbuch und sieht deine Nachricht.",
+        comment: "Share sheet hint for student feedback"
+    )
 
     static var sessionShareHint: String {
         NSLocalizedString(
