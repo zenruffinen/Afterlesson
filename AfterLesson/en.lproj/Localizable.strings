@@ -19,6 +19,21 @@
 "Importiere zuerst Inhalte im Bibliothek-Tab — danach kannst du sie hier für Lektionen auswählen." = "First import content in the Library tab — then you can select it here for lessons.";
 
 /* Home */
+"Composer" = "Composer";
+"Zuweisen an Schüler" = "Assign to student";
+"Lernstoff" = "Learning material";
+"Zugewiesen" = "Assigned";
+"Zuweisen" = "Assign";
+"Einzelinhalte aus Bibliothek" = "Individual library items";
+"Persönliche Nachricht (optional)" = "Personal message (optional)";
+"z.B. Hans, du hast das heute gut gemacht — beim nächsten Mal…" = "e.g. Hans, you did great today — next time we'll…";
+"Wähle einen oder mehrere Schüler für die Zuweisung." = "Select one or more students for the assignment.";
+"Termin" = "Date";
+"Datum" = "Date";
+"Lege zuerst Lektionen in der Bibliothek an." = "Create lessons in the Library first.";
+"Importiere Inhalte im Bibliothek-Tab." = "Import content in the Library tab.";
+"Weitere Inhalte in der Bibliothek verfügbar." = "More content available in the Library.";
+"Dein Pro sendet dir Lernpakete per Composer — sie erscheinen hier." = "Your Pro sends learning packages via Composer — they appear here.";
 "Golf Pro" = "Golf Pro";
 "Dein Arbeitsbereich" = "Your Workspace";
 "Pro Studio" = "Pro Studio";

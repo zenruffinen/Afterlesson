@@ -422,6 +422,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AfterLesson/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Grünbuch";
+				INFOPLIST_KEY_CFBundleName = "Grünbuch";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Grünbuch benötigt die Kamera, um Lerninhalte direkt aufzunehmen.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Grünbuch nutzt Face ID, um die App nach dem Verlassen zu entsperren.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Grünbuch benötigt das Mikrofon für Sprachnotizen.";
@@ -463,6 +464,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AfterLesson/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Grünbuch";
+				INFOPLIST_KEY_CFBundleName = "Grünbuch";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Grünbuch benötigt die Kamera, um Lerninhalte direkt aufzunehmen.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Grünbuch nutzt Face ID, um die App nach dem Verlassen zu entsperren.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Grünbuch benötigt das Mikrofon für Sprachnotizen.";

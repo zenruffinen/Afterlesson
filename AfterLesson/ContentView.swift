@@ -105,7 +105,9 @@ enum ALColor {
 struct HomeView: View {
     @EnvironmentObject var store: AppStore
     @Binding var selectedTab: ContentView.Tab
-    @State private var showQuickCapture = false
+    @State private var showComposer = false
+    @State private var composerShareItems: [Any] = []
+    @State private var showComposerShare = false
     @State private var selectedSession: TrainingSession? = nil
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
@@ -131,7 +133,15 @@ struct HomeView: View {
                 }
             }
         }
-        .sheet(isPresented: $showQuickCapture) { AfterLessonFlowSheet() }
+        .sheet(isPresented: $showComposer) {
+            ComposerSheet { items in
+                composerShareItems = items
+                showComposerShare = true
+            }
+        }
+        .sheet(isPresented: $showComposerShare) {
+            ShareSheet(items: composerShareItems)
+        }
         .sheet(item: $selectedSession) { session in SessionDetailSheet(session: session) }
     }
 
@@ -143,37 +153,38 @@ struct HomeView: View {
             .padding(.bottom, 12)
     }
 
-    // MARK: Teacher Content (kein Scroll)
+    // MARK: Teacher Content
     var teacherContent: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 8)
+            Spacer(minLength: 12)
 
-            VStack(spacing: 10) {
-                GrünbuchNavPill(
-                    icon: "figure.golf",
-                    label: "Schüler",
-                    value: "\(store.students.count)",
+            GrünbuchFairwayGraphic()
+                .padding(.horizontal, 20)
+
+            Spacer(minLength: 22)
+
+            VStack(spacing: 14) {
+                GrünbuchHomeActionButton(
+                    icon: "square.and.pencil",
+                    title: "Composer",
+                    subtitle: "Zuweisen an Schüler",
                     tint: ALColor.green
-                ) { selectedTab = .students }
-                GrünbuchNavPill(
+                ) { showComposer = true }
+
+                GrünbuchHomeActionButton(
                     icon: "books.vertical.fill",
-                    label: "Bibliothek",
+                    title: "Bibliothek",
                     subtitle: "Lernstoff",
-                    value: "",
                     tint: ALColor.gold
                 ) { selectedTab = .lessons }
             }
             .padding(.horizontal, 20)
 
             Spacer(minLength: 16)
-
-            AfterLessonOrb { showQuickCapture = true }
-
-            Spacer(minLength: 16)
         }
     }
 
-    // MARK: Student Content (kein Scroll)
+    // MARK: Student Content
     var studentContent: some View {
         VStack(spacing: 0) {
             if !store.unreadReceivedSessions.isEmpty {
@@ -194,9 +205,9 @@ struct HomeView: View {
             if store.receivedSessions.isEmpty {
                 StudentEmptyPlaceholder()
                     .padding(.horizontal, 20)
-            } else if !store.receivedSessions.isEmpty {
+            } else {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Meine Trainings")
+                    Text("Zugewiesen")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.65))
                         .padding(.horizontal, 20)
@@ -308,7 +319,7 @@ struct HomeView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color(hex: "888888"))
                 Spacer()
-                Button { showQuickCapture = true } label: {
+                Button { showComposer = true } label: {
                     HStack(spacing: 3) {
                         Image(systemName: "plus").font(.system(size: 11, weight: .bold))
                         Text("Erfassen").font(.system(size: 12, weight: .medium))
@@ -325,7 +336,7 @@ struct HomeView: View {
 
             if studentRows.isEmpty {
                 // Leerzustand
-                Button { showQuickCapture = true } label: {
+                Button { showComposer = true } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "plus.circle")
                             .font(.system(size: 15))
@@ -510,86 +521,254 @@ struct HomeView: View {
     }
 }
 
-// MARK: - AfterLesson Orb
+// MARK: - Composer Sheet
 
-struct AfterLessonOrb: View {
-    let onTap: () -> Void
+struct ComposerSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+    let onShare: ([Any]) -> Void
+
+    @State private var selectedStudentIDs: Set<UUID> = []
+    @State private var assignmentDate: Date = Date()
+    @State private var selectedLessonIDs: Set<UUID> = []
+    @State private var selectedContentItemIDs: Set<UUID> = []
+    @State private var note: String = ""
+
+    private var canAssign: Bool {
+        !selectedStudentIDs.isEmpty
+            && (!selectedLessonIDs.isEmpty || !selectedContentItemIDs.isEmpty)
+    }
 
     var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 16) {
-                ZStack {
-                    ForEach(0..<3, id: \.self) { i in
-                        PulseRing(
-                            color: ALColor.gold,
-                            size: 122,
-                            delay: Double(i) * 0.7
-                        )
+        NavigationStack {
+            List {
+                studentsSection
+                dateSection
+                noteSection
+                lessonsSection
+                poolItemsSection
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Composer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        assignAndShare()
+                    } label: {
+                        Label("Zuweisen", systemImage: "paperplane.fill")
                     }
+                    .disabled(!canAssign)
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
 
-                    Circle()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color(hex: "D4A840"), Color(hex: "A07820"),
-                                         Color(hex: "D4A840"), Color(hex: "8B6210")],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2.5
-                        )
-                        .frame(width: 134, height: 134)
-                        .alGlass(tint: ALColor.gold.opacity(0.15), in: Circle())
+    // MARK: Sections
 
-                    Circle()
-                        .fill(LinearGradient(
-                            colors: [Color(hex: "2D6A30"), Color(hex: "173D1A")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
-                        .frame(width: 122, height: 122)
-                        .alGlass(tint: ALColor.green.opacity(0.35), in: Circle())
-                        .shadow(color: ALColor.green.opacity(0.45), radius: 20, x: 0, y: 10)
+    private var studentsSection: some View {
+        Section {
+            if store.students.isEmpty {
+                Text("Zuerst Schüler im Schüler-Tab anlegen")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(store.students) { student in
+                    let selected = selectedStudentIDs.contains(student.id)
+                    Button {
+                        if selected {
+                            selectedStudentIDs.remove(student.id)
+                        } else {
+                            selectedStudentIDs.insert(student.id)
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(selected ? ALColor.green : .secondary)
+                                .font(.title3)
+                            ZStack {
+                                Circle()
+                                    .fill(Color(hex: student.avatarColor))
+                                    .frame(width: 36, height: 36)
+                                Text(String(student.name.prefix(1)).uppercased())
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(.white)
+                            }
+                            Text(student.name)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        } header: {
+            Text("Schüler")
+        } footer: {
+            if !store.students.isEmpty {
+                Text("Wähle einen oder mehrere Schüler für die Zuweisung.")
+            }
+        }
+    }
 
-                    VStack(spacing: 4) {
-                        Image(systemName: "figure.golf")
-                            .font(.system(size: 44, weight: .thin))
-                            .foregroundStyle(.white.opacity(0.95))
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(Color(hex: "D4A840"))
+    private var dateSection: some View {
+        Section {
+            DatePicker("Datum", selection: $assignmentDate, displayedComponents: .date)
+        } header: {
+            Text("Termin")
+        }
+    }
+
+    private var noteSection: some View {
+        Section {
+            TextField(
+                "z.B. Hans, du hast das heute gut gemacht — beim nächsten Mal…",
+                text: $note,
+                axis: .vertical
+            )
+            .lineLimit(3...8)
+        } header: {
+            Text("Persönliche Nachricht (optional)")
+        }
+    }
+
+    @ViewBuilder
+    private var lessonsSection: some View {
+        if store.lessons.isEmpty {
+            Section {
+                Text("Lege zuerst Lektionen in der Bibliothek an.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Lektionen")
+            }
+        } else {
+            ForEach(store.folders) { folder in
+                let folderLessons = store.lessonsIn(folder)
+                if !folderLessons.isEmpty {
+                    Section {
+                        ForEach(folderLessons) { lesson in
+                            lessonRow(lesson)
+                        }
+                    } header: {
+                        HStack {
+                            Label(folder.title, systemImage: folder.icon)
+                                .foregroundStyle(Color(hex: folder.colorHex))
+                            Spacer()
+                            Button {
+                                let ids = folderLessons.map(\.id)
+                                let allSelected = ids.allSatisfy { selectedLessonIDs.contains($0) }
+                                if allSelected {
+                                    ids.forEach { selectedLessonIDs.remove($0) }
+                                } else {
+                                    ids.forEach { selectedLessonIDs.insert($0) }
+                                }
+                            } label: {
+                                Text(folderLessons.map(\.id).allSatisfy { selectedLessonIDs.contains($0) }
+                                     ? "Alle ab" : "Alle")
+                                    .font(.caption)
+                                    .foregroundStyle(ALColor.green)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
-                .frame(width: 200, height: 200)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var poolItemsSection: some View {
+        Section {
+            if store.contentPool.isEmpty {
+                Text("Importiere Inhalte im Bibliothek-Tab.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(store.contentPool.prefix(12)) { item in
+                    let selected = selectedContentItemIDs.contains(item.id)
+                    Button {
+                        if selected {
+                            selectedContentItemIDs.remove(item.id)
+                        } else {
+                            selectedContentItemIDs.insert(item.id)
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(selected ? ALColor.green : .secondary)
+                            Image(systemName: item.type.icon)
+                                .foregroundStyle(Color(hex: item.type.colorHex))
+                                .frame(width: 28)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.title)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                Text(item.type.label)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                if store.contentPool.count > 12 {
+                    Text("Weitere Inhalte in der Bibliothek verfügbar.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Label("Einzelinhalte aus Bibliothek", systemImage: "tray.full.fill")
+        }
+    }
+
+    @ViewBuilder
+    private func lessonRow(_ lesson: Lesson) -> some View {
+        let selected = selectedLessonIDs.contains(lesson.id)
+        Button {
+            if selected {
+                selectedLessonIDs.remove(lesson.id)
+            } else {
+                selectedLessonIDs.insert(lesson.id)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selected ? ALColor.green : .secondary)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(lesson.title).foregroundStyle(.primary)
+                    if !lesson.description.isEmpty {
+                        Text(lesson.description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Stunde erfassen")
-        .accessibilityHint("Tippen zum Starten")
     }
-}
 
-// MARK: - Pulse Ring
-
-struct PulseRing: View {
-    let color: Color
-    let size: CGFloat
-    let delay: Double
-    @State private var animate = false
-
-    var body: some View {
-        Circle()
-            .stroke(color.opacity(animate ? 0 : 0.50), lineWidth: 1.5)
-            .frame(width: size, height: size)
-            .scaleEffect(animate ? 1.9 : 1.0)
-            .onAppear {
-                withAnimation(
-                    .easeOut(duration: 2.4)
-                    .repeatForever(autoreverses: false)
-                    .delay(delay)
-                ) {
-                    animate = true
-                }
+    private func assignAndShare() {
+        let items = store.deliverComposerPackage(
+            to: selectedStudentIDs,
+            lessonIDs: selectedLessonIDs,
+            contentItemIDs: selectedContentItemIDs,
+            note: note,
+            date: assignmentDate
+        )
+        dismiss()
+        if !items.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                onShare(items)
             }
+        }
     }
 }
 
@@ -779,13 +958,13 @@ struct StudentEmptyPlaceholder: View {
                     .foregroundStyle(Color(hex: "1A1A1A"))
                     .multilineTextAlignment(.center)
 
-                Text("Dein Golflehrer sendet dir nach\njedem Training eine Zusammenfassung.")
+                Text("Dein Pro sendet dir Lernpakete per Composer — sie erscheinen hier.")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(hex: "888888"))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
 
-                Text("Empfangene Lektionen und Protokolle\nerscheinen hier automatisch.")
+                Text("Empfangene Lektionen und Protokolle\nerscheinen automatisch auf dem Startbildschirm.")
                     .font(.system(size: 12))
                     .foregroundStyle(Color(hex: "AAAAAA"))
                     .multilineTextAlignment(.center)
@@ -5337,7 +5516,7 @@ struct StudentAfterLessonView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: onCapture) {
-                    Label("Stunde erfassen", systemImage: "mic.fill")
+                    Label("Composer", systemImage: "square.and.pencil")
                 }
                 .tint(ALColor.gold)
             }
@@ -6518,7 +6697,7 @@ struct StudentDetailView: View {
             // Letzte Schüler-Rückmeldung (wird per Import aktualisiert)
             Section {
                 if currentStudent.remarks.isEmpty && currentStudent.feedbackHistory.isEmpty {
-                    Text("Noch keine Rückmeldung — der Schüler sendet sie als .afterlessonfeedback-Datei.")
+                    Text("Noch keine Rückmeldung — der Schüler sendet sie als Grünbuch-Rückmeldungsdatei.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {

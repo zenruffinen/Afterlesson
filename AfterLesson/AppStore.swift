@@ -251,15 +251,73 @@ final class AppStore: ObservableObject {
         students[si].lastActiveDate = Date()
     }
 
-    func recordSent(to student: Student, lessons: [Lesson], note: String) {
+    func recordSent(to student: Student, lessons: [Lesson], note: String, date: Date = Date()) {
         guard let si = students.firstIndex(where: { $0.id == student.id }) else { return }
         let pkg = SentPackage(
-            date: Date(),
+            date: date,
             lessonTitles: lessons.map(\.title),
             note: note
         )
         students[si].sentHistory.insert(pkg, at: 0)
-        students[si].lastActiveDate = Date()
+        students[si].lastActiveDate = date
+    }
+
+    /// Composer: Schülern Lektionen und Bibliothek-Inhalte zuweisen und Share-Items vorbereiten.
+    func deliverComposerPackage(
+        to studentIDs: Set<UUID>,
+        lessonIDs: Set<UUID>,
+        contentItemIDs: Set<UUID>,
+        note: String,
+        date: Date
+    ) -> [Any] {
+        let targets = students.filter { studentIDs.contains($0.id) }
+        guard !targets.isEmpty else { return [] }
+
+        var lessonsToDeliver = lessons.filter { lessonIDs.contains($0.id) }
+
+        if !contentItemIDs.isEmpty {
+            let folderID = folders.first?.id ?? UUID()
+            let formatter = DateFormatter()
+            formatter.dateFormat = "dd.MM.yyyy"
+            let dateStr = formatter.string(from: date)
+            var composerLesson = Lesson(
+                folderID: folderID,
+                title: "Lernpaket \(dateStr)",
+                description: "Zusammengestellt im Composer",
+                icon: "square.and.pencil",
+                contentItemIDs: Array(contentItemIDs)
+            )
+            composerLesson.dateCreated = date
+            lessons.append(composerLesson)
+            lessonsToDeliver.append(composerLesson)
+        }
+
+        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        var shareItems: [Any] = []
+
+        if !trimmedNote.isEmpty {
+            let dateStr = date.formatted(date: .long, time: .omitted)
+            let names = targets.map(\.name).joined(separator: ", ")
+            shareItems.append("Grünbuch · Composer · \(names) · \(dateStr)\n\n\(trimmedNote)")
+        }
+
+        for lesson in lessonsToDeliver {
+            if let url = exportLesson(lesson) {
+                shareItems.append(url)
+            }
+        }
+
+        for student in targets {
+            for lesson in lessonsToDeliver {
+                if let si = students.firstIndex(where: { $0.id == student.id }),
+                   !students[si].assignedLessonIDs.contains(lesson.id) {
+                    students[si].assignedLessonIDs.append(lesson.id)
+                }
+            }
+            recordSent(to: student, lessons: lessonsToDeliver, note: trimmedNote, date: date)
+        }
+
+        return shareItems
     }
 
     // MARK: - Pro Notes
@@ -560,7 +618,7 @@ final class AppStore: ObservableObject {
         guard let data = try? JSONEncoder().encode(package) else { return nil }
         let safeName = lesson.title.replacingOccurrences(of: " ", with: "_")
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("AfterLesson_\(safeName).afterlesson")
+            .appendingPathComponent("Grünbuch_\(safeName).afterlesson")
         try? data.write(to: url)
         return url
     }
@@ -640,7 +698,7 @@ final class AppStore: ObservableObject {
         guard let data = try? JSONEncoder().encode(package) else { return nil }
         let safeName = folder.title.replacingOccurrences(of: " ", with: "_")
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("AfterLesson_\(safeName).afterlessonfolder")
+            .appendingPathComponent("Grünbuch_\(safeName).afterlessonfolder")
         try? data.write(to: url)
         return url
     }
@@ -819,7 +877,7 @@ final class AppStore: ObservableObject {
             .replacingOccurrences(of: "·", with: "")
             .trimmingCharacters(in: .whitespaces)
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("AfterLesson_\(safeName).afterlessonsession")
+            .appendingPathComponent("Grünbuch_\(safeName).afterlessonsession")
         try? data.write(to: url)
         return url
     }
@@ -862,7 +920,7 @@ final class AppStore: ObservableObject {
         let safeName = (teacherName.isEmpty ? "Rueckmeldung" : teacherName)
             .replacingOccurrences(of: " ", with: "_")
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("AfterLesson_\(safeName).afterlessonfeedback")
+            .appendingPathComponent("Grünbuch_\(safeName).afterlessonfeedback")
         try? data.write(to: url)
         return url
     }

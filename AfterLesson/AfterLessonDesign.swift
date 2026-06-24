@@ -141,6 +141,134 @@ struct GrünbuchHomeHeader: View {
     }
 }
 
+// MARK: - Fairway Graphic (Home)
+
+struct GrünbuchFairwayGraphic: View {
+    @State private var sway = false
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "1A3D1E").opacity(0.55),
+                            Color(hex: "0D160D").opacity(0.35)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+                )
+
+            // Fairway silhouette
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: h * 0.72))
+                    path.addQuadCurve(
+                        to: CGPoint(x: w, y: h * 0.68),
+                        control: CGPoint(x: w * 0.5, y: h * 0.52)
+                    )
+                    path.addLine(to: CGPoint(x: w, y: h))
+                    path.addLine(to: CGPoint(x: 0, y: h))
+                    path.closeSubpath()
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [ALColor.fairway.opacity(0.85), ALColor.green.opacity(0.55)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+
+                // Sand bunker accent
+                Ellipse()
+                    .fill(ALColor.sand.opacity(0.22))
+                    .frame(width: w * 0.22, height: h * 0.10)
+                    .offset(x: w * 0.62, y: h * 0.58)
+
+                // Flag on green
+                VStack(spacing: 0) {
+                    Image(systemName: "flag.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(ALColor.gold)
+                    Rectangle()
+                        .fill(Color.white.opacity(0.75))
+                        .frame(width: 1.5, height: 28)
+                }
+                .offset(x: w * 0.78, y: h * 0.28)
+
+                // Golfer line art
+                Image(systemName: "figure.golf")
+                    .font(.system(size: 56, weight: .thin))
+                    .foregroundStyle(.white.opacity(0.88))
+                    .shadow(color: ALColor.green.opacity(0.35), radius: 12, y: 6)
+                    .offset(x: w * 0.08, y: h * 0.10)
+                    .rotationEffect(.degrees(sway ? -2 : 2))
+                    .animation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true), value: sway)
+            }
+            .padding(20)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 200)
+        .onAppear { sway = true }
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Home Action Button
+
+struct GrünbuchHomeActionButton: View {
+    let icon: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey?
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 50, height: 50)
+                    .background(tint.opacity(0.20), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
+                }
+
+                Spacer(minLength: 4)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
+            .alGlass(tint: tint.opacity(0.28), interactive: true, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Nav Pill (Home)
 
 struct GrünbuchNavPill: View {
