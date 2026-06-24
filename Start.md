@@ -6,11 +6,21 @@ Leichtes Startbildschirm-Layout:
 
 - **Header:** Golfbag-Icon · Grünbuch · Pro-Name
 - **Fairway-Grafik:** Golfer-Silhouette auf Fairway (Glass-Ästhetik)
-- **Zwei Hauptbuttons:**
-  1. **Composer** (`square.and.pencil`) — Lernstoff aus der Bibliothek Schülern zuweisen
-  2. **Bibliothek** (`books.vertical.fill`) — Lernstoff pflegen
+- **Drei Hauptbuttons:**
+  1. **Composer** (`square.and.pencil`) — Bibliothek-Inhalte Schülern zuweisen (AirDrop)
+  2. **Bibliothek** (`books.vertical.fill`) — Lernstoff & Tipps, wiederverwendbar
+  3. **Stunde erfassen** (`figure.golf`) — Live am Schüler, nicht Bibliothek
 
 Die kleinen Nav-Pills (Schüler / Bibliothek) und der grüne Orb mit Mikrofon sind entfernt. Schüler, Bibliothek, Notizen und Einstellungen bleiben in der Tab-Leiste.
+
+## Zwei Inhaltspfade
+
+| Pfad | Wann | Wo gespeichert |
+|------|------|----------------|
+| **Bibliothek → Composer** | Vorbereiteter Lernstoff | `contentPool` → Paket an Schüler |
+| **Stunde erfassen** | Live während der Lesson | `studentCaptures` + `sessions` am Schüler |
+
+Details: `Bibliothek.md`, `Schüler.md`, `Kommunikation.md`
 
 ## Composer
 
@@ -39,7 +49,7 @@ Details: `Kommunikation.md`
 | Tab | Funktion |
 |-----|----------|
 | Start | Composer + Bibliothek-Shortcut (Pro) / Zugewiesen (Schüler) |
-| Bibliothek | Lernstoff, Lektionen, Datenpool |
+| Bibliothek | Wiederverwendbarer Lernstoff & Tipps (contentPool) |
 | Schüler | Schülerverwaltung |
 | Notizen | Pro-Notizen (`note.text.badge.plus`) |
 | Einstellungen | Modus, Sperre, Profil |

@@ -948,7 +948,7 @@ struct ComposerSheet: View {
     private var poolItemsSection: some View {
         Section {
             if store.contentPool.isEmpty {
-                Text("Importiere Inhalte im Bibliothek-Tab (Film, Bild, Text, PDF, Audio).")
+                Text("Importiere wiederverwendbaren Lernstoff im Bibliothek-Tab (Film, Bild, Text, PDF, Audio).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -1953,7 +1953,7 @@ struct DatenpoolView: View {
                 .foregroundStyle(ALColor.green.opacity(0.35))
             Text("Bibliothek ist leer")
                 .font(.title3.bold())
-            Text("Lege Klassen an, um deine Inhalte zu strukturieren –\nz.B. Abschlag, Putten oder Theorie")
+            Text("Sammle hier wiederverwendbaren Lernstoff —\nTipps, Tricks, Film, Bild & Text für spätere Lektionen")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -5808,9 +5808,9 @@ struct StudentAfterLessonView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: onCapture) {
-                    Label("Composer", systemImage: "square.and.pencil")
+                    Label("Stunde erfassen", systemImage: "figure.golf")
                 }
-                .tint(ALColor.gold)
+                .tint(ALColor.green)
             }
         }
     }
@@ -5975,6 +5975,12 @@ struct QuickCaptureSheet: View {
     @State private var showStudentPicker = false
     @State private var shareItems: [Any] = []
     @State private var showShareSheet = false
+    @State private var quickTextNote: String = ""
+    @State private var photoPickerItems: [PhotosPickerItem] = []
+    @State private var showPhotosPicker = false
+    @State private var showCamera = false
+    @State private var pendingPhotoData: [Data] = []
+    @State private var isSavingMedia = false
 
     var selectedStudent: Student? {
         guard let id = selectedStudentID else { return nil }
@@ -5990,7 +5996,11 @@ struct QuickCaptureSheet: View {
     }
 
     var canSave: Bool {
-        !trained.isEmpty || !corrections.isEmpty || !exercises.isEmpty || !homework.isEmpty
+        selectedStudentID != nil && (
+            !trained.isEmpty || !corrections.isEmpty || !exercises.isEmpty || !homework.isEmpty
+            || !quickTextNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !pendingPhotoData.isEmpty
+        )
     }
 
     var body: some View {
@@ -6043,7 +6053,72 @@ struct QuickCaptureSheet: View {
                             startPoint: .leading, endPoint: .trailing))
                         .frame(height: 2).cornerRadius(1)
 
-                    // Felder
+                    // Schnellnotiz + Medien (direkt am Schüler, nicht Bibliothek)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Aufnahmen & Notizen")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                        Text("Landen direkt am Schüler — nicht in der Bibliothek")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+
+                        TextField("Kurznotiz zur Stunde…", text: $quickTextNote, axis: .vertical)
+                            .lineLimit(2...4)
+                            .padding(12)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(10)
+
+                        HStack(spacing: 10) {
+                            Button { showPhotosPicker = true } label: {
+                                Label("Foto", systemImage: "photo")
+                                    .font(.caption.bold())
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(Color(.tertiarySystemFill))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+
+                            Button { showCamera = true } label: {
+                                Label("Video", systemImage: "video")
+                                    .font(.caption.bold())
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(Color(.tertiarySystemFill))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(selectedStudentID == nil)
+                        }
+
+                        if !pendingPhotoData.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(Array(pendingPhotoData.enumerated()), id: \.offset) { idx, data in
+                                        ZStack(alignment: .topTrailing) {
+                                            if let img = UIImage(data: data) {
+                                                Image(uiImage: img)
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 72, height: 72)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            }
+                                            Button {
+                                                pendingPhotoData.remove(at: idx)
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.white, .black.opacity(0.5))
+                                            }
+                                            .offset(x: 4, y: -4)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Protokoll-Felder
                     VoiceInputField(
                         label: "Was geübt",
                         icon: "figure.golf",
@@ -6088,7 +6163,7 @@ struct QuickCaptureSheet: View {
                 .padding(.bottom, 20)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Neue Lektion")
+            .navigationTitle("Stunde erfassen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -6133,6 +6208,38 @@ struct QuickCaptureSheet: View {
             .sheet(isPresented: $showShareSheet) {
                 ShareSheet(items: shareItems)
             }
+            .photosPicker(isPresented: $showPhotosPicker, selection: $photoPickerItems,
+                          maxSelectionCount: 10, matching: .images)
+            .onChange(of: photoPickerItems) { _, items in
+                guard !items.isEmpty else { return }
+                Task {
+                    for item in items {
+                        if let data = try? await item.loadTransferable(type: Data.self) {
+                            pendingPhotoData.append(data)
+                        }
+                    }
+                    photoPickerItems = []
+                }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                VideoCameraView { url in
+                    guard let studentID = selectedStudentID else { return }
+                    isSavingMedia = true
+                    Task {
+                        await store.addStudentCaptureFromVideo(url: url, studentID: studentID)
+                        isSavingMedia = false
+                    }
+                }
+                .ignoresSafeArea()
+            }
+            .overlay {
+                if isSavingMedia {
+                    ProgressView("Wird gespeichert …")
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
             .alert("Spracherkennung nicht verfügbar",
                    isPresented: $transcriber.permissionDenied) {
                 Button("OK", role: .cancel) {}
@@ -6145,19 +6252,39 @@ struct QuickCaptureSheet: View {
 
     private func saveSession(thenSend: Bool) {
         transcriber.stop()
+        guard let studentID = selectedStudentID else { return }
+
         var session = TrainingSession()
-        session.studentID = selectedStudentID
+        session.studentID = studentID
         session.title = autoTitle
         session.trained = trained
         session.corrections = corrections
         session.exercises = exercises
         session.homework = homework
         store.addSession(session)
-        if thenSend, let url = store.exportSession(session) {
-            shareItems = [url]
-            showShareSheet = true
-        } else {
-            dismiss()
+
+        let note = quickTextNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !note.isEmpty {
+            store.addStudentCaptureTextNote(note, studentID: studentID, sessionID: session.id)
+        }
+
+        Task {
+            for data in pendingPhotoData {
+                await store.addStudentCaptureFromPhoto(
+                    data: data,
+                    studentID: studentID,
+                    sessionID: session.id
+                )
+            }
+            await MainActor.run {
+                pendingPhotoData = []
+                if thenSend, let url = store.exportSession(session) {
+                    shareItems = [AppStore.sessionShareHint, url]
+                    showShareSheet = true
+                } else {
+                    dismiss()
+                }
+            }
         }
     }
 
@@ -6728,10 +6855,13 @@ struct StudentDetailView: View {
     @State private var showSendSheet = false
     @State private var showNachreichung = false
     @State private var photosItem: PhotosPickerItem? = nil
+    @State private var showQuickCapture = false
+    @State private var selectedSession: TrainingSession? = nil
 
     var currentStudent: Student { store.currentStudent(student) ?? student }
     var assignedLessons: [Lesson]  { store.assignedLessonsFor(currentStudent) }
     var trainingSessions: [TrainingSession] { store.sessionsFor(currentStudent).sorted { $0.date > $1.date } }
+    var liveCaptures: [StudentCapture] { store.capturesFor(currentStudent) }
 
     var body: some View {
         NavigationStack {
@@ -6747,7 +6877,8 @@ struct StudentDetailView: View {
                 Picker("", selection: $tab) {
                     Text("Kartei").tag(0)
                     Text("Lektionen").tag(1)
-                    Text("Verlauf").tag(2)
+                    Text("Unterricht").tag(2)
+                    Text("Pakete").tag(3)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 14)
@@ -6760,7 +6891,8 @@ struct StudentDetailView: View {
                 Group {
                     if tab == 0 { karteiTab }
                     else if tab == 1 { lektionenTab }
-                    else { verlaufTab }
+                    else if tab == 2 { unterrichtTab }
+                    else { paketeTab }
                 }
             }
             .background(Color(.systemGroupedBackground))
@@ -6791,6 +6923,12 @@ struct StudentDetailView: View {
                     shareItems = items
                     showShareSheet = true
                 }
+            }
+            .sheet(isPresented: $showQuickCapture) {
+                QuickCaptureSheet(preselectedStudentID: currentStudent.id)
+            }
+            .sheet(item: $selectedSession) { session in
+                SessionDetailSheet(session: session)
             }
         }
     }
@@ -6880,13 +7018,24 @@ struct StudentDetailView: View {
                     HStack(spacing: 12) {
                         statPill(icon: "rectangle.stack.fill", value: "\(assignedLessons.count)", label: "Lektionen", color: ALColor.green)
                         statPill(icon: "figure.golf",          value: "\(trainingSessions.count)", label: "Stunden",   color: Color(hex: "1565C0"))
+                        statPill(icon: "camera.fill",          value: "\(liveCaptures.count)", label: "Aufnahmen", color: ALColor.gold)
                     }
                 }
 
                 Spacer()
 
-                // Senden + Nachreichung
+                // Senden + Nachreichung + Stunde erfassen
                 VStack(spacing: 8) {
+                    Button { showQuickCapture = true } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: "figure.golf").font(.system(size: 17))
+                            Text("Stunde").font(.caption2.bold())
+                        }
+                        .foregroundStyle(.white)
+                        .frame(width: 58, height: 50)
+                        .background(Color(hex: "1565C0"))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
                     if !assignedLessons.isEmpty {
                         Button { showSendSheet = true } label: {
                             VStack(spacing: 3) {
@@ -7083,11 +7232,25 @@ struct StudentDetailView: View {
         .listStyle(.insetGrouped)
     }
 
-    // MARK: Tab 2 — Verlauf (Sessions + Gesendet)
+    // MARK: Tab 2 — Unterricht (Live-Aufnahmen + Stundenprotokolle)
 
-    var verlaufTab: some View {
+    var unterrichtTab: some View {
         List {
-            // Training Sessions
+            Section {
+                if liveCaptures.isEmpty {
+                    Text("Noch keine Live-Aufnahmen — während der Stunde Foto, Video oder Notiz erfassen.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(liveCaptures) { capture in
+                        studentCaptureRow(capture)
+                    }
+                }
+            } header: {
+                Label("Live-Aufnahmen (\(liveCaptures.count))", systemImage: "camera.fill")
+                    .foregroundStyle(ALColor.gold)
+            }
+
             Section {
                 if trainingSessions.isEmpty {
                     HStack(spacing: 12) {
@@ -7101,55 +7264,49 @@ struct StudentDetailView: View {
                     .padding(.vertical, 8)
                 } else {
                     ForEach(trainingSessions) { session in
-                        VStack(alignment: .leading, spacing: 8) {
-                            // Datum + Titel
-                            HStack {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(ALColor.green.opacity(0.12))
-                                        .frame(width: 34, height: 34)
-                                    Image(systemName: "figure.golf")
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(ALColor.green)
+                        Button { selectedSession = session } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(ALColor.green.opacity(0.12))
+                                            .frame(width: 34, height: 34)
+                                        Image(systemName: "figure.golf")
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(ALColor.green)
+                                    }
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(session.title.isEmpty ? "Trainingseinheit" : session.title)
+                                            .font(.subheadline.bold())
+                                            .foregroundStyle(.primary)
+                                        Text(session.date.formatted(date: .abbreviated, time: .shortened))
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
                                 }
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(session.title.isEmpty ? "Trainingseinheit" : session.title)
-                                        .font(.subheadline.bold())
-                                    Text(session.date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.caption).foregroundStyle(.secondary)
+                                if !session.trained.isEmpty {
+                                    sessionChip(icon: "figure.walk", text: session.trained, color: ALColor.green)
                                 }
-                                Spacer()
-                            }
-                            // Inhalte als Chips
-                            if !session.trained.isEmpty {
-                                sessionChip(icon: "figure.walk", text: session.trained, color: ALColor.green)
-                            }
-                            if !session.corrections.isEmpty {
-                                sessionChip(icon: "pencil.tip", text: session.corrections, color: Color(hex: "1565C0"))
-                            }
-                            if !session.exercises.isEmpty {
-                                sessionChip(icon: "repeat", text: session.exercises, color: ALColor.gold)
-                            }
-                            if !session.homework.isEmpty {
-                                sessionChip(icon: "house.fill", text: session.homework, color: Color(hex: "880E4F"))
-                            }
-                            if !session.imageFilenames.isEmpty {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "photo.fill").font(.caption2).foregroundStyle(.secondary)
-                                    Text("\(session.imageFilenames.count) Fotos")
-                                        .font(.caption2).foregroundStyle(.secondary)
+                                let linked = store.capturesFor(session: session)
+                                if !linked.isEmpty {
+                                    Text("\(linked.count) Aufnahme\(linked.count == 1 ? "" : "n") verknüpft")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
                                 }
                             }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(.plain)
                     }
                 }
             } header: {
-                Label("Dokumentierte Stunden (\(trainingSessions.count))", systemImage: "figure.golf")
+                Label("Stundenprotokolle (\(trainingSessions.count))", systemImage: "figure.golf")
                     .foregroundStyle(ALColor.green)
             }
 
-            // Schüler-Rückmeldungen (importiert)
             if !currentStudent.feedbackHistory.isEmpty {
                 Section {
                     ForEach(currentStudent.feedbackHistory) { entry in
@@ -7168,29 +7325,104 @@ struct StudentDetailView: View {
                             }
                             Text(entry.message)
                                 .font(.subheadline)
-                            if !entry.viewedLessonTitles.isEmpty {
-                                Text("Gelesen: \(entry.viewedLessonTitles.joined(separator: ", "))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
                         }
                         .padding(.vertical, 4)
                     }
                 } header: {
-                    Label("Rückmeldungen (\(currentStudent.feedbackHistory.count))", systemImage: "text.bubble.fill")
+                    Label("Rückmeldungen", systemImage: "text.bubble.fill")
                         .foregroundStyle(ALColor.gold)
                 }
             }
+        }
+        .listStyle(.insetGrouped)
+    }
 
-            // Gesendet-Verlauf
+    @ViewBuilder
+    func studentCaptureRow(_ capture: StudentCapture) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(hex: capture.type.colorHex).opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: capture.type.icon)
+                    .foregroundStyle(Color(hex: capture.type.colorHex))
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(capture.title)
+                    .font(.subheadline.bold())
+                if capture.type == .text {
+                    Text(capture.textNote)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                Text(capture.date.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer()
+            if capture.type == .image,
+               let filename = capture.filename,
+               let img = UIImage(contentsOfFile: store.imageURL(for: filename).path) {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 44, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else if capture.type == .video,
+                      let thumb = capture.thumbnailFilename,
+                      let img = UIImage(contentsOfFile: store.imageURL(for: thumb).path) {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 44, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(Image(systemName: "play.fill").font(.caption2).foregroundStyle(.white))
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    // MARK: Tab 3 — Pakete (Composer-Zuweisungen)
+
+    var paketeTab: some View {
+        List {
+            Section {
+                if assignedLessons.isEmpty {
+                    Text("Noch keine Lektionen zugewiesen — nutze den Composer für Bibliothek-Inhalte.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(assignedLessons) { lesson in
+                        let viewed = currentStudent.viewedLessonIDs.contains(lesson.id)
+                        HStack(spacing: 10) {
+                            Image(systemName: lesson.icon)
+                                .foregroundStyle(ALColor.green)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(lesson.title)
+                                    .font(.subheadline.bold())
+                                Text(viewed ? "Gesehen" : "Zugewiesen")
+                                    .font(.caption)
+                                    .foregroundStyle(viewed ? .green : .secondary)
+                            }
+                            Spacer()
+                        }
+                    }
+                }
+            } header: {
+                Label("Zugewiesene Lektionen (\(assignedLessons.count))", systemImage: "rectangle.stack.fill")
+                    .foregroundStyle(ALColor.green)
+            }
+
             Section {
                 if currentStudent.sentHistory.isEmpty {
                     HStack(spacing: 12) {
                         Image(systemName: "paperplane")
                             .font(.system(size: 28))
                             .foregroundStyle(Color(hex: "1565C0").opacity(0.3))
-                        Text("Noch nichts gesendet")
-                            .font(.subheadline).foregroundStyle(.secondary)
+                        Text("Noch keine Pakete gesendet — Composer erstellt AirDrop-Pakete aus der Bibliothek.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 8)
                 } else {
@@ -7230,11 +7462,17 @@ struct StudentDetailView: View {
                     }
                 }
             } header: {
-                Label("Gesendet (\(currentStudent.sentHistory.count))", systemImage: "paperplane.fill")
+                Label("Gesendete Pakete (\(currentStudent.sentHistory.count))", systemImage: "paperplane.fill")
                     .foregroundStyle(Color(hex: "1565C0"))
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    // MARK: (legacy helper)
+
+    var verlaufTab: some View {
+        unterrichtTab
     }
 
     func sessionChip(icon: String, text: String, color: Color) -> some View {
