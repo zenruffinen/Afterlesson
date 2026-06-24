@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "AfterLesson needs the camera to capture lesson content directly.";
+"NSMicrophoneUsageDescription" = "AfterLesson needs the microphone for voice notes.";
+"NSPhotoLibraryUsageDescription" = "AfterLesson needs access to your photos for lesson images.";
+"NSSpeechRecognitionUsageDescription" = "AfterLesson uses speech recognition to transcribe training sessions.";
+"NSFaceIDUsageDescription" = "AfterLesson uses Face ID to unlock the app after you leave it.";

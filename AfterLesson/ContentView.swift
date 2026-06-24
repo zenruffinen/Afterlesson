@@ -6946,7 +6946,12 @@ struct SettingsView: View {
                 }
 
                 Section("App") {
-                    Label("Version 1.0", systemImage: "app.badge")
+                    NavigationLink {
+                        PrivacyPolicyView()
+                    } label: {
+                        Label("Datenschutz", systemImage: "hand.raised.fill")
+                    }
+                    Label("Version 1.0 (2)", systemImage: "app.badge")
                     Label("AfterLesson", systemImage: "figure.golf")
                     Label("Golf-Unterricht für Pro & Schüler", systemImage: "flag.fill")
                 }
