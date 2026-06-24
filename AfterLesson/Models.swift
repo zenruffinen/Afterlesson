@@ -222,6 +222,32 @@ struct TeachingGroup: Identifiable, Codable, Hashable {
     var notes: String = ""
 }
 
+// MARK: - Activity Feed (Kommunikations-Hub)
+
+enum ActivityStatus: String, Codable {
+    case sent, received, inProgress, completed, new
+
+    var label: String {
+        switch self {
+        case .sent:        return "Gesendet"
+        case .received:    return "Empfangen"
+        case .inProgress:  return "In Arbeit"
+        case .completed:   return "Erledigt"
+        case .new:         return "Neu"
+        }
+    }
+}
+
+struct ActivityItem: Identifiable {
+    let id = UUID()
+    let date: Date
+    let icon: String
+    let tintHex: String
+    let title: String
+    let subtitle: String
+    let status: ActivityStatus?
+}
+
 // MARK: - Sent Package (Verlauf)
 
 struct SentPackage: Identifiable, Codable, Hashable {

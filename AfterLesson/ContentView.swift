@@ -138,7 +138,7 @@ struct HomeView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(store.teacherName)
+                Text(store.teacherName.isEmpty ? (isTeacher ? "Golf Pro" : "Schüler") : store.teacherName)
                     .font(.system(size: 17, weight: .bold, design: .serif))
                     .foregroundStyle(Color(hex: "1A1A1A"))
                     .lineLimit(1)
@@ -175,11 +175,19 @@ struct HomeView: View {
     // MARK: Teacher Content (kein Scroll)
     var teacherContent: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 16)
+            teacherQuickActions
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+
+            ActivityFeedSection(items: store.teacherActivityFeed())
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+
+            Spacer(minLength: 8)
 
             AfterLessonOrb { showQuickCapture = true }
 
-            Spacer(minLength: 12)
+            Spacer(minLength: 8)
 
             LazyVGrid(
                 columns: [GridItem(.flexible(), spacing: 12),
@@ -190,11 +198,10 @@ struct HomeView: View {
                         label: "Schüler",
                         value: "\(store.students.count)",
                         color: ALColor.green) { selectedTab = .students }
-                navTile(icon: "rectangle.stack.fill",
+                navTile(icon: "square.grid.2x2.fill",
                         label: "Datenpool",
                         value: "\(store.contentPool.count)",
-                        color: ALColor.gold,
-                        assetImage: "Golfschmiede") { selectedTab = .lessons }
+                        color: ALColor.gold) { selectedTab = .lessons }
                 navTile(icon: "gearshape.fill",
                         label: "Einstellungen",
                         value: "",
@@ -206,7 +213,7 @@ struct HomeView: View {
             }
             .padding(.horizontal, 20)
 
-            Spacer(minLength: 16)
+            Spacer(minLength: 12)
 
             recentSection
                 .padding(.horizontal, 20)
@@ -215,14 +222,52 @@ struct HomeView: View {
         }
     }
 
+    var teacherQuickActions: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                quickActionChip(icon: "plus.circle.fill", label: "Stunde erfassen", color: ALColor.gold) {
+                    showQuickCapture = true
+                }
+                quickActionChip(icon: "paperplane.fill", label: "Lektion senden", color: ALColor.green) {
+                    showTeacherDashboard = true
+                }
+                quickActionChip(icon: "person.badge.plus", label: "Schüler", color: Color(hex: "1565C0")) {
+                    selectedTab = .students
+                }
+            }
+        }
+    }
+
+    func quickActionChip(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundStyle(color)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(color.opacity(0.10), in: Capsule())
+            .overlay(Capsule().strokeBorder(color.opacity(0.22), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: Student Content (kein Scroll)
     var studentContent: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 16)
-            if store.receivedSessions.isEmpty {
+            ActivityFeedSection(items: store.studentActivityFeed())
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+
+            Spacer(minLength: 12)
+
+            if store.receivedSessions.isEmpty && store.studentActivityFeed().isEmpty {
                 StudentEmptyPlaceholder()
                     .padding(.horizontal, 20)
-            } else {
+            } else if !store.receivedSessions.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Meine Trainings")
                         .font(.system(size: 14, weight: .semibold))
@@ -726,11 +771,17 @@ struct StudentEmptyPlaceholder: View {
                     .foregroundStyle(Color(hex: "1A1A1A"))
                     .multilineTextAlignment(.center)
 
-                Text("Dein Golf Pro sendet dir nach\njedem Training eine Zusammenfassung.")
+                Text("Dein Golflehrer sendet dir nach\njedem Training eine Zusammenfassung.")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(hex: "888888"))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
+
+                Text("Empfangene Lektionen und Protokolle\nerscheinen hier automatisch.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(hex: "AAAAAA"))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 4)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
@@ -746,6 +797,91 @@ struct StudentEmptyPlaceholder: View {
         )
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 3)
         .onAppear { pulse = true }
+    }
+}
+
+// MARK: - Activity Feed (Kommunikations-Hub)
+
+struct ActivityFeedSection: View {
+    let items: [ActivityItem]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Aktivität", systemImage: "bubble.left.and.bubble.right.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color(hex: "666666"))
+                Spacer()
+                if !items.isEmpty {
+                    Text("\(items.count)")
+                        .font(.caption.bold())
+                        .foregroundStyle(ALColor.gold)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(ALColor.gold.opacity(0.12), in: Capsule())
+                }
+            }
+
+            if items.isEmpty {
+                HStack(spacing: 12) {
+                    Image(systemName: "tray")
+                        .font(.system(size: 22))
+                        .foregroundStyle(ALColor.green.opacity(0.35))
+                    Text("Noch keine Aktivität — alles bereit für dein nächstes Training.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(hex: "AAAAAA"))
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white.opacity(0.85), in: RoundedRectangle(cornerRadius: 14))
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(items.prefix(4)) { item in
+                        ActivityFeedRow(item: item)
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct ActivityFeedRow: View {
+    let item: ActivityItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(hex: item.tintHex).opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: item.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color(hex: item.tintHex))
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                HStack {
+                    Text(item.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    if let status = item.status {
+                        ShareStatusBadge(status: status)
+                    }
+                }
+                Text(item.subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(hex: "888888"))
+                    .lineLimit(2)
+                Text(item.date.formatted(date: .abbreviated, time: .shortened))
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color(hex: "BBBBBB"))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+        .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
     }
 }
 
@@ -3623,6 +3759,9 @@ struct OnboardingView: View {
                 Text("Wähle deinen Modus")
                     .font(.title3)
                     .foregroundStyle(.white.opacity(0.7))
+                Text("Für Golflehrer und Schüler")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.45))
             }
 
             Spacer()
@@ -6471,8 +6610,11 @@ struct StudentDetailView: View {
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(pkg.date.formatted(date: .abbreviated, time: .shortened))
                                         .font(.subheadline.bold())
-                                    Text("\(pkg.lessonTitles.count) Lektionen gesendet")
-                                        .font(.caption).foregroundStyle(.secondary)
+                                    HStack(spacing: 6) {
+                                        Text("\(pkg.lessonTitles.count) Lektionen")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                        ShareStatusBadge(status: store.packageStatus(pkg, for: currentStudent))
+                                    }
                                 }
                             }
                             ForEach(pkg.lessonTitles, id: \.self) { title in
@@ -6517,10 +6659,13 @@ struct StudentDetailView: View {
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
     @State private var showModeSwitch = false
-    @State private var teacherPassword = ""
-    @State private var wrongPassword = false
+    @State private var showTeacherPIN = false
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
+
+    var displayName: String {
+        store.teacherName.isEmpty ? (isTeacher ? "Golf Pro" : "Schüler") : store.teacherName
+    }
 
     var body: some View {
         NavigationStack {
@@ -6531,17 +6676,36 @@ struct SettingsView: View {
                             Circle()
                                 .fill(ALColor.green)
                                 .frame(width: 50, height: 50)
-                            Text(store.teacherName.prefix(1))
+                            Text(displayName.prefix(1))
                                 .font(.title2.bold())
                                 .foregroundStyle(.white)
                         }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(store.teacherName).font(.headline)
-                            Text("Golf Pro").font(.caption).foregroundStyle(ALColor.gold)
+                            Text(displayName).font(.headline)
+                            Text(isTeacher ? "Golflehrer" : "Schüler")
+                                .font(.caption).foregroundStyle(ALColor.gold)
                             Text("© AfterLesson").font(.caption2).foregroundStyle(.secondary)
                         }
                     }
                     .padding(.vertical, 4)
+                }
+
+                Section("Sicherheit") {
+                    Toggle(isOn: Binding(
+                        get: { store.lockEnabled },
+                        set: { enabled in
+                            store.lockEnabled = enabled
+                            if enabled { store.isLocked = true }
+                        }
+                    )) {
+                        Label("Bildschirmsperre", systemImage: "lock.shield.fill")
+                    }
+                    .tint(ALColor.green)
+                    if store.lockEnabled {
+                        Text("Face ID / PIN beim Öffnen und nach dem Verlassen der App.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section("Modus") {
@@ -6554,7 +6718,7 @@ struct SettingsView: View {
                             if isTeacher {
                                 store.appMode = AppMode.student.rawValue
                             } else {
-                                showModeSwitch = true
+                                showTeacherPIN = true
                             }
                         }
                         .font(.subheadline)
@@ -6565,23 +6729,15 @@ struct SettingsView: View {
                 Section("App") {
                     Label("Version 1.0", systemImage: "app.badge")
                     Label("AfterLesson", systemImage: "figure.golf")
-                    Label("2026 Thomas Kubernat", systemImage: "person.fill")
+                    Label("Golf-Unterricht für Pro & Schüler", systemImage: "flag.fill")
                 }
             }
             .navigationTitle("Einstellungen")
-            .alert("Lehrer-Modus", isPresented: $showModeSwitch) {
-                SecureField("Passwort", text: $teacherPassword)
-                Button("Entsperren") {
-                    if teacherPassword == "golf" { // Später: echtes Passwort
-                        store.appMode = AppMode.teacher.rawValue
-                    } else {
-                        wrongPassword = true
-                    }
-                    teacherPassword = ""
-                }
-                Button("Abbrechen", role: .cancel) { teacherPassword = "" }
-            } message: {
-                Text(wrongPassword ? "Falsches Passwort" : "Passwort eingeben")
+            .sheet(isPresented: $showTeacherPIN) {
+                TeacherModePINGate(isGranted: Binding(
+                    get: { store.appMode == AppMode.teacher.rawValue },
+                    set: { granted in if granted { store.appMode = AppMode.teacher.rawValue } }
+                ))
             }
         }
     }

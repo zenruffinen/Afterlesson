@@ -89,6 +89,20 @@
 "Version 1.0" = "Version 1.0";
 "Bearbeiten" = "Edit";
 
+/* Security */
+"Bildschirmsperre" = "Screen Lock";
+"Aktivität" = "Activity";
+"Noch keine Aktivität — alles bereit für dein nächstes Training." = "No activity yet — ready for your next training.";
+"Golf-Unterricht für Pro & Schüler" = "Golf coaching for Pros & students";
+"Sicherheit" = "Security";
+"Golflehrer" = "Golf Teacher";
+"Schüler" = "Student";
+"Gesendet" = "Sent";
+"Empfangen" = "Received";
+"In Arbeit" = "In Progress";
+"Erledigt" = "Done";
+"Neu" = "New";
+
 /* Common Buttons */
 "Fertig" = "Done";
 "Abbrechen" = "Cancel";

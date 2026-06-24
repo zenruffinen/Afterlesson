@@ -77,6 +77,20 @@
 "Version 1.0" = "Version 1.0";
 "Bearbeiten" = "Bearbeiten";
 
+/* Security */
+"Bildschirmsperre" = "Bildschirmsperre";
+"Aktivität" = "Aktivität";
+"Noch keine Aktivität — alles bereit für dein nächstes Training." = "Noch keine Aktivität — alles bereit für dein nächstes Training.";
+"Golf-Unterricht für Pro & Schüler" = "Golf-Unterricht für Pro & Schüler";
+"Sicherheit" = "Sicherheit";
+"Golflehrer" = "Golflehrer";
+"Schüler" = "Schüler";
+"Gesendet" = "Gesendet";
+"Empfangen" = "Empfangen";
+"In Arbeit" = "In Arbeit";
+"Erledigt" = "Erledigt";
+"Neu" = "Neu";
+
 /* Common Buttons */
 "Fertig" = "Fertig";
 "Abbrechen" = "Abbrechen";

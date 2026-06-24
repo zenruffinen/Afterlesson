@@ -36,9 +36,10 @@ final class AppStore: ObservableObject {
         didSet { saveSessions() }
     }
     @AppStorage("appMode") var appMode: String = AppMode.teacher.rawValue
-    @AppStorage("teacherName") var teacherName: String = "Thomas Kubernat"
+    @AppStorage("teacherName") var teacherName: String = ""
     @AppStorage("teacherTitle") var teacherTitle: String = "PGA Teaching Professional"
     @AppStorage("isLocked") var isLocked: Bool = false
+    @AppStorage("lockEnabled") var lockEnabled: Bool = false
     @AppStorage("pinnedNoteID") var pinnedNoteID: String = ""
 
     var pinnedNote: ProNote? {
@@ -817,5 +818,94 @@ final class AppStore: ObservableObject {
         if let data = try? JSONEncoder().encode(sessions) {
             UserDefaults.standard.set(data, forKey: "al_sessions")
         }
+    }
+
+    // MARK: - Activity Feed (Kommunikations-Hub)
+
+    func teacherActivityFeed(limit: Int = 8) -> [ActivityItem] {
+        var items: [ActivityItem] = []
+
+        for student in students {
+            for pkg in student.sentHistory {
+                items.append(ActivityItem(
+                    date: pkg.date,
+                    icon: "paperplane.fill",
+                    tintHex: "1565C0",
+                    title: "An \(student.name) gesendet",
+                    subtitle: pkg.lessonTitles.isEmpty
+                        ? (pkg.note.isEmpty ? "Lektionspaket" : pkg.note)
+                        : pkg.lessonTitles.joined(separator: " · "),
+                    status: packageStatus(pkg, for: student)
+                ))
+            }
+            if !student.remarks.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                items.append(ActivityItem(
+                    date: student.lastActiveDate ?? student.dateCreated,
+                    icon: "text.bubble.fill",
+                    tintHex: "880E4F",
+                    title: "Rückmeldung von \(student.name)",
+                    subtitle: String(student.remarks.prefix(100)),
+                    status: .new
+                ))
+            }
+        }
+
+        for session in createdSessions {
+            let studentName = students.first(where: { $0.id == session.studentID })?.name ?? "Schüler"
+            items.append(ActivityItem(
+                date: session.date,
+                icon: "figure.golf",
+                tintHex: "1B5E20",
+                title: "Stunde · \(studentName)",
+                subtitle: session.title.isEmpty
+                    ? (session.trained.isEmpty ? "Training dokumentiert" : session.trained)
+                    : session.title,
+                status: .completed
+            ))
+        }
+
+        return Array(items.sorted { $0.date > $1.date }.prefix(limit))
+    }
+
+    func studentActivityFeed(limit: Int = 8) -> [ActivityItem] {
+        var items: [ActivityItem] = []
+
+        for session in receivedSessions {
+            items.append(ActivityItem(
+                date: session.date,
+                icon: "doc.text.fill",
+                tintHex: "1B5E20",
+                title: session.teacherName.isEmpty ? "Trainingsprotokoll" : "Von \(session.teacherName)",
+                subtitle: session.homework.isEmpty
+                    ? (session.title.isEmpty ? "Dein letztes Training" : session.title)
+                    : session.homework,
+                status: .received
+            ))
+        }
+
+        for lesson in lessons {
+            let done = isCompleted(lesson.id)
+            items.append(ActivityItem(
+                date: lesson.dateCreated,
+                icon: done ? "checkmark.circle.fill" : "book.fill",
+                tintHex: done ? "2D6A30" : "E65100",
+                title: lesson.title,
+                subtitle: done ? "Übung abgeschlossen — weiter so!" : "Bereit zum Üben",
+                status: done ? .completed : .inProgress
+            ))
+        }
+
+        return Array(items.sorted { $0.date > $1.date }.prefix(limit))
+    }
+
+    func packageStatus(_ pkg: SentPackage, for student: Student) -> ActivityStatus {
+        guard !pkg.lessonTitles.isEmpty else { return .sent }
+        let viewedTitles = Set(
+            student.viewedLessonIDs.compactMap { id in lessons.first(where: { $0.id == id })?.title }
+        )
+        let sentTitles = Set(pkg.lessonTitles)
+        if sentTitles.isSubset(of: viewedTitles) { return .completed }
+        if !sentTitles.isDisjoint(with: viewedTitles) { return .inProgress }
+        return .sent
     }
 }
