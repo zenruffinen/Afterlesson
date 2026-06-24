@@ -157,14 +157,6 @@ struct HomeView: View {
     // MARK: Teacher Content (kein Scroll)
     var teacherContent: some View {
         VStack(spacing: 0) {
-            ActivityFeedSection(items: store.teacherActivityFeed())
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-
-            Spacer(minLength: 8)
-
-            AfterLessonOrb { showQuickCapture = true }
-
             Spacer(minLength: 8)
 
             LazyVGrid(
@@ -191,10 +183,9 @@ struct HomeView: View {
             }
             .padding(.horizontal, 20)
 
-            Spacer(minLength: 12)
+            Spacer(minLength: 8)
 
-            recentSection
-                .padding(.horizontal, 20)
+            AfterLessonOrb { showQuickCapture = true }
 
             Spacer(minLength: 16)
         }
@@ -216,13 +207,9 @@ struct HomeView: View {
                 .padding(.top, 12)
             }
 
-            ActivityFeedSection(items: store.studentActivityFeed())
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-
             Spacer(minLength: 12)
 
-            if store.receivedSessions.isEmpty && store.studentActivityFeed().isEmpty {
+            if store.receivedSessions.isEmpty {
                 StudentEmptyPlaceholder()
                     .padding(.horizontal, 20)
             } else if !store.receivedSessions.isEmpty {
@@ -597,7 +584,7 @@ struct AfterLessonOrb: View {
 
                 // Label
                 VStack(spacing: 4) {
-                    Text("AfterLesson")
+                    Text("Grünbuch")
                         .font(.system(size: 22, weight: .bold, design: .serif))
                         .foregroundStyle(Color(hex: "1A1A1A"))
                     Text("Stunde erfassen")
@@ -3838,7 +3825,7 @@ struct OnboardingView: View {
                 Image(systemName: "figure.golf")
                     .font(.system(size: 72))
                     .foregroundStyle(ALColor.gold)
-                Text("AfterLesson")
+                Text("Grünbuch")
                     .font(.system(size: 42, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                 Text("Wähle deinen Modus")
@@ -3928,7 +3915,7 @@ struct OnboardingView: View {
             }
 
             Spacer()
-            Text("AfterLesson").font(.caption).foregroundStyle(.white.opacity(0.3)).padding(.bottom, 20)
+            Text("Grünbuch").font(.caption).foregroundStyle(.white.opacity(0.3)).padding(.bottom, 20)
         }
     }
 
@@ -4341,7 +4328,7 @@ struct SendPackageSheet: View {
                         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
                         if !trimmed.isEmpty {
                             let dateStr = Date().formatted(date: .long, time: .omitted)
-                            items.append("AfterLesson · \(recipient.name) · \(dateStr)\n\n\(trimmed)")
+                            items.append("Grünbuch · \(recipient.name) · \(dateStr)\n\n\(trimmed)")
                         }
                         let selected = store.lessons.filter { selectedLessonIDs.contains($0.id) }
                         items += selected.compactMap { store.exportLesson($0) }
@@ -5267,7 +5254,7 @@ struct AfterLessonFlowSheet: View {
                 .background(Color(hex: "F0EDE6"))
             }
         }
-        .navigationTitle("AfterLesson")
+        .navigationTitle("Grünbuch")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -6848,7 +6835,7 @@ struct SettingsView: View {
                             Text(displayName).font(.headline)
                             Text(isTeacher ? "Golflehrer" : "Schüler")
                                 .font(.caption).foregroundStyle(ALColor.gold)
-                            Text("© AfterLesson").font(.caption2).foregroundStyle(.secondary)
+                            Text("© Grünbuch").font(.caption2).foregroundStyle(.secondary)
                         }
                     }
                     .padding(.vertical, 4)
@@ -6897,7 +6884,7 @@ struct SettingsView: View {
                         Label("Datenschutz", systemImage: "hand.raised.fill")
                     }
                     Label("Version 1.0 (2)", systemImage: "app.badge")
-                    Label("AfterLesson", systemImage: "figure.golf")
+                    Label("Grünbuch", systemImage: "figure.golf")
                     Label("Golf-Unterricht für Pro & Schüler", systemImage: "flag.fill")
                 }
             }
@@ -7696,7 +7683,7 @@ struct SendWithNoteSheet: View {
                         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
                         if !trimmed.isEmpty {
                             let dateStr = Date().formatted(date: .long, time: .omitted)
-                            items.append("AfterLesson · \(student.name) · \(dateStr)\n\n\(trimmed)")
+                            items.append("Grünbuch · \(student.name) · \(dateStr)\n\n\(trimmed)")
                         }
                         items += lessons.compactMap { store.exportLesson($0) }
                         store.recordSent(to: student, lessons: lessons, note: trimmed)
