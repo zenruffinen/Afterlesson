@@ -430,6 +430,29 @@ struct AfterLessonShare: Codable {
     }
 }
 
+// MARK: - Full App Backup
+
+struct GrünbuchBackupSettings: Codable {
+    var teacherName: String = ""
+    var teacherTitle: String = "PGA Teaching Professional"
+    var pinnedNoteID: String = ""
+}
+
+struct GrünbuchBackup: Codable {
+    var folders: [LessonFolder]
+    var lessons: [Lesson]
+    var progress: [StudentProgress]
+    var students: [Student]
+    var groups: [TeachingGroup]
+    var proNotes: [ProNote]
+    var contentPool: [ContentItem]
+    var contentClasses: [ContentClass]
+    var sessions: [TrainingSession]
+    var studentCaptures: [StudentCapture]
+    var settings: GrünbuchBackupSettings
+    var exportDate: Date
+}
+
 // MARK: - Folder Share
 
 struct AfterLessonFolderShare: Codable {

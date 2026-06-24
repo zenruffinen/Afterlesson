@@ -45,6 +45,8 @@ final class AppStore: ObservableObject {
     @AppStorage("lockEnabled") var lockEnabled: Bool = false
     @AppStorage("pinnedNoteID") var pinnedNoteID: String = ""
     @Published var importConfirmation: String?
+    /// Wenn eine Backup-Datei von außen geöffnet wird, landet die URL hier.
+    @Published var pendingBackupURL: URL? = nil
 
     var pinnedNote: ProNote? {
         guard !pinnedNoteID.isEmpty,

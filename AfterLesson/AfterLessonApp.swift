@@ -57,6 +57,8 @@ struct AfterLessonApp: App {
             _ = store.importLesson(from: url)
         case "afterlessonfeedback":
             _ = store.importFeedbackShare(from: url)
+        case "gruenbuchbackup":
+            store.pendingBackupURL = url
         default:
             break
         }
