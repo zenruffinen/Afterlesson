@@ -44,6 +44,11 @@ struct LessonFolder: Identifiable, Codable, Hashable {
 
 // MARK: - Lesson (Lektion)
 
+enum LessonOrigin: String, Codable {
+    case local
+    case receivedFromPro
+}
+
 struct Lesson: Identifiable, Codable, Hashable {
     var id = UUID()
     var folderID: UUID
@@ -58,6 +63,9 @@ struct Lesson: Identifiable, Codable, Hashable {
     var dateCreated: Date = Date()
     var isFavorite: Bool = false
     var tags: [String] = []             // z.B. ["Anfänger", "Fortgeschritten"]
+    var origin: LessonOrigin = .local   // Schüler-Import markiert .receivedFromPro
+    var receivedFromPro: String = ""    // Name des Pros bei empfangenen Lektionen
+    var openedDate: Date? = nil         // Lesestatus (Schüler-Modus)
 
     init(id: UUID = UUID(),
          folderID: UUID,
@@ -71,7 +79,10 @@ struct Lesson: Identifiable, Codable, Hashable {
          steps: [LessonStep] = [],
          dateCreated: Date = Date(),
          isFavorite: Bool = false,
-         tags: [String] = []) {
+         tags: [String] = [],
+         origin: LessonOrigin = .local,
+         receivedFromPro: String = "",
+         openedDate: Date? = nil) {
         self.id = id
         self.folderID = folderID
         self.title = title
@@ -85,6 +96,9 @@ struct Lesson: Identifiable, Codable, Hashable {
         self.dateCreated = dateCreated
         self.isFavorite = isFavorite
         self.tags = tags
+        self.origin = origin
+        self.receivedFromPro = receivedFromPro
+        self.openedDate = openedDate
     }
 
     // Eigener Decoder statt der automatisch generierten Synthese: Bereits gespeicherte
@@ -108,6 +122,9 @@ struct Lesson: Identifiable, Codable, Hashable {
         dateCreated = try c.decodeIfPresent(Date.self, forKey: .dateCreated) ?? Date()
         isFavorite = try c.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false
         tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
+        origin = try c.decodeIfPresent(LessonOrigin.self, forKey: .origin) ?? .local
+        receivedFromPro = try c.decodeIfPresent(String.self, forKey: .receivedFromPro) ?? ""
+        openedDate = try c.decodeIfPresent(Date.self, forKey: .openedDate)
     }
 }
 
@@ -277,6 +294,23 @@ struct ProNote: Identifiable, Codable {
     }
 
     enum AssignmentType { case student, group, none }
+}
+
+// MARK: - Student Capture (Live während der Stunde)
+//
+// Aufnahmen während des aktiven Unterrichts — Video, Foto, Audio, Textnotiz.
+// Landen direkt am Schülerprofil, NICHT in der Bibliothek (contentPool).
+
+struct StudentCapture: Identifiable, Codable, Hashable {
+    var id = UUID()
+    var studentID: UUID
+    var sessionID: UUID? = nil       // optional: Verknüpfung zum Stundenprotokoll
+    var date: Date = Date()
+    var type: ContentType
+    var title: String = ""
+    var textNote: String = ""        // bei type == .text oder Kurznotiz
+    var filename: String? = nil
+    var thumbnailFilename: String? = nil
 }
 
 // MARK: - Training Session (Stundenprotokoll)

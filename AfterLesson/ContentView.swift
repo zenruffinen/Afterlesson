@@ -44,9 +44,9 @@ struct AfterLessonTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             tabItem(.home,     icon: "house.fill",            label: "Start")
-            tabItem(.lessons,  icon: "books.vertical.fill",   label: "Bibliothek", subtitle: "Lernstoff")
+            tabItem(.lessons,  icon: "books.vertical.fill",   label: "Bibliothek", subtitle: "Tipps & Stoff")
             tabItem(.students, icon: "figure.golf",           label: "Schüler")
-            tabItem(.notes,    icon: "pencil.tip",           label: "Notizen")
+            tabItem(.notes,    icon: "note.text.badge.plus", label: "Notizen", subtitle: "Pro")
             tabItem(.settings, icon: "gearshape.fill",       label: "Einstellungen")
         }
         .padding(.bottom, 28)
@@ -106,9 +106,14 @@ struct HomeView: View {
     @EnvironmentObject var store: AppStore
     @Binding var selectedTab: ContentView.Tab
     @State private var showComposer = false
+    @State private var composerPreselectedStudents: Set<UUID> = []
+    @State private var composerIsSupplemental = false
     @State private var composerShareItems: [Any] = []
     @State private var showComposerShare = false
     @State private var selectedSession: TrainingSession? = nil
+    @State private var selectedReceivedLesson: Lesson? = nil
+    @State private var showQuickCapture = false
+    @State private var quickCaptureStudentID: UUID? = nil
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -134,15 +139,34 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showComposer) {
-            ComposerSheet { items in
+            ComposerSheet(
+                preselectedStudentIDs: composerPreselectedStudents,
+                isSupplemental: composerIsSupplemental
+            ) { items in
                 composerShareItems = items
                 showComposerShare = true
+            }
+        }
+        .onChange(of: showComposer) { _, isShowing in
+            if !isShowing {
+                composerPreselectedStudents = []
+                composerIsSupplemental = false
             }
         }
         .sheet(isPresented: $showComposerShare) {
             ShareSheet(items: composerShareItems)
         }
         .sheet(item: $selectedSession) { session in SessionDetailSheet(session: session) }
+        .sheet(item: $selectedReceivedLesson) { lesson in
+            LessonDetailView(lesson: lesson)
+                .onAppear { store.markLessonOpened(lesson) }
+        }
+        .sheet(isPresented: $showQuickCapture) {
+            QuickCaptureSheet(preselectedStudentID: quickCaptureStudentID)
+        }
+        .onChange(of: showQuickCapture) { _, isShowing in
+            if !isShowing { quickCaptureStudentID = nil }
+        }
     }
 
     // MARK: Header Bar
@@ -169,14 +193,28 @@ struct HomeView: View {
                     title: "Composer",
                     subtitle: "Zuweisen an Schüler",
                     tint: ALColor.green
-                ) { showComposer = true }
+                ) {
+                    composerPreselectedStudents = []
+                    composerIsSupplemental = false
+                    showComposer = true
+                }
 
                 GrünbuchHomeActionButton(
                     icon: "books.vertical.fill",
                     title: "Bibliothek",
-                    subtitle: "Lernstoff",
+                    subtitle: "Lernstoff & Tipps",
                     tint: ALColor.gold
                 ) { selectedTab = .lessons }
+
+                GrünbuchHomeActionButton(
+                    icon: "figure.golf",
+                    title: "Stunde erfassen",
+                    subtitle: "Direkt am Schüler — nicht Bibliothek",
+                    tint: Color(hex: "1565C0")
+                ) {
+                    quickCaptureStudentID = nil
+                    showQuickCapture = true
+                }
             }
             .padding(.horizontal, 20)
 
@@ -187,13 +225,18 @@ struct HomeView: View {
     // MARK: Student Content
     var studentContent: some View {
         VStack(spacing: 0) {
-            if !store.unreadReceivedSessions.isEmpty {
+            let newCount = store.unreadReceivedSessions.count + store.unreadReceivedLessons.count
+            if newCount > 0 {
                 NewFromProBanner(
-                    count: store.unreadReceivedSessions.count,
-                    teacherName: store.unreadReceivedSessions.first?.teacherName ?? ""
+                    count: newCount,
+                    teacherName: store.unreadReceivedSessions.first?.teacherName
+                        ?? store.unreadReceivedLessons.first?.receivedFromPro
+                        ?? ""
                 ) {
                     if let session = store.unreadReceivedSessions.first {
                         selectedSession = session
+                    } else if let lesson = store.unreadReceivedLessons.first {
+                        selectedReceivedLesson = lesson
                     }
                 }
                 .padding(.horizontal, 20)
@@ -202,7 +245,7 @@ struct HomeView: View {
 
             Spacer(minLength: 12)
 
-            if store.receivedSessions.isEmpty {
+            if store.receivedSessions.isEmpty && store.receivedLessons.isEmpty {
                 StudentEmptyPlaceholder()
                     .padding(.horizontal, 20)
             } else {
@@ -211,6 +254,9 @@ struct HomeView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.65))
                         .padding(.horizontal, 20)
+                    ForEach(store.receivedLessons.prefix(5)) { lesson in
+                        studentLessonRow(lesson).padding(.horizontal, 20)
+                    }
                     ForEach(store.receivedSessions.prefix(5)) { session in
                         studentSessionRow(session).padding(.horizontal, 20)
                     }
@@ -218,6 +264,48 @@ struct HomeView: View {
             }
             Spacer(minLength: 16)
         }
+    }
+
+    @ViewBuilder
+    func studentLessonRow(_ lesson: Lesson) -> some View {
+        Button { selectedReceivedLesson = lesson } label: {
+            HStack(spacing: 12) {
+                Image(systemName: lesson.icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(ALColor.gold)
+                    .alIconTile(tint: ALColor.gold, size: 38)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(lesson.title)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.white).lineLimit(1)
+                        if lesson.openedDate == nil {
+                            Text("Neu")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(ALColor.gold)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(ALColor.gold.opacity(0.18), in: Capsule())
+                        }
+                    }
+                    if !lesson.receivedFromPro.isEmpty {
+                        Text("von \(lesson.receivedFromPro)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
+                }
+                Spacer()
+                Text(lesson.dateCreated, style: .date)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.45))
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .alGlass(tint: ALColor.gold.opacity(0.16), interactive: true, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -319,10 +407,13 @@ struct HomeView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color(hex: "888888"))
                 Spacer()
-                Button { showComposer = true } label: {
+                Button {
+                    quickCaptureStudentID = nil
+                    showQuickCapture = true
+                } label: {
                     HStack(spacing: 3) {
                         Image(systemName: "plus").font(.system(size: 11, weight: .bold))
-                        Text("Erfassen").font(.system(size: 12, weight: .medium))
+                        Text("Stunde erfassen").font(.system(size: 12, weight: .medium))
                     }
                     .foregroundStyle(ALColor.gold)
                 }
@@ -336,7 +427,10 @@ struct HomeView: View {
 
             if studentRows.isEmpty {
                 // Leerzustand
-                Button { showComposer = true } label: {
+                Button {
+                    quickCaptureStudentID = nil
+                    showQuickCapture = true
+                } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "plus.circle")
                             .font(.system(size: 15))
@@ -526,6 +620,8 @@ struct HomeView: View {
 struct ComposerSheet: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
+    var preselectedStudentIDs: Set<UUID> = []
+    var isSupplemental: Bool = false
     let onShare: ([Any]) -> Void
 
     @State private var selectedStudentIDs: Set<UUID> = []
@@ -534,23 +630,67 @@ struct ComposerSheet: View {
     @State private var selectedContentItemIDs: Set<UUID> = []
     @State private var note: String = ""
 
+    private var selectedLessons: [Lesson] {
+        store.lessons.filter { selectedLessonIDs.contains($0.id) }
+    }
+
+    private var selectedPoolItems: [ContentItem] {
+        store.contentPool.filter { selectedContentItemIDs.contains($0.id) }
+    }
+
+    private var bundleTypeCounts: [(ContentType, Int)] {
+        ContentType.allCases.compactMap { type in
+            let count = selectedPoolItems.filter { $0.type == type }.count
+            return count > 0 ? (type, count) : nil
+        }
+    }
+
     private var canAssign: Bool {
         !selectedStudentIDs.isEmpty
             && (!selectedLessonIDs.isEmpty || !selectedContentItemIDs.isEmpty)
     }
 
+    private var packageSummary: String {
+        var parts: [String] = []
+        if !selectedLessons.isEmpty {
+            parts.append("\(selectedLessons.count) Lektion\(selectedLessons.count == 1 ? "" : "en")")
+        }
+        if !selectedPoolItems.isEmpty {
+            parts.append("\(selectedPoolItems.count) Einzelinhalt\(selectedPoolItems.count == 1 ? "" : "e")")
+        }
+        if bundleTypeCounts.count > 1 {
+            let types = bundleTypeCounts.map { "\($0.1)× \($0.0.label)" }.joined(separator: ", ")
+            parts.append("(\(types))")
+        }
+        return parts.joined(separator: " · ")
+    }
+
     var body: some View {
         NavigationStack {
             List {
+                if isSupplemental {
+                    supplementalBanner
+                }
+                stepHeader(step: 1, title: "Schüler", icon: "figure.golf")
                 studentsSection
+                stepHeader(step: 2, title: "Datum", icon: "calendar")
                 dateSection
-                noteSection
+                stepHeader(step: 3, title: "Inhalte wählen", icon: "books.vertical.fill")
+                bundlePreviewSection
                 lessonsSection
                 poolItemsSection
+                stepHeader(step: 4, title: "Nachricht", icon: "text.bubble")
+                noteSection
+                shareHintSection
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Composer")
+            .navigationTitle(isSupplemental ? "Nachreichung" : "Composer")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                if !preselectedStudentIDs.isEmpty {
+                    selectedStudentIDs = preselectedStudentIDs
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Abbrechen") { dismiss() }
@@ -559,9 +699,24 @@ struct ComposerSheet: View {
                     Button {
                         assignAndShare()
                     } label: {
-                        Label("Zuweisen", systemImage: "paperplane.fill")
+                        Label("Paket senden", systemImage: "paperplane.fill")
                     }
                     .disabled(!canAssign)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if canAssign {
+                    Button(action: assignAndShare) {
+                        Label("Paket an Schüler senden", systemImage: "paperplane.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(ALColor.green)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
                 }
             }
         }
@@ -570,12 +725,108 @@ struct ComposerSheet: View {
 
     // MARK: Sections
 
+    private var supplementalBanner: some View {
+        Section {
+            Label {
+                Text("Ergänze einzelne Lektionen oder Medien — kein vollständiges Paket nötig.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } icon: {
+                Image(systemName: "tray.and.arrow.down.fill")
+                    .foregroundStyle(ALColor.gold)
+            }
+        }
+    }
+
+    private func stepHeader(step: Int, title: String, icon: String) -> some View {
+        Section {
+            EmptyView()
+        } header: {
+            HStack(spacing: 8) {
+                Text("\(step)")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+                    .frame(width: 20, height: 20)
+                    .background(ALColor.green, in: Circle())
+                Label(title, systemImage: icon)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(ALColor.green)
+            }
+            .textCase(nil)
+        }
+    }
+
+    @ViewBuilder
+    private var bundlePreviewSection: some View {
+        if canAssign {
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "shippingbox.fill")
+                        .font(.title2)
+                        .foregroundStyle(ALColor.gold)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Lernpaket")
+                            .font(.subheadline.bold())
+                        Text(packageSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+
+                if !bundleTypeCounts.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(bundleTypeCounts, id: \.0) { type, count in
+                                HStack(spacing: 4) {
+                                    Image(systemName: type.icon)
+                                    Text("\(count)× \(type.label)")
+                                }
+                                .font(.caption2.bold())
+                                .foregroundStyle(Color(hex: type.colorHex))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color(hex: type.colorHex).opacity(0.12), in: Capsule())
+                            }
+                        }
+                    }
+                }
+
+                if selectedPoolItems.isEmpty == false && selectedLessons.isEmpty == false {
+                    Text("Lektionen und Einzelmedien werden als separate .afterlesson-Dateien geteilt.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } else if !selectedPoolItems.isEmpty && selectedLessons.isEmpty {
+                    Text("Einzelmedien werden zu einem Lernpaket gebündelt.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Paket-Vorschau")
+            }
+        }
+    }
+
     private var studentsSection: some View {
         Section {
             if store.students.isEmpty {
                 Text("Zuerst Schüler im Schüler-Tab anlegen")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+            } else if isSupplemental && preselectedStudentIDs.count == 1,
+                      let student = store.students.first(where: { preselectedStudentIDs.contains($0.id) }) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: student.avatarColor))
+                            .frame(width: 36, height: 36)
+                        Text(String(student.name.prefix(1)).uppercased())
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.white)
+                    }
+                    Text(student.name)
+                        .font(.subheadline.bold())
+                }
             } else {
                 ForEach(store.students) { student in
                     let selected = selectedStudentIDs.contains(student.id)
@@ -606,10 +857,8 @@ struct ComposerSheet: View {
                     .buttonStyle(.plain)
                 }
             }
-        } header: {
-            Text("Schüler")
         } footer: {
-            if !store.students.isEmpty {
+            if !store.students.isEmpty && !isSupplemental {
                 Text("Wähle einen oder mehrere Schüler für die Zuweisung.")
             }
         }
@@ -618,8 +867,6 @@ struct ComposerSheet: View {
     private var dateSection: some View {
         Section {
             DatePicker("Datum", selection: $assignmentDate, displayedComponents: .date)
-        } header: {
-            Text("Termin")
         }
     }
 
@@ -631,8 +878,24 @@ struct ComposerSheet: View {
                 axis: .vertical
             )
             .lineLimit(3...8)
+        } footer: {
+            Text("Optional — wird als Textdatei mit dem Paket geteilt.")
+                .font(.caption2)
+        }
+    }
+
+    private var shareHintSection: some View {
+        Section {
+            Label {
+                Text(AppStore.composerShareHint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } icon: {
+                Image(systemName: "airdrop")
+                    .foregroundStyle(ALColor.green)
+            }
         } header: {
-            Text("Persönliche Nachricht (optional)")
+            Text("AirDrop-Hinweis")
         }
     }
 
@@ -644,7 +907,7 @@ struct ComposerSheet: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
-                Text("Lektionen")
+                Label("Lektionen", systemImage: "book.fill")
             }
         } else {
             ForEach(store.folders) { folder in
@@ -685,46 +948,75 @@ struct ComposerSheet: View {
     private var poolItemsSection: some View {
         Section {
             if store.contentPool.isEmpty {
-                Text("Importiere Inhalte im Bibliothek-Tab.")
+                Text("Importiere Inhalte im Bibliothek-Tab (Film, Bild, Text, PDF, Audio).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(store.contentPool.prefix(12)) { item in
-                    let selected = selectedContentItemIDs.contains(item.id)
-                    Button {
-                        if selected {
-                            selectedContentItemIDs.remove(item.id)
-                        } else {
-                            selectedContentItemIDs.insert(item.id)
-                        }
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(selected ? ALColor.green : .secondary)
-                            Image(systemName: item.type.icon)
-                                .foregroundStyle(Color(hex: item.type.colorHex))
-                                .frame(width: 28)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.title)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                                Text(item.type.label)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                ForEach(ContentType.allCases, id: \.self) { type in
+                    let items = store.contentPool.filter { $0.type == type }
+                    if !items.isEmpty {
+                        DisclosureGroup {
+                            ForEach(items) { item in
+                                poolItemRow(item)
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: type.icon)
+                                    .foregroundStyle(Color(hex: type.colorHex))
+                                Text(type.label)
+                                    .font(.subheadline.bold())
+                                Spacer()
+                                let count = items.filter { selectedContentItemIDs.contains($0.id) }.count
+                                if count > 0 {
+                                    Text("\(count)")
+                                        .font(.caption2.bold())
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 2)
+                                        .background(ALColor.green, in: Capsule())
+                                }
                             }
                         }
                     }
-                    .buttonStyle(.plain)
                 }
-                if store.contentPool.count > 12 {
-                    Text("Weitere Inhalte in der Bibliothek verfügbar.")
+            }
+        } header: {
+            Label("Einzelmedien aus Bibliothek", systemImage: "tray.full.fill")
+        } footer: {
+            if !store.contentPool.isEmpty {
+                Text("Video, Bild, Text und weitere Formate — werden bei Bedarf zu einem Lernpaket gebündelt.")
+                    .font(.caption2)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func poolItemRow(_ item: ContentItem) -> some View {
+        let selected = selectedContentItemIDs.contains(item.id)
+        Button {
+            if selected {
+                selectedContentItemIDs.remove(item.id)
+            } else {
+                selectedContentItemIDs.insert(item.id)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selected ? ALColor.green : .secondary)
+                Image(systemName: item.type.icon)
+                    .foregroundStyle(Color(hex: item.type.colorHex))
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Text(item.type.label)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
-        } header: {
-            Label("Einzelinhalte aus Bibliothek", systemImage: "tray.full.fill")
         }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -958,7 +1250,7 @@ struct StudentEmptyPlaceholder: View {
                     .foregroundStyle(Color(hex: "1A1A1A"))
                     .multilineTextAlignment(.center)
 
-                Text("Dein Pro sendet dir Lernpakete per Composer — sie erscheinen hier.")
+                Text("Dein Pro sendet dir Lernpakete per AirDrop — sie erscheinen hier unter „Zugewiesen“.")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(hex: "888888"))
                     .multilineTextAlignment(.center)
@@ -1424,7 +1716,7 @@ struct DatenpoolView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Bibliothek")
-            .navigationSubtitle("Lernstoff")
+            .navigationSubtitle("Lernstoff & Tipps — wiederverwendbar")
             .searchable(text: $searchText, prompt: "Inhalte suchen")
             .sheet(isPresented: $showNewClassSheet) {
                 ContentClassEditorSheet(existingClass: nil)
@@ -1569,7 +1861,7 @@ struct DatenpoolView: View {
                     Text("Golf-Inhalte erfassen")
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Text("Neues Material sammeln & einsortieren")
+                    Text("Tipps, Tricks & Vorlagen — wiederverwendbar")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -5484,7 +5776,7 @@ struct StudentAfterLessonView: View {
 
                 // Notizen
                 if !notes.isEmpty {
-                    sectionBlock(title: "Notizen", icon: "pencil.tip", color: ALColor.green) {
+                    sectionBlock(title: "Notizen", icon: "note.text.badge.plus", color: ALColor.green) {
                         ForEach(notes) { noteCard($0) }
                     }
                 }
@@ -6434,6 +6726,7 @@ struct StudentDetailView: View {
     @State private var showShareSheet = false
     @State private var shareItems: [Any] = []
     @State private var showSendSheet = false
+    @State private var showNachreichung = false
     @State private var photosItem: PhotosPickerItem? = nil
 
     var currentStudent: Student { store.currentStudent(student) ?? student }
@@ -6486,6 +6779,15 @@ struct StudentDetailView: View {
             }
             .sheet(isPresented: $showSendSheet) {
                 SendWithNoteSheet(student: currentStudent, lessons: assignedLessons) { items in
+                    shareItems = items
+                    showShareSheet = true
+                }
+            }
+            .sheet(isPresented: $showNachreichung) {
+                ComposerSheet(
+                    preselectedStudentIDs: [currentStudent.id],
+                    isSupplemental: true
+                ) { items in
                     shareItems = items
                     showShareSheet = true
                 }
@@ -6583,17 +6885,33 @@ struct StudentDetailView: View {
 
                 Spacer()
 
-                // Senden-Button
-                if !assignedLessons.isEmpty {
-                    Button { showSendSheet = true } label: {
-                        VStack(spacing: 3) {
-                            Image(systemName: "paperplane.fill").font(.system(size: 17))
-                            Text("Senden").font(.caption.bold())
+                // Senden + Nachreichung
+                VStack(spacing: 8) {
+                    if !assignedLessons.isEmpty {
+                        Button { showSendSheet = true } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: "paperplane.fill").font(.system(size: 17))
+                                Text("Senden").font(.caption.bold())
+                            }
+                            .foregroundStyle(.white)
+                            .frame(width: 58, height: 50)
+                            .background(ALColor.green)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        .foregroundStyle(.white)
+                    }
+                    Button { showNachreichung = true } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: "tray.and.arrow.down.fill").font(.system(size: 15))
+                            Text("Nachreichung").font(.caption2.bold())
+                        }
+                        .foregroundStyle(ALColor.gold)
                         .frame(width: 58, height: 50)
-                        .background(ALColor.green)
+                        .background(ALColor.gold.opacity(0.14))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(ALColor.gold.opacity(0.35), lineWidth: 1)
+                        )
                     }
                 }
             }
@@ -7843,7 +8161,7 @@ struct NotesView: View {
             Group {
                 if store.proNotes.isEmpty {
                     VStack(spacing: 16) {
-                        Image(systemName: "note.text")
+                        Image(systemName: "note.text.badge.plus")
                             .font(.system(size: 60))
                             .foregroundStyle(ALColor.green.opacity(0.35))
                         Text("Noch keine Notizen")

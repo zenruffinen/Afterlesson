@@ -35,6 +35,9 @@ final class AppStore: ObservableObject {
     @Published var sessions: [TrainingSession] = [] {
         didSet { saveSessions() }
     }
+    @Published var studentCaptures: [StudentCapture] = [] {
+        didSet { saveStudentCaptures() }
+    }
     @AppStorage("appMode") var appMode: String = AppMode.teacher.rawValue
     @AppStorage("teacherName") var teacherName: String = ""
     @AppStorage("teacherTitle") var teacherTitle: String = "PGA Teaching Professional"
@@ -174,6 +177,10 @@ final class AppStore: ObservableObject {
         for i in folders.indices {
             folders[i].studentIDs.removeAll { $0 == student.id }
         }
+        for capture in studentCaptures where capture.studentID == student.id {
+            deleteStudentCapture(capture)
+        }
+        sessions.removeAll { $0.studentID == student.id }
         students.removeAll { $0.id == student.id }
     }
 
@@ -293,7 +300,7 @@ final class AppStore: ObservableObject {
         }
 
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        var shareItems: [Any] = []
+        var shareItems: [Any] = [Self.composerShareHint]
 
         if !trimmedNote.isEmpty {
             let dateStr = date.formatted(date: .long, time: .omitted)
@@ -652,10 +659,14 @@ final class AppStore: ObservableObject {
         }
         var newLesson = package.lesson
         newLesson.id = UUID()
+        newLesson.origin = .receivedFromPro
+        newLesson.receivedFromPro = package.teacherName
+        newLesson.openedDate = nil
+        newLesson.dateCreated = package.exportDate
         if !folders.contains(where: { $0.id == newLesson.folderID }) {
             newLesson.folderID = folders.first?.id ?? UUID()
         }
-        lessons.append(newLesson)
+        lessons.insert(newLesson, at: 0)
         return true
     }
 
@@ -822,6 +833,10 @@ final class AppStore: ObservableObject {
            let decoded = try? JSONDecoder().decode([TrainingSession].self, from: data) {
             sessions = decoded
         }
+        if let data = UserDefaults.standard.data(forKey: "al_studentcaptures"),
+           let decoded = try? JSONDecoder().decode([StudentCapture].self, from: data) {
+            studentCaptures = decoded
+        }
     }
 
     private func saveProNotes() {
@@ -830,10 +845,116 @@ final class AppStore: ObservableObject {
         }
     }
 
+    // MARK: - Student Captures (Live — nur Schülerprofil, nicht Bibliothek)
+
+    func capturesFor(_ student: Student) -> [StudentCapture] {
+        studentCaptures.filter { $0.studentID == student.id }
+            .sorted { $0.date > $1.date }
+    }
+
+    func capturesFor(session: TrainingSession) -> [StudentCapture] {
+        studentCaptures.filter { $0.sessionID == session.id }
+            .sorted { $0.date < $1.date }
+    }
+
+    func addStudentCapture(_ capture: StudentCapture) {
+        studentCaptures.insert(capture, at: 0)
+        markLastActive(studentID: capture.studentID, date: capture.date)
+    }
+
+    @MainActor
+    func addStudentCaptureFromPhoto(
+        data: Data,
+        studentID: UUID,
+        sessionID: UUID? = nil,
+        title: String? = nil
+    ) async {
+        let filename = "capture_\(UUID().uuidString).jpg"
+        saveImage(data, filename: filename)
+        let capture = StudentCapture(
+            studentID: studentID,
+            sessionID: sessionID,
+            type: .image,
+            title: title ?? "Foto \(importDateStamp())",
+            filename: filename
+        )
+        addStudentCapture(capture)
+    }
+
+    @MainActor
+    func addStudentCaptureFromVideo(
+        url: URL,
+        studentID: UUID,
+        sessionID: UUID? = nil
+    ) async {
+        guard let data = try? Data(contentsOf: url) else { return }
+        let filename = "capture_\(UUID().uuidString).mov"
+        saveImage(data, filename: filename)
+
+        var thumbFilename: String? = nil
+        if let thumbData = await generateVideoThumbnail(url: imageURL(for: filename)) {
+            thumbFilename = "capture_thumb_\(UUID().uuidString).jpg"
+            saveImage(thumbData, filename: thumbFilename!)
+        }
+
+        let capture = StudentCapture(
+            studentID: studentID,
+            sessionID: sessionID,
+            type: .video,
+            title: "Video \(importDateStamp())",
+            filename: filename,
+            thumbnailFilename: thumbFilename
+        )
+        addStudentCapture(capture)
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    func addStudentCaptureTextNote(
+        _ text: String,
+        studentID: UUID,
+        sessionID: UUID? = nil,
+        title: String? = nil
+    ) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let capture = StudentCapture(
+            studentID: studentID,
+            sessionID: sessionID,
+            type: .text,
+            title: title ?? "Notiz \(importDateStamp())",
+            textNote: trimmed
+        )
+        addStudentCapture(capture)
+    }
+
+    func deleteStudentCapture(_ capture: StudentCapture) {
+        if let filename = capture.filename {
+            try? FileManager.default.removeItem(at: imageURL(for: filename))
+        }
+        if let thumb = capture.thumbnailFilename {
+            try? FileManager.default.removeItem(at: imageURL(for: thumb))
+        }
+        studentCaptures.removeAll { $0.id == capture.id }
+    }
+
+    private func markLastActive(studentID: UUID, date: Date = Date()) {
+        guard let si = students.firstIndex(where: { $0.id == studentID }) else { return }
+        students[si].lastActiveDate = date
+    }
+
+    private func saveStudentCaptures() {
+        if let data = try? JSONEncoder().encode(studentCaptures) {
+            UserDefaults.standard.set(data, forKey: "al_studentcaptures")
+        }
+    }
+
     // MARK: - Training Sessions
 
     func addSession(_ session: TrainingSession) {
         sessions.insert(session, at: 0)
+        if let sid = session.studentID {
+            markLastActive(studentID: sid, date: session.date)
+        }
     }
 
     func updateSession(_ session: TrainingSession) {
@@ -860,6 +981,21 @@ final class AppStore: ObservableObject {
 
     var receivedSessions: [TrainingSession] {
         sessions.filter { $0.source == .received }.sorted { $0.date > $1.date }
+    }
+
+    var receivedLessons: [Lesson] {
+        lessons.filter { $0.origin == .receivedFromPro }.sorted { $0.dateCreated > $1.dateCreated }
+    }
+
+    var unreadReceivedLessons: [Lesson] {
+        receivedLessons.filter { $0.openedDate == nil }
+    }
+
+    func markLessonOpened(_ lesson: Lesson) {
+        guard let idx = lessons.firstIndex(where: { $0.id == lesson.id }) else { return }
+        if lessons[idx].openedDate == nil {
+            lessons[idx].openedDate = Date()
+        }
     }
 
     // MARK: - Session Export / Import
@@ -937,7 +1073,14 @@ final class AppStore: ObservableObject {
 
     static let lessonShareHint = """
     Grünbuch Lektion — bitte an deinen Schüler senden (AirDrop, WhatsApp oder E-Mail). \
-    Der Schüler tippt die Datei an und sie erscheint in Grünbuch.
+    Der Schüler öffnet die Datei in Grünbuch im Schüler-Modus; sie erscheint unter „Zugewiesen“.
+    """
+
+    static let composerShareHint = """
+    Grünbuch Lernpaket — per AirDrop an deinen Schüler senden (am einfachsten: AirDrop oben wählen). \
+    Der Schüler tippt die .afterlesson-Datei(en) an und öffnet sie in Grünbuch im Schüler-Modus — \
+    die Inhalte erscheinen unter „Zugewiesen“. Einzelne Lektionen oder Nachreichungen können später \
+    separat gesendet werden.
     """
 
     func importFeedbackShare(from url: URL) -> Bool {
@@ -1048,11 +1191,38 @@ final class AppStore: ObservableObject {
             ))
         }
 
+        for capture in studentCaptures.prefix(5) {
+            let studentName = students.first(where: { $0.id == capture.studentID })?.name ?? "Schüler"
+            items.append(ActivityItem(
+                date: capture.date,
+                icon: capture.type.icon,
+                tintHex: capture.type.colorHex,
+                title: "Aufnahme · \(studentName)",
+                subtitle: capture.title.isEmpty ? capture.type.label : capture.title,
+                status: .completed
+            ))
+        }
+
         return Array(items.sorted { $0.date > $1.date }.prefix(limit))
     }
 
     func studentActivityFeed(limit: Int = 8) -> [ActivityItem] {
         var items: [ActivityItem] = []
+
+        for lesson in receivedLessons {
+            let isNew = lesson.openedDate == nil
+            let done = isCompleted(lesson.id)
+            items.append(ActivityItem(
+                date: lesson.dateCreated,
+                icon: done ? "checkmark.circle.fill" : "book.fill",
+                tintHex: done ? "2D6A30" : "E65100",
+                title: lesson.title,
+                subtitle: lesson.receivedFromPro.isEmpty
+                    ? (done ? "Übung abgeschlossen" : "Vom Pro zugewiesen")
+                    : "Von \(lesson.receivedFromPro)",
+                status: isNew ? .new : (done ? .completed : .received)
+            ))
+        }
 
         for session in receivedSessions {
             let isNew = session.openedDate == nil
@@ -1068,7 +1238,7 @@ final class AppStore: ObservableObject {
             ))
         }
 
-        for lesson in lessons {
+        for lesson in lessons where lesson.origin == .local {
             let done = isCompleted(lesson.id)
             items.append(ActivityItem(
                 date: lesson.dateCreated,

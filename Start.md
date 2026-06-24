@@ -18,18 +18,21 @@ Kernfunktion zum Zuweisen vorbereiteter Bibliothek-Inhalte:
 
 1. **Schüler** wählen (ein oder mehrere)
 2. **Datum** festlegen
-3. **Lektionen** aus der Bibliothek auswählen
-4. Optional **Einzelinhalte** aus dem Datenpool
-5. Optional **persönliche Nachricht** (z. B. Lob / Hinweis für die nächste Stunde)
-6. **Zuweisen** — Zuordnung speichern, Verlauf aktualisieren, Share-Sheet zum Senden (AirDrop, WhatsApp, …)
+3. **Inhalte wählen** — Lektionen + Einzelmedien (Film, Bild, Text, PDF, Audio)
+4. Optional **persönliche Nachricht**
+5. **Paket an Schüler senden** — Zuordnung speichern, Share-Sheet (AirDrop empfohlen)
 
-Einzelinhalte ohne Lektion werden als **Lernpaket** gebündelt und mit zugewiesen.
+Einzelinhalte ohne Lektion werden als **Lernpaket** gebündelt. Gemischte Pakete erzeugen mehrere `.afterlesson`-Dateien.
+
+**Nachreichung:** Aus der Schüler-Kartei können später einzelne Lektionen oder Medien nachgeliefert werden — ohne vollständiges Neu-Zusammenstellen.
+
+Details: `Kommunikation.md`
 
 ## Home (Schüler)
 
 - Banner bei neuen Zuweisungen vom Pro
-- Liste **Zugewiesen** mit empfangenen Protokollen / Lektionen
-- Leerzustand erklärt Composer-Empfang
+- Liste **Zugewiesen** mit empfangenen Lektionen und Trainingsprotokollen
+- Leerzustand erklärt AirDrop-Empfang
 
 ## Tab-Leiste
 
@@ -38,11 +41,12 @@ Einzelinhalte ohne Lektion werden als **Lernpaket** gebündelt und mit zugewiese
 | Start | Composer + Bibliothek-Shortcut (Pro) / Zugewiesen (Schüler) |
 | Bibliothek | Lernstoff, Lektionen, Datenpool |
 | Schüler | Schülerverwaltung |
-| Notizen | Pro-Notizen |
+| Notizen | Pro-Notizen (`note.text.badge.plus`) |
 | Einstellungen | Modus, Sperre, Profil |
 
 ## Technik
 
 - `ComposerSheet` in `ContentView.swift`
 - `deliverComposerPackage(…)` in `AppStore.swift`
+- Schüler-Import: `importLesson` markiert Lektionen als `receivedFromPro`
 - UI-Komponenten: `GrünbuchFairwayGraphic`, `GrünbuchHomeActionButton` in `AfterLessonDesign.swift`
