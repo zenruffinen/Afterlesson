@@ -266,8 +266,7 @@ final class AppStore: ObservableObject {
 
     func addNote(title: String = "", text: String = "", audioFilename: String? = nil,
                  studentID: UUID? = nil, groupID: UUID? = nil) {
-        let colors = ["1B5E20", "1565C0", "4A148C", "E65100", "37474F", "880E4F"]
-        let color = colors[proNotes.count % colors.count]
+        let color = ALNoteStyle.palette[proNotes.count % ALNoteStyle.palette.count]
         let note = ProNote(title: title, text: text, audioFilename: audioFilename,
                            assignedStudentID: studentID, assignedGroupID: groupID,
                            colorHex: color)

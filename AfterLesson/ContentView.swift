@@ -162,12 +162,6 @@ struct HomeView: View {
                     value: "",
                     tint: ALColor.gold
                 ) { selectedTab = .lessons }
-                GrünbuchNavPill(
-                    icon: "pencil.tip",
-                    label: "Notizen",
-                    value: "\(store.proNotes.count)",
-                    tint: Color(hex: "C2185B")
-                ) { selectedTab = .notes }
             }
             .padding(.horizontal, 20)
 
@@ -905,19 +899,22 @@ struct PinnedNoteCard: View {
     @EnvironmentObject var store: AppStore
     @State private var showPicker = false
 
+    private var noteTint: Color {
+        store.pinnedNote.map { ALNoteStyle.accent(hex: $0.colorHex) } ?? ALColor.gold
+    }
+
     var body: some View {
         Button { showPicker = true } label: {
             HStack(spacing: 12) {
-                // Pin-Icon
                 ZStack {
                     Circle()
                         .fill(store.pinnedNote != nil
-                              ? Color(hex: store.pinnedNote!.colorHex)
-                              : Color(hex: "C9A84C").opacity(0.15))
+                              ? noteTint.opacity(0.28)
+                              : ALColor.gold.opacity(0.15))
                         .frame(width: 36, height: 36)
                     Image(systemName: "pin.fill")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(store.pinnedNote != nil ? .white : Color(hex: "C9A84C"))
+                        .foregroundStyle(store.pinnedNote != nil ? .white : ALColor.gold)
                         .rotationEffect(.degrees(45))
                 }
 
@@ -925,19 +922,19 @@ struct PinnedNoteCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(note.title.isEmpty ? "Unbenannte Notiz" : note.title)
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Color(hex: "1A1A1A"))
+                            .foregroundStyle(.white)
                             .lineLimit(1)
                         if !note.text.isEmpty {
                             Text(note.text)
                                 .font(.system(size: 12))
-                                .foregroundStyle(Color(hex: "888888"))
+                                .foregroundStyle(.white.opacity(0.60))
                                 .lineLimit(1)
                         }
                     }
                 } else {
                     Text("Wichtige Notiz anheften …")
                         .font(.system(size: 14))
-                        .foregroundStyle(Color(hex: "AAAAAA"))
+                        .foregroundStyle(.white.opacity(0.50))
                 }
 
                 Spacer()
@@ -948,7 +945,7 @@ struct PinnedNoteCard: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Color(hex: "BBBBBB"))
+                            .foregroundStyle(.white.opacity(0.45))
                             .padding(6)
                     }
                     .buttonStyle(.plain)
@@ -956,22 +953,20 @@ struct PinnedNoteCard: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(store.pinnedNote != nil
-                          ? Color(hex: store.pinnedNote!.colorHex).opacity(0.08)
-                          : Color(hex: "F0EDE6"))
+            .alGlass(
+                tint: noteTint.opacity(store.pinnedNote != nil ? 0.22 : 0.15),
+                interactive: true,
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(
                         store.pinnedNote != nil
-                            ? Color(hex: store.pinnedNote!.colorHex).opacity(0.25)
-                            : Color(hex: "C9A84C").opacity(0.35),
-                        style: StrokeStyle(lineWidth: 1.2, dash: store.pinnedNote != nil ? [] : [5, 3])
+                            ? Color.white.opacity(0.18)
+                            : ALColor.gold.opacity(0.30),
+                        style: StrokeStyle(lineWidth: 0.5, dash: store.pinnedNote != nil ? [] : [5, 3])
                     )
             )
-            .shadow(color: Color.black.opacity(store.pinnedNote != nil ? 0.05 : 0), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showPicker) {
@@ -1012,11 +1007,11 @@ struct PinNotePickerSheet: View {
                             HStack(spacing: 14) {
                                 ZStack {
                                     Circle()
-                                        .fill(Color(hex: note.colorHex))
+                                        .fill(ALNoteStyle.accent(hex: note.colorHex).opacity(0.22))
                                         .frame(width: 36, height: 36)
                                     Image(systemName: "pin.fill")
                                         .font(.system(size: 14))
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(ALNoteStyle.accent(hex: note.colorHex))
                                         .rotationEffect(.degrees(45))
                                 }
                                 VStack(alignment: .leading, spacing: 3) {
@@ -5452,20 +5447,21 @@ struct StudentAfterLessonView: View {
     // MARK: Notiz Card
     @ViewBuilder
     func noteCard(_ note: ProNote) -> some View {
+        let tint = ALNoteStyle.accent(hex: note.colorHex)
         HStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(hex: note.colorHex).opacity(0.14))
+                    .fill(tint.opacity(0.15))
                     .frame(width: 44, height: 44)
                 Image(systemName: "pencil.tip")
                     .font(.system(size: 16))
-                    .foregroundStyle(Color(hex: note.colorHex))
+                    .foregroundStyle(tint)
             }
             VStack(alignment: .leading, spacing: 3) {
                 if !note.title.isEmpty {
                     Text(note.title)
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color(hex: "1A1A1A"))
+                        .foregroundStyle(.primary)
                 }
                 if !note.text.isEmpty {
                     Text(note.text)
@@ -5477,9 +5473,8 @@ struct StudentAfterLessonView: View {
             Spacer()
         }
         .padding(14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 1)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
 }
@@ -7671,7 +7666,7 @@ struct NotesView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "note.text")
                             .font(.system(size: 60))
-                            .foregroundStyle(Color(hex: "4A148C").opacity(0.3))
+                            .foregroundStyle(ALColor.green.opacity(0.35))
                         Text("Noch keine Notizen")
                             .font(.title3.bold())
                         Text("Halte Beobachtungen zu Schülern\noder Gruppen fest")
@@ -7682,22 +7677,26 @@ struct NotesView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.systemGroupedBackground))
                 } else {
-                    List {
-                        ForEach(store.proNotes) { note in
-                            Button { selectedNote = note } label: {
-                                NoteRowView(note: note)
-                            }
-                            .foregroundStyle(.primary)
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    store.deleteNote(note)
-                                } label: {
-                                    Label("Löschen", systemImage: "trash")
+                    ScrollView {
+                        LazyVStack(spacing: 10) {
+                            ForEach(store.proNotes) { note in
+                                Button { selectedNote = note } label: {
+                                    NoteRowView(note: note)
+                                }
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        store.deleteNote(note)
+                                    } label: {
+                                        Label("Löschen", systemImage: "trash")
+                                    }
                                 }
                             }
                         }
+                        .padding(16)
+                        .padding(.bottom, 30)
                     }
-                    .listStyle(.insetGrouped)
+                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle("Notizen")
@@ -7706,6 +7705,7 @@ struct NotesView: View {
                     Button { showAddNote = true } label: {
                         Image(systemName: "square.and.pencil")
                     }
+                    .tint(ALColor.green)
                 }
             }
             .sheet(isPresented: $showAddNote) {
@@ -7724,6 +7724,8 @@ struct NoteRowView: View {
     let note: ProNote
     @EnvironmentObject var store: AppStore
 
+    private var tint: Color { ALNoteStyle.accent(hex: note.colorHex) }
+
     var assignmentLabel: String? {
         if let sid = note.assignedStudentID,
            let s = store.students.first(where: { $0.id == sid }) {
@@ -7739,16 +7741,17 @@ struct NoteRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(hex: note.colorHex).opacity(0.15))
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(tint.opacity(0.15))
                     .frame(width: 44, height: 44)
                 Image(systemName: note.audioFilename != nil ? "mic.fill" : "note.text")
                     .font(.system(size: 18))
-                    .foregroundStyle(Color(hex: note.colorHex))
+                    .foregroundStyle(tint)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(note.title.isEmpty ? "Ohne Titel" : note.title)
                     .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 if !note.text.isEmpty {
                     Text(note.text)
@@ -7760,7 +7763,7 @@ struct NoteRowView: View {
                     if let label = assignmentLabel {
                         Label(label, systemImage: note.assignedStudentID != nil ? "graduationcap.fill" : "person.3.sequence.fill")
                             .font(.caption2)
-                            .foregroundStyle(Color(hex: note.colorHex))
+                            .foregroundStyle(tint)
                     }
                     Text(note.dateCreated.formatted(date: .abbreviated, time: .omitted))
                         .font(.caption2)
@@ -7772,7 +7775,9 @@ struct NoteRowView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 4)
+        .padding(14)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -7834,15 +7839,15 @@ struct NoteEditorView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: isRecording ? "stop.circle.fill" : "mic.circle.fill")
                                         .font(.system(size: 22))
-                                        .foregroundStyle(isRecording ? .red : Color(hex: "4A148C"))
+                                        .foregroundStyle(isRecording ? .red : ALColor.green)
                                     Text(isRecording ? "Aufnahme stoppen" : (audioFilename != nil ? "Neu aufnehmen" : "Aufnehmen"))
                                         .font(.subheadline)
-                                        .foregroundStyle(isRecording ? .red : Color(hex: "4A148C"))
+                                        .foregroundStyle(isRecording ? .red : ALColor.green)
                                 }
                                 .padding(12)
                                 .frame(maxWidth: .infinity)
-                                .background(Color(hex: "4A148C").opacity(0.08))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .background(ALColor.green.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
                             .buttonStyle(.plain)
 
@@ -7890,7 +7895,7 @@ struct NoteEditorView: View {
                                                     .font(.subheadline)
                                                     .padding(.horizontal, 14)
                                                     .padding(.vertical, 8)
-                                                    .background(selectedStudentID == student.id ? Color(hex: "1565C0") : Color(.secondarySystemGroupedBackground))
+                                                    .background(selectedStudentID == student.id ? ALColor.green : Color(.secondarySystemGroupedBackground))
                                                     .foregroundStyle(selectedStudentID == student.id ? .white : .primary)
                                                     .clipShape(Capsule())
                                             }
@@ -7946,6 +7951,7 @@ struct NoteEditorView: View {
                     }
                     .bold()
                     .disabled(!canSave)
+                    .tint(ALColor.green)
                 }
             }
         }

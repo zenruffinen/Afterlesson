@@ -224,6 +224,23 @@ struct AfterLessonGlassMark: View {
     }
 }
 
+// MARK: - Note Colors (Grünbuch-Palette)
+
+enum ALNoteStyle {
+    static let palette: [String] = [
+        "2D6A30", "1B4D1F", "1565C0", "B8860B",
+        "3A8A3E", "37474F", "E65100", "00695C"
+    ]
+
+    static func accent(hex: String) -> Color {
+        switch hex.uppercased() {
+        case "4A148C": return Color(hex: "3A8A3E")
+        case "880E4F", "C2185B": return ALColor.gold
+        default: return Color(hex: hex)
+        }
+    }
+}
+
 // MARK: - Status Badge
 
 struct ShareStatusBadge: View {
