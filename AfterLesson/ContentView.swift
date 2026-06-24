@@ -258,6 +258,19 @@ struct HomeView: View {
     // MARK: Student Content (kein Scroll)
     var studentContent: some View {
         VStack(spacing: 0) {
+            if !store.unreadReceivedSessions.isEmpty {
+                NewFromProBanner(
+                    count: store.unreadReceivedSessions.count,
+                    teacherName: store.unreadReceivedSessions.first?.teacherName ?? ""
+                ) {
+                    if let session = store.unreadReceivedSessions.first {
+                        selectedSession = session
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+            }
+
             ActivityFeedSection(items: store.studentActivityFeed())
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -274,12 +287,54 @@ struct HomeView: View {
                         .foregroundStyle(Color(hex: "666666"))
                         .padding(.horizontal, 20)
                     ForEach(store.receivedSessions.prefix(5)) { session in
-                        sessionRow(session).padding(.horizontal, 20)
+                        studentSessionRow(session).padding(.horizontal, 20)
                     }
                 }
             }
             Spacer(minLength: 16)
         }
+    }
+
+    @ViewBuilder
+    func studentSessionRow(_ session: TrainingSession) -> some View {
+        Button { selectedSession = session } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(ALColor.green.opacity(0.10))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "figure.golf")
+                        .font(.system(size: 15))
+                        .foregroundStyle(ALColor.green)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(session.title.isEmpty ? "Trainingsstunde" : session.title)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color(hex: "1A1A1A")).lineLimit(1)
+                        if session.openedDate == nil {
+                            Text("Neu")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(ALColor.gold)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(ALColor.gold.opacity(0.14), in: Capsule())
+                        }
+                    }
+                    if !session.teacherName.isEmpty {
+                        Text("von \(session.teacherName)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color(hex: "AAAAAA"))
+                    }
+                }
+                Spacer()
+                Text(session.date, style: .date).font(.system(size: 11)).foregroundStyle(Color(hex: "CCCCCC"))
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 1)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Nav Tile
@@ -694,6 +749,57 @@ struct SessionRowView: View {
             .padding(12)
             .background(Color(.secondarySystemGroupedBackground))
             .cornerRadius(12)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - New From Pro Banner
+
+struct NewFromProBanner: View {
+    let count: Int
+    let teacherName: String
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(ALColor.gold.opacity(0.18))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "envelope.badge.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(ALColor.gold)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(teacherName.isEmpty ? "Neu von deinem Pro" : "Neu von \(teacherName)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
+                    Text(count == 1
+                         ? "1 Trainingsprotokoll wartet auf dich"
+                         : "\(count) Trainingsprotokolle warten auf dich")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(hex: "888888"))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(ALColor.gold)
+            }
+            .padding(14)
+            .background(
+                LinearGradient(
+                    colors: [ALColor.gold.opacity(0.14), ALColor.green.opacity(0.08)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 14)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(ALColor.gold.opacity(0.35), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
@@ -3259,6 +3365,9 @@ struct LessonDetailView: View {
     @State private var previewIndex: Int? = nil
     @State private var selectedPoolItem: ContentItem? = nil
     @State private var showAddPoolContent = false
+    @State private var showFeedbackSheet = false
+    @State private var feedbackShareItems: [Any] = []
+    @State private var showFeedbackShareSheet = false
 
     init(lesson: Lesson, onEdit: (() -> Void)? = nil) {
         self.lesson = lesson
@@ -3352,7 +3461,7 @@ struct LessonDetailView: View {
                         tipsSection
                     }
 
-                    // Als erledigt markieren (Schüler)
+                    // Als erledigt markieren + Rückmeldung (Schüler)
                     if !isTeacher {
                         Button {
                             store.markCompleted(lesson.id)
@@ -3367,6 +3476,20 @@ struct LessonDetailView: View {
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
+
+                        Button { showFeedbackSheet = true } label: {
+                            Label("Rückmeldung an deinen Pro", systemImage: "paperplane.fill")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(ALColor.gold.opacity(0.15))
+                                .foregroundStyle(ALColor.gold)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .strokeBorder(ALColor.gold.opacity(0.35), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(16)
@@ -3476,6 +3599,23 @@ struct LessonDetailView: View {
                 ContentPoolPickerView(initialSelection: currentLesson.contentItemIDs) { newSelection in
                     currentLesson.contentItemIDs = newSelection
                     store.updateLesson(currentLesson)
+                }
+            }
+            .sheet(isPresented: $showFeedbackSheet) {
+                StudentFeedbackSheet(
+                    lessonTitle: currentLesson.title,
+                    sessionTitle: nil
+                ) { items in
+                    feedbackShareItems = items
+                    showFeedbackShareSheet = true
+                }
+            }
+            .sheet(isPresented: $showFeedbackShareSheet) {
+                ShareSheet(items: feedbackShareItems)
+            }
+            .onAppear {
+                if !isTeacher {
+                    store.recordLessonOpened(currentLesson)
                 }
             }
         }
@@ -5740,6 +5880,9 @@ struct SessionDetailSheet: View {
 
     @State private var shareItems: [Any] = []
     @State private var showShareSheet = false
+    @State private var showFeedbackSheet = false
+    @State private var feedbackShareItems: [Any] = []
+    @State private var showFeedbackShareSheet = false
 
     var studentName: String? {
         guard let id = session.studentID else { return nil }
@@ -5800,7 +5943,7 @@ struct SessionDetailSheet: View {
                     if session.source == .created {
                         Button {
                             if let url = store.exportSession(session) {
-                                shareItems = [url]
+                                shareItems = [AppStore.sessionShareHint, url]
                                 showShareSheet = true
                             }
                         } label: {
@@ -5814,6 +5957,28 @@ struct SessionDetailSheet: View {
                             .background(ALColor.gold)
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 8)
+                    }
+
+                    // Rückmeldung (Schüler, empfangenes Protokoll)
+                    if session.source == .received {
+                        Button { showFeedbackSheet = true } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "hand.thumbsup.fill")
+                                Text("Rückmeldung an deinen Pro")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(14)
+                            .background(ALColor.gold.opacity(0.15))
+                            .foregroundStyle(ALColor.gold)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .strokeBorder(ALColor.gold.opacity(0.35), lineWidth: 1)
+                            )
                         }
                         .buttonStyle(.plain)
                         .padding(.top, 8)
@@ -5833,6 +5998,23 @@ struct SessionDetailSheet: View {
             }
             .sheet(isPresented: $showShareSheet) {
                 ShareSheet(items: shareItems)
+            }
+            .sheet(isPresented: $showFeedbackSheet) {
+                StudentFeedbackSheet(
+                    lessonTitle: nil,
+                    sessionTitle: session.title.isEmpty ? "Trainingsprotokoll" : session.title
+                ) { items in
+                    feedbackShareItems = items
+                    showFeedbackShareSheet = true
+                }
+            }
+            .sheet(isPresented: $showFeedbackShareSheet) {
+                ShareSheet(items: feedbackShareItems)
+            }
+            .onAppear {
+                if session.source == .received {
+                    store.markSessionOpened(session)
+                }
             }
         }
         .presentationDetents([.large])
@@ -6451,16 +6633,20 @@ struct StudentDetailView: View {
                 }
             }
 
-            // Schüler-Anmerkungen
+            // Letzte Schüler-Rückmeldung (wird per Import aktualisiert)
             Section {
-                TextField("Notizen des Schülers für den Pro…", text: Binding(
-                    get: { currentStudent.remarks },
-                    set: { newVal in var u = currentStudent; u.remarks = newVal; store.updateStudent(u) }
-                ), axis: .vertical)
-                .lineLimit(3...6)
-                .font(.subheadline)
+                if currentStudent.remarks.isEmpty && currentStudent.feedbackHistory.isEmpty {
+                    Text("Noch keine Rückmeldung — der Schüler sendet sie als .afterlessonfeedback-Datei.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(currentStudent.remarks.isEmpty
+                         ? (currentStudent.feedbackHistory.first?.message ?? "")
+                         : currentStudent.remarks)
+                        .font(.subheadline)
+                }
             } header: {
-                Label("Anmerkungen des Schülers", systemImage: "text.bubble")
+                Label("Letzte Rückmeldung", systemImage: "text.bubble")
             }
         }
         .listStyle(.insetGrouped)
@@ -6582,6 +6768,39 @@ struct StudentDetailView: View {
             } header: {
                 Label("Dokumentierte Stunden (\(trainingSessions.count))", systemImage: "figure.golf")
                     .foregroundStyle(ALColor.green)
+            }
+
+            // Schüler-Rückmeldungen (importiert)
+            if !currentStudent.feedbackHistory.isEmpty {
+                Section {
+                    ForEach(currentStudent.feedbackHistory) { entry in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Image(systemName: entry.kind.icon)
+                                    .foregroundStyle(ALColor.gold)
+                                Text(entry.date.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.subheadline.bold())
+                                Spacer()
+                                Text(entry.kind.label)
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(ALColor.gold)
+                                    .padding(.horizontal, 8).padding(.vertical, 3)
+                                    .background(ALColor.gold.opacity(0.12), in: Capsule())
+                            }
+                            Text(entry.message)
+                                .font(.subheadline)
+                            if !entry.viewedLessonTitles.isEmpty {
+                                Text("Gelesen: \(entry.viewedLessonTitles.joined(separator: ", "))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } header: {
+                    Label("Rückmeldungen (\(currentStudent.feedbackHistory.count))", systemImage: "text.bubble.fill")
+                        .foregroundStyle(ALColor.gold)
+                }
             }
 
             // Gesendet-Verlauf
@@ -7357,6 +7576,110 @@ struct ImagePreviewView: View {
     }
 }
 
+// MARK: - Student Feedback Sheet
+
+struct StudentFeedbackSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+    let lessonTitle: String?
+    let sessionTitle: String?
+    let onSend: ([Any]) -> Void
+
+    @State private var selectedKind: FeedbackKind = .thanks
+    @State private var message: String = FeedbackKind.thanks.presetMessage
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Deine Nachricht geht als Datei an deinen Pro — per AirDrop, WhatsApp oder E-Mail. Er sieht sie im Aktivitäts-Feed.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("Schnellantwort") {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(FeedbackKind.allCases.filter { $0 != .custom }, id: \.self) { kind in
+                                Button {
+                                    selectedKind = kind
+                                    message = kind.presetMessage
+                                } label: {
+                                    Label(kind.label, systemImage: kind.icon)
+                                        .font(.caption.bold())
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            selectedKind == kind
+                                                ? ALColor.gold.opacity(0.2)
+                                                : Color(.secondarySystemGroupedBackground),
+                                            in: Capsule()
+                                        )
+                                        .foregroundStyle(selectedKind == kind ? ALColor.gold : .primary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                }
+
+                Section("Deine Nachricht") {
+                    TextField("Schreib deinem Pro…", text: $message, axis: .vertical)
+                        .lineLimit(3...6)
+                        .onChange(of: message) { _, newVal in
+                            if newVal != selectedKind.presetMessage {
+                                selectedKind = .custom
+                            }
+                        }
+                }
+
+                if lessonTitle != nil || sessionTitle != nil {
+                    Section("Bezug") {
+                        if let lessonTitle {
+                            Label(lessonTitle, systemImage: "book.fill")
+                        }
+                        if let sessionTitle {
+                            Label(sessionTitle, systemImage: "doc.text.fill")
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Rückmeldung")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        sendFeedback()
+                    } label: {
+                        Label("Senden", systemImage: "paperplane.fill")
+                    }
+                    .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    private func sendFeedback() {
+        guard let url = store.exportFeedback(
+            kind: selectedKind,
+            message: message,
+            lessonTitle: lessonTitle,
+            sessionTitle: sessionTitle
+        ) else { return }
+        let items: [Any] = [AppStore.feedbackShareHint, url]
+        dismiss()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            onSend(items)
+        }
+    }
+}
+
 // MARK: - Send With Note Sheet
 
 struct SendWithNoteSheet: View {
@@ -7419,7 +7742,7 @@ struct SendWithNoteSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        var items: [Any] = []
+                        var items: [Any] = [AppStore.lessonShareHint]
                         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
                         if !trimmed.isEmpty {
                             let dateStr = Date().formatted(date: .long, time: .omitted)

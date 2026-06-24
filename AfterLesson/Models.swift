@@ -25,7 +25,8 @@ struct Student: Identifiable, Codable, Hashable {
     var viewedLessonIDs: [UUID] = []      // Vom Lehrer als "gesehen" markierte Lektionen
     var lastActiveDate: Date? = nil       // Letzter Kontakt (beim Senden aktualisiert)
     var sentHistory: [SentPackage] = []  // Verlauf aller gesendeten Pakete
-    var remarks: String = ""             // Anmerkungen des Schülers für den Pro
+    var remarks: String = ""             // Letzte Anmerkung des Schülers (Spiegel der neuesten Rückmeldung)
+    var feedbackHistory: [StudentFeedbackEntry] = []  // Chronologie importierter Schüler-Rückmeldungen
 }
 
 // MARK: - Lesson Category (Themen)
@@ -298,6 +299,63 @@ struct TrainingSession: Identifiable, Codable {
     var imageFilenames: [String] = []   // Fotos zur Stunde
     var source: SessionSource = .created
     var teacherName: String = ""        // Name des Pros (bei empfangenen Sessions)
+    var openedDate: Date? = nil         // Wann der Schüler das Protokoll geöffnet hat (Lesestatus)
+}
+
+// MARK: - Student Feedback (Rückmeldung Schüler → Pro)
+
+enum FeedbackKind: String, Codable, CaseIterable {
+    case thanks, practiced, question, completed, custom
+
+    var label: String {
+        switch self {
+        case .thanks:     return "Danke!"
+        case .practiced:  return "Geübt"
+        case .question:   return "Frage"
+        case .completed:  return "Erledigt"
+        case .custom:     return "Eigene Nachricht"
+        }
+    }
+
+    var presetMessage: String {
+        switch self {
+        case .thanks:     return "Danke für die Lektion — ich habe sie angeschaut!"
+        case .practiced:  return "Habe die Übungen schon einmal durchprobiert."
+        case .question:   return "Ich habe noch eine Frage dazu…"
+        case .completed:  return "Alles erledigt — bereit für die nächste Stunde!"
+        case .custom:     return ""
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .thanks:     return "hand.thumbsup.fill"
+        case .practiced:  return "figure.golf"
+        case .question:   return "questionmark.bubble.fill"
+        case .completed:  return "checkmark.circle.fill"
+        case .custom:     return "text.bubble.fill"
+        }
+    }
+}
+
+struct StudentFeedbackEntry: Identifiable, Codable, Hashable {
+    var id = UUID()
+    var date: Date = Date()
+    var kind: FeedbackKind
+    var message: String
+    var lessonTitle: String?
+    var sessionTitle: String?
+    var viewedLessonTitles: [String] = []
+}
+
+struct AfterLessonFeedbackShare: Codable {
+    var studentName: String
+    var message: String
+    var kind: FeedbackKind
+    var lessonTitle: String?
+    var sessionTitle: String?
+    var viewedLessonTitles: [String] = []
+    var exportDate: Date
 }
 
 // MARK: - Session Share Package

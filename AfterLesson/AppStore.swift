@@ -500,6 +500,31 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func recordLessonOpened(_ lesson: Lesson) {
+        if let idx = progress.firstIndex(where: { $0.lessonID == lesson.id }) {
+            progress[idx].dateViewed = Date()
+        } else {
+            progress.append(StudentProgress(lessonID: lesson.id, dateViewed: Date()))
+        }
+    }
+
+    /// Lektionstitel, die der Schüler auf diesem Gerät bereits geöffnet oder abgeschlossen hat.
+    func studentViewedLessonTitles() -> [String] {
+        let viewedIDs = Set(progress.map(\.lessonID))
+        return lessons.filter { viewedIDs.contains($0.id) }.map(\.title)
+    }
+
+    func markSessionOpened(_ session: TrainingSession) {
+        guard session.source == .received,
+              let idx = sessions.firstIndex(where: { $0.id == session.id }),
+              sessions[idx].openedDate == nil else { return }
+        sessions[idx].openedDate = Date()
+    }
+
+    var unreadReceivedSessions: [TrainingSession] {
+        receivedSessions.filter { $0.openedDate == nil }
+    }
+
     func isCompleted(_ lessonID: UUID) -> Bool {
         progress.first(where: { $0.lessonID == lessonID })?.isCompleted ?? false
     }
@@ -810,8 +835,99 @@ final class AppStore: ObservableObject {
         session.id = UUID()
         session.source = .received
         session.teacherName = package.teacherName
+        session.openedDate = nil
         sessions.insert(session, at: 0)
         return true
+    }
+
+    // MARK: - Student Feedback Export / Import
+
+    func exportFeedback(
+        kind: FeedbackKind,
+        message: String,
+        lessonTitle: String? = nil,
+        sessionTitle: String? = nil
+    ) -> URL? {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let package = AfterLessonFeedbackShare(
+            studentName: teacherName.isEmpty ? "Schüler" : teacherName,
+            message: trimmed,
+            kind: kind,
+            lessonTitle: lessonTitle,
+            sessionTitle: sessionTitle,
+            viewedLessonTitles: studentViewedLessonTitles(),
+            exportDate: Date()
+        )
+        guard let data = try? JSONEncoder().encode(package) else { return nil }
+        let safeName = (teacherName.isEmpty ? "Rueckmeldung" : teacherName)
+            .replacingOccurrences(of: " ", with: "_")
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AfterLesson_\(safeName).afterlessonfeedback")
+        try? data.write(to: url)
+        return url
+    }
+
+    static let feedbackShareHint = """
+    AfterLesson Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). \
+    Er öffnet die Datei in AfterLesson und sieht deine Nachricht im Aktivitäts-Feed.
+    """
+
+    static let sessionShareHint = """
+    AfterLesson Trainingsprotokoll — bitte an deinen Schüler senden (AirDrop, WhatsApp oder E-Mail). \
+    Der Schüler öffnet die Datei in AfterLesson im Schüler-Modus.
+    """
+
+    static let lessonShareHint = """
+    AfterLesson Lektion — bitte an deinen Schüler senden (AirDrop, WhatsApp oder E-Mail). \
+    Der Schüler tippt die Datei an und sie erscheint in AfterLesson.
+    """
+
+    func importFeedbackShare(from url: URL) -> Bool {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url),
+              let package = try? JSONDecoder().decode(AfterLessonFeedbackShare.self, from: data)
+        else { return false }
+
+        let name = package.studentName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return false }
+
+        let entry = StudentFeedbackEntry(
+            date: package.exportDate,
+            kind: package.kind,
+            message: package.message,
+            lessonTitle: package.lessonTitle,
+            sessionTitle: package.sessionTitle,
+            viewedLessonTitles: package.viewedLessonTitles
+        )
+
+        if let si = students.firstIndex(where: { $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame }) {
+            students[si].feedbackHistory.insert(entry, at: 0)
+            students[si].remarks = package.message
+            students[si].lastActiveDate = package.exportDate
+            applyViewedLessonTitles(package.viewedLessonTitles, toStudentAt: si)
+        } else {
+            var student = Student(name: name)
+            student.feedbackHistory = [entry]
+            student.remarks = package.message
+            student.lastActiveDate = package.exportDate
+            students.append(student)
+            if let si = students.firstIndex(where: { $0.id == student.id }) {
+                applyViewedLessonTitles(package.viewedLessonTitles, toStudentAt: si)
+            }
+        }
+        return true
+    }
+
+    private func applyViewedLessonTitles(_ titles: [String], toStudentAt si: Int) {
+        guard si < students.count, !titles.isEmpty else { return }
+        let titleSet = Set(titles)
+        for lesson in lessons where titleSet.contains(lesson.title) {
+            if !students[si].viewedLessonIDs.contains(lesson.id) {
+                students[si].viewedLessonIDs.append(lesson.id)
+            }
+        }
     }
 
     private func saveSessions() {
@@ -848,6 +964,17 @@ final class AppStore: ObservableObject {
                     status: .new
                 ))
             }
+            for entry in student.feedbackHistory.prefix(3) {
+                if entry.message == student.remarks { continue }
+                items.append(ActivityItem(
+                    date: entry.date,
+                    icon: entry.kind.icon,
+                    tintHex: "880E4F",
+                    title: "Rückmeldung von \(student.name)",
+                    subtitle: entrySubtitle(entry),
+                    status: .new
+                ))
+            }
         }
 
         for session in createdSessions {
@@ -871,6 +998,7 @@ final class AppStore: ObservableObject {
         var items: [ActivityItem] = []
 
         for session in receivedSessions {
+            let isNew = session.openedDate == nil
             items.append(ActivityItem(
                 date: session.date,
                 icon: "doc.text.fill",
@@ -879,7 +1007,7 @@ final class AppStore: ObservableObject {
                 subtitle: session.homework.isEmpty
                     ? (session.title.isEmpty ? "Dein letztes Training" : session.title)
                     : session.homework,
-                status: .received
+                status: isNew ? .new : .received
             ))
         }
 
@@ -907,5 +1035,16 @@ final class AppStore: ObservableObject {
         if sentTitles.isSubset(of: viewedTitles) { return .completed }
         if !sentTitles.isDisjoint(with: viewedTitles) { return .inProgress }
         return .sent
+    }
+
+    private func entrySubtitle(_ entry: StudentFeedbackEntry) -> String {
+        var parts: [String] = [entry.message]
+        if let lesson = entry.lessonTitle, !lesson.isEmpty {
+            parts.append("Lektion: \(lesson)")
+        }
+        if !entry.viewedLessonTitles.isEmpty {
+            parts.append("Gelesen: \(entry.viewedLessonTitles.joined(separator: ", "))")
+        }
+        return String(parts.joined(separator: " · ").prefix(120))
     }
 }

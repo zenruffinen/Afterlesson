@@ -43,6 +43,18 @@
 				<string>com.hansruffin.afterlesson.folderpackage</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>AfterLesson Rückmeldung</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.hansruffin.afterlesson.feedback</string>
+			</array>
+		</dict>
 	</array>
 	<!-- Eigene Dateitypen (UTIs) für die AfterLesson-Pakete deklarieren -->
 	<key>UTExportedTypeDeclarations</key>
@@ -98,6 +110,24 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>afterlessonfolder</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.hansruffin.afterlesson.feedback</string>
+			<key>UTTypeDescription</key>
+			<string>AfterLesson Rückmeldung</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>afterlessonfeedback</string>
 				</array>
 			</dict>
 		</dict>
