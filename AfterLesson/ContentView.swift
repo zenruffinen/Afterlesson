@@ -43,9 +43,9 @@ struct AfterLessonTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            tabItem(.home,     icon: "house.fill",           label: "Start")
-            tabItem(.lessons,  icon: "square.grid.2x2.fill", label: "Datenpool")
-            tabItem(.students, icon: "figure.golf",          label: "Schüler")
+            tabItem(.home,     icon: "house.fill",            label: "Start")
+            tabItem(.lessons,  icon: "books.vertical.fill",   label: "Bibliothek", subtitle: "Lernstoff")
+            tabItem(.students, icon: "figure.golf",           label: "Schüler")
             tabItem(.notes,    icon: "pencil.tip",           label: "Notizen")
             tabItem(.settings, icon: "gearshape.fill",       label: "Einstellungen")
         }
@@ -57,14 +57,14 @@ struct AfterLessonTabBar: View {
     }
 
     @ViewBuilder
-    func tabItem(_ tab: ContentView.Tab, icon: String, label: String) -> some View {
+    func tabItem(_ tab: ContentView.Tab, icon: String, label: String, subtitle: String? = nil) -> some View {
         Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 selected = tab
             }
         } label: {
             let isSelected = selected == tab
-            VStack(spacing: 4) {
+            VStack(spacing: subtitle == nil ? 4 : 2) {
                 Image(systemName: icon)
                     .font(.system(size: 21, weight: isSelected ? .bold : .regular))
                     .foregroundStyle(isSelected ? ALColor.gold : Color.white.opacity(0.45))
@@ -74,6 +74,13 @@ struct AfterLessonTabBar: View {
                     .foregroundStyle(isSelected ? ALColor.gold : Color.white.opacity(0.45))
                     .lineLimit(1)
                     .minimumScaleFactor(0.65)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 7, weight: .regular))
+                        .foregroundStyle(isSelected ? ALColor.gold.opacity(0.75) : Color.white.opacity(0.35))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                }
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 10)
@@ -149,9 +156,10 @@ struct HomeView: View {
                     tint: ALColor.green
                 ) { selectedTab = .students }
                 GrünbuchNavPill(
-                    icon: "square.grid.2x2.fill",
-                    label: "Datenpool",
-                    value: "\(store.contentPool.count)",
+                    icon: "books.vertical.fill",
+                    label: "Bibliothek",
+                    subtitle: "Lernstoff",
+                    value: "",
                     tint: ALColor.gold
                 ) { selectedTab = .lessons }
                 GrünbuchNavPill(
@@ -558,23 +566,11 @@ struct AfterLessonOrb: View {
                     }
                 }
                 .frame(width: 200, height: 200)
-
-                VStack(spacing: 4) {
-                    Text("Stunde erfassen")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                    Text("Tippen zum Starten")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.55))
-                        .tracking(0.2)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .alGlass(tint: ALColor.green.opacity(0.25), in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5))
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Stunde erfassen")
+        .accessibilityHint("Tippen zum Starten")
     }
 }
 
@@ -1253,7 +1249,8 @@ struct DatenpoolView: View {
                 }
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Datenpool")
+            .navigationTitle("Bibliothek")
+            .navigationSubtitle("Lernstoff")
             .searchable(text: $searchText, prompt: "Inhalte suchen")
             .sheet(isPresented: $showNewClassSheet) {
                 ContentClassEditorSheet(existingClass: nil)
@@ -1485,10 +1482,10 @@ struct DatenpoolView: View {
 
     var emptyState: some View {
         VStack(spacing: 16) {
-            Image(systemName: "folder.fill.badge.plus")
+            Image(systemName: "books.vertical.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(ALColor.green.opacity(0.35))
-            Text("Datenpool ist leer")
+            Text("Bibliothek ist leer")
                 .font(.title3.bold())
             Text("Lege Klassen an, um deine Inhalte zu strukturieren –\nz.B. Abschlag, Putten oder Theorie")
                 .font(.subheadline)
@@ -2470,7 +2467,7 @@ struct ContentItemDetailView: View {
                 }
             }
             if tags.isEmpty {
-                Text("Noch keinem Thema zugeordnet. Ordne diesen Inhalt z. B. „Putting“ oder „Anfänger“ zu, um ihn im Datenpool leichter wiederzufinden und beim Zusammenstellen einer Lektion zu gruppieren.")
+                Text("Noch keinem Thema zugeordnet. Ordne diesen Inhalt z. B. „Putting“ oder „Anfänger“ zu, um ihn in der Bibliothek leichter wiederzufinden und beim Zusammenstellen einer Lektion zu gruppieren.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2531,7 +2528,7 @@ struct AddToLessonSheet: View {
                         Image(systemName: "book.closed")
                             .font(.system(size: 48))
                             .foregroundStyle(.secondary)
-                        Text("Lege zuerst eine Lektion an, um Inhalte aus dem Datenpool nachzuliefern.")
+                        Text("Lege zuerst eine Lektion an, um Inhalte aus der Bibliothek nachzuliefern.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -2541,7 +2538,7 @@ struct AddToLessonSheet: View {
                 } else {
                     List {
                         Section {
-                            Text("Wähle eine oder mehrere Lektionen — „\(item.title)“ wird dort als weiterer Inhalt aus dem Datenpool ergänzt, auch wenn die Lektion bereits einem Schüler zugewiesen ist.")
+                            Text("Wähle eine oder mehrere Lektionen — „\(item.title)“ wird dort als weiterer Inhalt aus der Bibliothek ergänzt, auch wenn die Lektion bereits einem Schüler zugewiesen ist.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -2622,7 +2619,7 @@ struct TagEditorSheet: View {
                             .disabled(newThemeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 } footer: {
-                    Text("Inhalte mit demselben Thema lassen sich im Datenpool gemeinsam anzeigen und beim Zusammenstellen einer Lektion leichter wiederfinden.")
+                    Text("Inhalte mit demselben Thema lassen sich in der Bibliothek gemeinsam anzeigen und beim Zusammenstellen einer Lektion leichter wiederfinden.")
                 }
 
                 if !themes.isEmpty {
@@ -2641,7 +2638,7 @@ struct TagEditorSheet: View {
                 }
 
                 if !availableSuggestions.isEmpty {
-                    Section("Bereits im Datenpool verwendet") {
+                    Section("Bereits in der Bibliothek verwendet") {
                         ForEach(availableSuggestions, id: \.self) { theme in
                             Button {
                                 themes.append(theme)
@@ -3236,7 +3233,7 @@ struct LessonCardView: View {
                         .lineLimit(2)
 
                     if !poolItems.isEmpty {
-                        Label("\(poolItems.count) aus Datenpool", systemImage: "square.grid.2x2.fill")
+                        Label("\(poolItems.count) aus Bibliothek", systemImage: "books.vertical.fill")
                             .font(.caption)
                             .foregroundStyle(ALColor.fairway)
                     }
@@ -3296,7 +3293,7 @@ struct LessonDetailView: View {
     var poolContentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("Inhalte aus dem Datenpool", systemImage: "square.grid.2x2.fill")
+                Label("Inhalte aus der Bibliothek", systemImage: "books.vertical.fill")
                     .font(.headline)
                     .foregroundStyle(ALColor.green)
                 Spacer()
@@ -3309,12 +3306,12 @@ struct LessonDetailView: View {
                             .foregroundStyle(ALColor.green)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Inhalte aus dem Datenpool ergänzen")
+                    .accessibilityLabel("Inhalte aus der Bibliothek ergänzen")
                 }
             }
 
             if poolItems.isEmpty {
-                Text("Noch keine Inhalte aus dem Datenpool zugeordnet. Du kannst jederzeit weitere Bilder, Videos, PDFs, Audios oder Texte nachliefern.")
+                Text("Noch keine Inhalte aus der Bibliothek zugeordnet. Du kannst jederzeit weitere Bilder, Videos, PDFs, Audios oder Texte nachliefern.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -3667,7 +3664,7 @@ struct LessonRowView: View {
         if !lesson.steps.isEmpty { parts.append("\(lesson.steps.count) Schritte") }
         if !lesson.tips.isEmpty { parts.append("\(lesson.tips.count) Tipps") }
         let poolCount = store.contentItems(for: lesson).count
-        if poolCount > 0 { parts.append("\(poolCount) aus Datenpool") }
+        if poolCount > 0 { parts.append("\(poolCount) aus Bibliothek") }
         return parts.isEmpty ? "Lektion" : parts.joined(separator: " · ")
     }
 
@@ -5342,7 +5339,14 @@ struct StudentAfterLessonView: View {
         .background(Color(hex: "F0EDE6"))
         .navigationTitle(student.name)
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) { captureBar }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: onCapture) {
+                    Label("Stunde erfassen", systemImage: "mic.fill")
+                }
+                .tint(ALColor.gold)
+            }
+        }
     }
 
     // MARK: Banner
@@ -5478,35 +5482,6 @@ struct StudentAfterLessonView: View {
         .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 1)
     }
 
-    // MARK: Capture Bar
-    var captureBar: some View {
-        Button(action: onCapture) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(LinearGradient(
-                            colors: [Color(hex: "D4A840"), Color(hex: "8B6410")],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        ))
-                        .frame(width: 38, height: 38)
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                Text("Stunde erfassen")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(ALColor.gold.opacity(0.8))
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .background(ALColor.green)
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 // MARK: - Quick Capture Sheet
@@ -7061,11 +7036,11 @@ struct LessonEditorView: View {
                     // ── Inhalte aus dem Datenpool ──
                     editorCard {
                         VStack(alignment: .leading, spacing: 10) {
-                            Label("Inhalte aus dem Datenpool", systemImage: "square.grid.2x2.fill")
+                            Label("Inhalte aus der Bibliothek", systemImage: "books.vertical.fill")
                                 .font(.caption.bold()).foregroundStyle(.secondary)
 
                             if poolContentItems.isEmpty {
-                                Text("Stelle diese Lektion aus Bildern, Videos, PDFs oder Audio zusammen, die du bereits in deinem Datenpool gesammelt hast.")
+                                Text("Stelle diese Lektion aus Bildern, Videos, PDFs oder Audio zusammen, die du bereits in deiner Bibliothek gesammelt hast.")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             } else {
@@ -7092,7 +7067,7 @@ struct LessonEditorView: View {
                             Button { showPoolPicker = true } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: "tray.full.fill")
-                                    Text(poolContentItems.isEmpty ? "Aus Datenpool auswählen" : "Auswahl bearbeiten")
+                                    Text(poolContentItems.isEmpty ? "Aus Bibliothek auswählen" : "Auswahl bearbeiten")
                                 }
                                 .font(.subheadline)
                                 .foregroundStyle(ALColor.green)
@@ -7319,8 +7294,8 @@ struct ContentPoolPickerView: View {
         NavigationStack {
             Group {
                 if store.contentPool.isEmpty {
-                    ContentUnavailableView("Datenpool ist leer", systemImage: "tray",
-                                           description: Text("Importiere zuerst Inhalte im Datenpool-Tab — danach kannst du sie hier für Lektionen auswählen."))
+                    ContentUnavailableView("Bibliothek ist leer", systemImage: "books.vertical.fill",
+                                           description: Text("Importiere zuerst Inhalte im Bibliothek-Tab — danach kannst du sie hier für Lektionen auswählen."))
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {

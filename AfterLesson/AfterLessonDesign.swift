@@ -146,6 +146,7 @@ struct GrünbuchHomeHeader: View {
 struct GrünbuchNavPill: View {
     let icon: String
     let label: String
+    var subtitle: String? = nil
     let value: String
     let tint: Color
     let action: () -> Void
@@ -164,7 +165,11 @@ struct GrünbuchNavPill: View {
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.65)
-                    if !value.isEmpty {
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundStyle(.white.opacity(0.45))
+                    } else if !value.isEmpty {
                         Text(value)
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.white.opacity(0.55))

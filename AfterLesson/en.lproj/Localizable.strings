@@ -1,11 +1,22 @@
 /* Tab Bar */
 "Start" = "Home";
+"Bibliothek" = "Library";
+"Lernstoff" = "Learning material";
 "Vorlagen" = "Templates";
 "Klassen" = "Learning Paths";
 "Schüler" = "Students";
 "Einstellungen" = "Settings";
 "Fortschritt" = "Progress";
 "Lektionen" = "Lessons";
+
+/* Bibliothek (formerly Datenpool) */
+"Bibliothek ist leer" = "Library is empty";
+"Inhalte aus der Bibliothek" = "Content from the library";
+"Inhalte aus der Bibliothek ergänzen" = "Add content from the library";
+"Noch keine Inhalte aus der Bibliothek zugeordnet. Du kannst jederzeit weitere Bilder, Videos, PDFs, Audios oder Texte nachliefern." = "No library content assigned yet. You can add more images, videos, PDFs, audio, or text at any time.";
+"Aus Bibliothek auswählen" = "Select from library";
+"Bereits in der Bibliothek verwendet" = "Already used in the library";
+"Importiere zuerst Inhalte im Bibliothek-Tab — danach kannst du sie hier für Lektionen auswählen." = "First import content in the Library tab — then you can select it here for lessons.";
 
 /* Home */
 "Golf Pro" = "Golf Pro";

@@ -1,11 +1,22 @@
 /* Tab Bar */
 "Start" = "Start";
+"Bibliothek" = "Bibliothek";
+"Lernstoff" = "Lernstoff";
 "Vorlagen" = "Vorlagen";
 "Klassen" = "Klassen";
 "Schüler" = "Schüler";
 "Einstellungen" = "Einstellungen";
 "Fortschritt" = "Fortschritt";
 "Lektionen" = "Lektionen";
+
+/* Bibliothek (ehem. Datenpool) */
+"Bibliothek ist leer" = "Bibliothek ist leer";
+"Inhalte aus der Bibliothek" = "Inhalte aus der Bibliothek";
+"Inhalte aus der Bibliothek ergänzen" = "Inhalte aus der Bibliothek ergänzen";
+"Noch keine Inhalte aus der Bibliothek zugeordnet. Du kannst jederzeit weitere Bilder, Videos, PDFs, Audios oder Texte nachliefern." = "Noch keine Inhalte aus der Bibliothek zugeordnet. Du kannst jederzeit weitere Bilder, Videos, PDFs, Audios oder Texte nachliefern.";
+"Aus Bibliothek auswählen" = "Aus Bibliothek auswählen";
+"Bereits in der Bibliothek verwendet" = "Bereits in der Bibliothek verwendet";
+"Importiere zuerst Inhalte im Bibliothek-Tab — danach kannst du sie hier für Lektionen auswählen." = "Importiere zuerst Inhalte im Bibliothek-Tab — danach kannst du sie hier für Lektionen auswählen.";
 
 /* Home */
 "Golf Pro" = "Golf Pro";
