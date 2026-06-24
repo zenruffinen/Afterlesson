@@ -4830,7 +4830,7 @@ struct SendPackageSheet: View {
                             onSend(items)
                         }
                     } label: {
-                        Label("Nachbesprechung (\(selectedLessonIDs.count))", systemImage: "paperplane.fill")
+                        Label(String(format: String(localized: "Nachbesprechung (%d)"), selectedLessonIDs.count), systemImage: "paperplane.fill")
                     }
                     .disabled(selectedLessonIDs.isEmpty)
                 }
@@ -7618,7 +7618,7 @@ struct StudentDetailView: View {
                     }
                 }
             } header: {
-                Label("Nachbesprechungen (\(currentStudent.sentHistory.count))", systemImage: "paperplane.fill")
+                Label(String(format: String(localized: "Nachbesprechungen (%d)"), currentStudent.sentHistory.count), systemImage: "paperplane.fill")
                     .foregroundStyle(Color(hex: "1565C0"))
             }
         }

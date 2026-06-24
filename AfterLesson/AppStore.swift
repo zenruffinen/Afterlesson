@@ -1079,21 +1079,21 @@ final class AppStore: ObservableObject {
 
     static var sessionShareHint: String {
         NSLocalizedString(
-            "Grünbuch Trainingsprotokoll — bitte persönlich per AirDrop an deinen Schüler übergeben. Der Schüler tippt die Datei an und öffnet Grünbuch.",
+            "Grünbuch Trainingsprotokoll — für die Nachbesprechung: persönlich per AirDrop an deinen Schüler übergeben (ca. 5 Min.). Der Schüler tippt die Datei an und öffnet Grünbuch.",
             comment: "Share sheet hint for training session"
         )
     }
 
     static var lessonShareHint: String {
         NSLocalizedString(
-            "Grünbuch Lektion — bitte persönlich per AirDrop an deinen Schüler übergeben. Der Schüler tippt die Datei an — sie erscheint in Grünbuch unter „Zugewiesen“.",
+            "Grünbuch Lektion — für die Nachbesprechung: persönlich per AirDrop an deinen Schüler übergeben. Der Schüler tippt die Datei an — sie erscheint in Grünbuch unter „Zugewiesen“.",
             comment: "Share sheet hint for lesson resend"
         )
     }
 
     static var composerShareHint: String {
         NSLocalizedString(
-            "Grünbuch Lernpaket — bitte persönlich per AirDrop übergeben, am besten direkt nach der Lektion auf dem Platz. Der Schüler tippt die Datei an und öffnet Grünbuch — alles erscheint unter „Zugewiesen“.",
+            "Grünbuch Lernpaket — Nachbesprechung mit deinem Schüler: Paket persönlich per AirDrop übergeben (ca. 5 Min.). Der Schüler tippt die Datei an — alles erscheint unter „Zugewiesen“.",
             comment: "Share sheet hint for composer package"
         )
     }

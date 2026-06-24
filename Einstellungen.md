@@ -10,8 +10,8 @@ Arca-inspirierte Einstellungsseite im Tab **Einstellungen**.
 - **Grünbuch bewerten** — App-Store-Link wenn ID gesetzt, sonst `requestReview()`
 - **Feedback senden** — `mailto:support@hansruffin.ch`
 
-### So funktioniert die Übergabe
-Drei Kurzpunkte zur AirDrop-Philosophie: persönlich, sicher, vor Ort.
+### So funktioniert die Nachbesprechung
+Drei Kurzpunkte zum 5-Minuten-Ritual: professioneller Abschluss, persönlich per AirDrop, vor Ort.
 
 ### Sichern und wiederherstellen
 - **Daten sichern** (blau) — verschlüsseltes `.gruenbuchbackup` (Apple Archive, wie Arca)
@@ -26,7 +26,7 @@ Drei Kurzpunkte zur AirDrop-Philosophie: persönlich, sicher, vor Ort.
 - NavigationLink → `PrivacyPolicyView`
 
 ### Wusstest du?
-Rotierende Tipps (Composer, Bibliothek, AirDrop, Stunde erfassen, …) — antippen wechselt Tipp.
+Rotierende Tipps (Composer, Bibliothek, Nachbesprechung, Stunde erfassen, …) — antippen wechselt Tipp.
 
 ### Footer
 „Grünbuch ist kostenlos, werbefrei und sammelt keine Daten über dich.“
