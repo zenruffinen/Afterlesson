@@ -1,0 +1,396 @@
+From df6cc1c79100d58dca07e56b2ad5f3fc80b39331 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Wed, 1 Jul 2026 19:26:56 +0000
+Subject: [PATCH 1/2] =?UTF-8?q?Fix:=20Backup=20in=20Version=202.4=20wieder?=
+ =?UTF-8?q?=20zuverl=C3=A4ssig?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Import: Security-Scoped-Zugriff korrekt (nicht mehr bei false abbrechen)
+- Import: Backup-Dateien leiten zu Einstellungen, Passwort-Sheet auch bei onAppear
+- Export: iCloud-Dateien vor Archivierung materialisieren
+- Export: Fallback auf verschlüsseltes JSON (v1), falls Apple-Archiv fehlschlägt
+- Backup enthält jetzt auch categoryColors und homeFolderQuickView (2.4)
+---
+ arca/AppStore.swift    | 123 +++++++++++++++++++++++++++++++++--------
+ arca/ContentView.swift |  56 ++++++++++++++++---
+ 2 files changed, 146 insertions(+), 33 deletions(-)
+
+diff --git a/arca/AppStore.swift b/arca/AppStore.swift
+index a77a09c..4a395b4 100644
+--- a/arca/AppStore.swift
++++ b/arca/AppStore.swift
+@@ -23,9 +23,12 @@ struct ArcaBackup: Codable {
+     /// mit alten Backups, die nur die Metadaten enthielten.
+     var fileData: [String: Data]?
+     var documentSubcategories: [String: [String]]?
++    var categoryColors: [String: Int]?
++    var homeFolderQuickView: [String]?
+ 
+     enum CodingKeys: String, CodingKey {
+-        case vaultItems, documents, notes, lists, documentCategories, exportDate, fileData, documentSubcategories
++        case vaultItems, documents, notes, lists, documentCategories, exportDate, fileData,
++             documentSubcategories, categoryColors, homeFolderQuickView
+     }
+ 
+     init(vaultItems: [VaultEntry],
+@@ -35,7 +38,9 @@ struct ArcaBackup: Codable {
+          documentCategories: [String],
+          exportDate: Date,
+          fileData: [String: Data]? = nil,
+-         documentSubcategories: [String: [String]]? = nil) {
++         documentSubcategories: [String: [String]]? = nil,
++         categoryColors: [String: Int]? = nil,
++         homeFolderQuickView: [String]? = nil) {
+         self.vaultItems = vaultItems
+         self.documents = documents
+         self.notes = notes
+@@ -44,6 +49,8 @@ struct ArcaBackup: Codable {
+         self.exportDate = exportDate
+         self.fileData = fileData
+         self.documentSubcategories = documentSubcategories
++        self.categoryColors = categoryColors
++        self.homeFolderQuickView = homeFolderQuickView
+     }
+ 
+     // Safe Decoder — alte Backups ohne fileData / lists bleiben kompatibel
+@@ -57,6 +64,8 @@ struct ArcaBackup: Codable {
+         exportDate              = try c.decode(Date.self,                           forKey: .exportDate)
+         fileData                = try c.decodeIfPresent([String: Data].self,        forKey: .fileData)
+         documentSubcategories   = try c.decodeIfPresent([String: [String]].self,   forKey: .documentSubcategories)
++        categoryColors          = try c.decodeIfPresent([String: Int].self,         forKey: .categoryColors)
++        homeFolderQuickView     = try c.decodeIfPresent([String].self,             forKey: .homeFolderQuickView)
+     }
+ }
+ 
+@@ -287,52 +296,106 @@ final class AppStore: ObservableObject {
+ 
+     /// Backup-Export, Format v2: verschlüsseltes Apple-Archiv (AEA).
+     /// Speicherschonend — die Dateien werden gestreamt statt in den RAM geladen.
++    /// Fallback auf Format v1 (verschlüsseltes JSON), falls das Archiv fehlschlägt.
+     func exportData(password: String) -> URL? {
+-        // 1. Staging-Ordner: manifest.json (Metadaten) + files/ (Hardlinks/Kopien)
++        let backup = ArcaBackup(
++            vaultItems: vaultItems,
++            documents: documents,
++            notes: notes,
++            lists: lists,
++            documentCategories: documentCategories,
++            exportDate: Date(),
++            fileData: nil,
++            documentSubcategories: documentSubcategories,
++            categoryColors: categoryColors,
++            homeFolderQuickView: homeFolderQuickView
++        )
++
++        let filename = "ArcaBackup_\(Date().formatted(date: .abbreviated, time: .omitted)).arcabackup"
++            .replacingOccurrences(of: " ", with: "_")
++        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
++
++        // Format v2: gestreamtes Apple-Archiv
++        if let archived = exportDataAsArchive(backup, to: url, password: password) {
++            return archived
++        }
++
++        // Fallback v1: eingebettete Dateien im verschlüsselten JSON
++        return exportDataAsEncryptedJSON(backup, to: url, password: password)
++    }
++
++    private func exportDataAsArchive(_ backup: ArcaBackup, to url: URL, password: String) -> URL? {
+         let stage = FileManager.default.temporaryDirectory
+             .appendingPathComponent("ArcaExport_\(UUID().uuidString)")
+         let stageFiles = stage.appendingPathComponent("files")
+         defer { try? FileManager.default.removeItem(at: stage) }
+         do {
+             try FileManager.default.createDirectory(at: stageFiles, withIntermediateDirectories: true)
+-            let backup = ArcaBackup(
+-                vaultItems: vaultItems,
+-                documents: documents,
+-                notes: notes,
+-                lists: lists,
+-                documentCategories: documentCategories,
+-                exportDate: Date(),
+-                fileData: nil,
+-                documentSubcategories: documentSubcategories
+-            )
+             let manifest = try JSONEncoder().encode(backup)
+             try manifest.write(to: stage.appendingPathComponent("manifest.json"))
+             for doc in documents {
+-                // Falls nur iCloud-Platzhalter: Download anstossen
+-                ensureFileDownloaded(doc.filename)
++                guard materializeDocumentFile(doc.filename) else { continue }
+                 let src = documentURL(for: doc.filename)
+                 guard FileManager.default.fileExists(atPath: src.path) else { continue }
+                 let dst = stageFiles.appendingPathComponent(doc.filename)
+-                // Hardlink (kein Platzverbrauch); falls nicht möglich: kopieren
+                 if (try? FileManager.default.linkItem(at: src, to: dst)) == nil {
+-                    try? FileManager.default.copyItem(at: src, to: dst)
++                    try FileManager.default.copyItem(at: src, to: dst)
+                 }
+             }
+         } catch { return nil }
+ 
+-        // 2. Verschlüsselt archivieren
+-        let filename = "ArcaBackup_\(Date().formatted(date: .abbreviated, time: .omitted)).arcabackup"
+-            .replacingOccurrences(of: " ", with: "_")
+-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+         guard archiveDirectory(stage, to: url, password: password),
+               let size = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int,
+               size > 0 else { return nil }
+         return url
+     }
+ 
++    private func exportDataAsEncryptedJSON(_ backup: ArcaBackup, to url: URL, password: String) -> URL? {
++        var fileData: [String: Data] = [:]
++        for doc in documents {
++            guard materializeDocumentFile(doc.filename) else { continue }
++            let fileURL = documentURL(for: doc.filename)
++            if let data = try? Data(contentsOf: fileURL) {
++                fileData[doc.filename] = data
++            }
++        }
++        var payload = backup
++        payload.fileData = fileData
++        guard let plaintext = try? JSONEncoder().encode(payload),
++              let encrypted = try? encryptData(plaintext, password: password) else { return nil }
++        try? FileManager.default.removeItem(at: url)
++        do {
++            try encrypted.write(to: url)
++        } catch {
++            return nil
++        }
++        guard FileManager.default.fileExists(atPath: url.path),
++              let size = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int,
++              size > 0 else { return nil }
++        return url
++    }
++
++    /// Stellt sicher, dass eine Dokument-Datei lokal vorliegt (inkl. kurzem iCloud-Warten).
++    private func materializeDocumentFile(_ filename: String, timeout: TimeInterval = 8) -> Bool {
++        let url = documentURL(for: filename)
++        if FileManager.default.fileExists(atPath: url.path) { return true }
++        _ = ensureFileDownloaded(filename)
++        let deadline = Date().addingTimeInterval(timeout)
++        while Date() < deadline {
++            if FileManager.default.fileExists(atPath: url.path) { return true }
++            if let status = try? url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
++                .ubiquitousItemDownloadingStatus,
++               status == .current || status == .downloaded {
++                return FileManager.default.fileExists(atPath: url.path)
++            }
++            Thread.sleep(forTimeInterval: 0.2)
++        }
++        return FileManager.default.fileExists(atPath: url.path)
++    }
++
+     func importData(from url: URL, password: String, merge: Bool = false) -> Bool {
+-        guard url.startAccessingSecurityScopedResource() else { return false }
+-        defer { url.stopAccessingSecurityScopedResource() }
++        let accessing = url.startAccessingSecurityScopedResource()
++        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+ 
+         // Neues Format (v2): verschlüsseltes Apple-Archiv
+         if isAppleEncryptedArchive(url) {
+@@ -394,6 +457,16 @@ final class AppStore: ObservableObject {
+                     documentSubcategories[cat] = existing
+                 }
+             }
++            if let colors = backup.categoryColors {
++                for (cat, idx) in colors where categoryColors[cat] == nil {
++                    categoryColors[cat] = idx
++                }
++            }
++            if let folders = backup.homeFolderQuickView {
++                for cat in folders where !homeFolderQuickView.contains(cat) {
++                    homeFolderQuickView.append(cat)
++                }
++            }
+         } else {
+             vaultItems = backup.vaultItems
+             documents  = backup.documents
+@@ -403,6 +476,8 @@ final class AppStore: ObservableObject {
+                 ? AppStore.defaultCategories
+                 : backup.documentCategories
+             documentSubcategories = backup.documentSubcategories ?? [:]
++            categoryColors = backup.categoryColors ?? [:]
++            homeFolderQuickView = backup.homeFolderQuickView ?? []
+         }
+     }
+ 
+@@ -646,7 +721,7 @@ final class AppStore: ObservableObject {
+         }
+     }
+ 
+-    /// Erkennt das neue Backup-Format am AEA-Magic-Header.
++    /// Erkennt das neue Backup-Format (v2) am AEA-Magic-Header.
+     private func isAppleEncryptedArchive(_ url: URL) -> Bool {
+         guard let fh = try? FileHandle(forReadingFrom: url) else { return false }
+         defer { try? fh.close() }
+diff --git a/arca/ContentView.swift b/arca/ContentView.swift
+index 5c0ade1..70ab33f 100644
+--- a/arca/ContentView.swift
++++ b/arca/ContentView.swift
+@@ -35,7 +35,22 @@ struct ContentView: View {
+             }
+         }
+         .onChange(of: store.pendingSharedURL) { _, url in
+-            if url != nil { selectedSection = .documents }
++            guard let url else { return }
++            if url.pathExtension.lowercased() == "arcabackup" {
++                store.pendingBackupURL = url
++                store.pendingSharedURL = nil
++                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
++                    selectedSection = .settings
++                }
++            } else {
++                selectedSection = .documents
++            }
++        }
++        .onChange(of: store.pendingBackupURL) { _, url in
++            guard url != nil else { return }
++            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
++                selectedSection = .settings
++            }
+         }
+         .onChange(of: store.pendingSection) { _, section in
+             guard let section else { return }
+@@ -5731,6 +5746,9 @@ struct SettingsView: View {
+     @State private var showImportError = false
+     @State private var importErrorMessage = ""
+     @State private var showReleaseNotes = false
++    @State private var importSecurityScoped = false
++
++    private static let backupFileType = UTType(filenameExtension: "arcabackup") ?? .data
+ 
+     private var feedbackURL: URL? {
+         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.4.0"
+@@ -6014,22 +6032,22 @@ struct SettingsView: View {
+             // --- Import: file picker ---
+             .fileImporter(
+                 isPresented: $showImportPicker,
+-                allowedContentTypes: [.data]
++                allowedContentTypes: [Self.backupFileType, .data]
+             ) { result in
+                 if case .success(let url) = result {
++                    stopImportSecurityAccess()
++                    importSecurityScoped = url.startAccessingSecurityScopedResource()
+                     pendingImportURL = url
+                     importPassword = ""
+                     showImportPasswordSheet = true
+                 }
+             }
+ 
+-            // "Öffnen mit .arcabackup" von aussen → Passwort-Sheet öffnen
++            // Backup-Datei von außen (Mail, Dateien, „Öffnen mit Arca“)
++            .onAppear { openPendingBackupImportIfNeeded() }
+             .onChange(of: store.pendingBackupURL) { _, url in
+-                guard let url else { return }
+-                pendingImportURL = url
+-                importPassword = ""
+-                store.pendingBackupURL = nil
+-                showImportPasswordSheet = true
++                guard url != nil else { return }
++                openPendingBackupImportIfNeeded()
+             }
+ 
+             // --- Import: password input sheet ---
+@@ -6087,6 +6105,7 @@ struct SettingsView: View {
+                                 showImportPasswordSheet = false
+                                 pendingImportURL = nil
+                                 showImportPasswordReveal = false
++                                stopImportSecurityAccess()
+                             }
+                         }
+                         ToolbarItem(placement: .confirmationAction) {
+@@ -6095,14 +6114,16 @@ struct SettingsView: View {
+                                 showImportPasswordSheet = false
+                                 showImportPasswordReveal = false
+                                 let mergeMode = importMerge
++                                let pwd = importPassword
+                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+-                                    if store.importData(from: url, password: importPassword, merge: mergeMode) {
++                                    if store.importData(from: url, password: pwd, merge: mergeMode) {
+                                         showImportSuccess = true
+                                     } else {
+                                         importErrorMessage = "Falsches Passwort oder beschädigte Datei."
+                                         showImportError = true
+                                     }
+                                     pendingImportURL = nil
++                                    stopImportSecurityAccess()
+                                 }
+                             }
+                             .disabled(importPassword.isEmpty)
+@@ -6123,6 +6144,23 @@ struct SettingsView: View {
+             }
+         }
+     }
++
++    private func openPendingBackupImportIfNeeded() {
++        guard let url = store.pendingBackupURL else { return }
++        stopImportSecurityAccess()
++        importSecurityScoped = url.startAccessingSecurityScopedResource()
++        pendingImportURL = url
++        importPassword = ""
++        store.pendingBackupURL = nil
++        showImportPasswordSheet = true
++    }
++
++    private func stopImportSecurityAccess() {
++        if importSecurityScoped, let url = pendingImportURL {
++            url.stopAccessingSecurityScopedResource()
++        }
++        importSecurityScoped = false
++    }
+ }
+ 
+ // MARK: - Scanner
+-- 
+2.43.0
+
+
+From 0332d3e86d2f1c5c6a209f199e919bc8fe6868d5 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Wed, 1 Jul 2026 19:27:50 +0000
+Subject: [PATCH 2/2] =?UTF-8?q?Export=20im=20Hintergrund=20ausf=C3=BChren?=
+ =?UTF-8?q?=20(blockiert=20UI=20nicht=20bei=20iCloud-Wartezeit)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ arca/ContentView.swift | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/arca/ContentView.swift b/arca/ContentView.swift
+index 70ab33f..e1ec5ec 100644
+--- a/arca/ContentView.swift
++++ b/arca/ContentView.swift
+@@ -5992,11 +5992,19 @@ struct SettingsView: View {
+                                     exportPasswordError = "Passwörter stimmen nicht überein."
+                                     return
+                                 }
+-                                if let url = store.exportData(password: exportPassword) {
+-                                    exportURL = url
+-                                    showExportPasswordSheet = false   // onDismiss öffnet dann ShareSheet
+-                                } else {
+-                                    exportPasswordError = "Sicherung fehlgeschlagen. Bitte erneut versuchen."
++                                let pwd = exportPassword
++                                Task {
++                                    let url = await Task.detached(priority: .userInitiated) {
++                                        await MainActor.run {
++                                            store.exportData(password: pwd)
++                                        }
++                                    }.value
++                                    if let url {
++                                        exportURL = url
++                                        showExportPasswordSheet = false
++                                    } else {
++                                        exportPasswordError = "Sicherung fehlgeschlagen. Bitte erneut versuchen."
++                                    }
+                                 }
+                             }
+                             .disabled(exportPassword.isEmpty)
+-- 
+2.43.0
+
