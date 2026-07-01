@@ -26,6 +26,10 @@ struct AfterLessonApp: App {
             _ = store.importSessionShare(from: url)
         case "afterlesson":
             _ = store.importLesson(from: url)
+        case "afterlessonfolder":
+            _ = store.importFolder(from: url)
+        case "afterlessonbackup":
+            _ = store.importBackup(from: url)
         default:
             break
         }

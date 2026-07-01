@@ -6519,6 +6519,12 @@ struct SettingsView: View {
     @State private var showModeSwitch = false
     @State private var teacherPassword = ""
     @State private var wrongPassword = false
+    @State private var showBackupImporter = false
+    @State private var showBackupShare = false
+    @State private var backupShareURL: URL? = nil
+    @State private var backupAlertTitle = ""
+    @State private var backupAlertMessage = ""
+    @State private var showBackupAlert = false
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -6562,13 +6568,70 @@ struct SettingsView: View {
                     }
                 }
 
+                if isTeacher {
+                    Section {
+                        Button {
+                            if let url = store.exportBackup() {
+                                backupShareURL = url
+                                showBackupShare = true
+                            } else {
+                                backupAlertTitle = "Backup fehlgeschlagen"
+                                backupAlertMessage = "Das Backup konnte nicht erstellt werden. Bitte versuche es erneut."
+                                showBackupAlert = true
+                            }
+                        } label: {
+                            Label("Backup erstellen", systemImage: "arrow.up.doc.fill")
+                        }
+
+                        Button {
+                            showBackupImporter = true
+                        } label: {
+                            Label("Backup wiederherstellen", systemImage: "arrow.down.doc.fill")
+                        }
+                    } header: {
+                        Text("Datensicherung")
+                    } footer: {
+                        Text("Sichert alle Schüler, Lektionen, den Datenpool, Notizen und Stundenprotokolle inklusive Medien.")
+                    }
+                }
+
                 Section("App") {
-                    Label("Version 1.0", systemImage: "app.badge")
+                    Label("Version 2.4", systemImage: "app.badge")
                     Label("AfterLesson", systemImage: "figure.golf")
                     Label("2026 Thomas Kubernat", systemImage: "person.fill")
                 }
             }
             .navigationTitle("Einstellungen")
+            .fileImporter(isPresented: $showBackupImporter,
+                          allowedContentTypes: [UTType(filenameExtension: "afterlessonbackup") ?? .data],
+                          allowsMultipleSelection: false) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    if store.importBackup(from: url) {
+                        backupAlertTitle = "Backup wiederhergestellt"
+                        backupAlertMessage = "Alle Daten wurden erfolgreich importiert."
+                    } else {
+                        backupAlertTitle = "Wiederherstellung fehlgeschlagen"
+                        backupAlertMessage = "Die Backup-Datei konnte nicht gelesen werden."
+                    }
+                    showBackupAlert = true
+                case .failure(let error):
+                    backupAlertTitle = "Import fehlgeschlagen"
+                    backupAlertMessage = error.localizedDescription
+                    showBackupAlert = true
+                }
+            }
+            .sheet(isPresented: $showBackupShare) {
+                if let url = backupShareURL {
+                    ShareSheet(items: [url])
+                }
+            }
+            .alert(backupAlertTitle, isPresented: $showBackupAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(backupAlertMessage)
+            }
             .alert("Lehrer-Modus", isPresented: $showModeSwitch) {
                 SecureField("Passwort", text: $teacherPassword)
                 Button("Entsperren") {

@@ -576,6 +576,91 @@ final class AppStore: ObservableObject {
         return true
     }
 
+    // MARK: - Full Backup / Restore
+
+    /// Sammelt alle Dateinamen, die in Lektionen, Datenpool, Notizen, Stunden und Schülern referenziert werden.
+    private func referencedFilenames() -> Set<String> {
+        var names = Set<String>()
+        for lesson in lessons {
+            names.formUnion(lesson.imageFilenames)
+            if let video = lesson.videoFilename { names.insert(video) }
+        }
+        for item in contentPool {
+            names.insert(item.filename)
+            if let thumb = item.thumbnailFilename { names.insert(thumb) }
+        }
+        for note in proNotes {
+            if let audio = note.audioFilename { names.insert(audio) }
+        }
+        for session in sessions {
+            names.formUnion(session.imageFilenames)
+        }
+        for student in students {
+            if let photo = student.photoFilename { names.insert(photo) }
+        }
+        return names
+    }
+
+    func exportBackup() -> URL? {
+        var fileData: [String: Data] = [:]
+        for filename in referencedFilenames() {
+            if let data = try? Data(contentsOf: imageURL(for: filename)) {
+                fileData[filename] = data
+            }
+        }
+        let backup = AfterLessonBackup(
+            exportDate: Date(),
+            teacherName: teacherName,
+            teacherTitle: teacherTitle,
+            folders: folders,
+            lessons: lessons,
+            students: students,
+            groups: groups,
+            proNotes: proNotes,
+            contentPool: contentPool,
+            contentClasses: contentClasses,
+            sessions: sessions,
+            progress: progress,
+            fileData: fileData
+        )
+        guard let data = try? JSONEncoder().encode(backup) else { return nil }
+        let stamp = ISO8601DateFormatter().string(from: Date())
+            .replacingOccurrences(of: ":", with: "-")
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AfterLesson_Backup_\(stamp).afterlessonbackup")
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    func importBackup(from url: URL) -> Bool {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url),
+              let backup = try? JSONDecoder().decode(AfterLessonBackup.self, from: data)
+        else { return false }
+
+        for (filename, blob) in backup.fileData {
+            saveImage(blob, filename: filename)
+        }
+
+        teacherName = backup.teacherName
+        teacherTitle = backup.teacherTitle
+        folders = backup.folders
+        lessons = backup.lessons
+        students = backup.students
+        groups = backup.groups
+        proNotes = backup.proNotes
+        contentPool = backup.contentPool
+        contentClasses = backup.contentClasses
+        sessions = backup.sessions
+        progress = backup.progress
+        return true
+    }
+
     // MARK: - Export Folder
 
     func exportFolder(_ folder: LessonFolder) -> URL? {
@@ -618,6 +703,44 @@ final class AppStore: ObservableObject {
             .appendingPathComponent("AfterLesson_\(safeName).afterlessonfolder")
         try? data.write(to: url)
         return url
+    }
+
+    func importFolder(from url: URL) -> Bool {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url),
+              let package = try? JSONDecoder().decode(AfterLessonFolderShare.self, from: data)
+        else { return false }
+
+        for (filename, imgData) in package.imageData {
+            saveImage(imgData, filename: filename)
+        }
+
+        var newPoolItems = package.contentItems.filter { item in
+            !contentPool.contains(where: { $0.id == item.id })
+        }
+        for i in newPoolItems.indices {
+            if let cid = newPoolItems[i].classID,
+               !contentClasses.contains(where: { $0.id == cid }) {
+                newPoolItems[i].classID = nil
+            }
+        }
+        if !newPoolItems.isEmpty {
+            contentPool.insert(contentsOf: newPoolItems, at: 0)
+        }
+
+        var newFolder = package.folder
+        if folders.contains(where: { $0.id == newFolder.id }) {
+            newFolder.id = UUID()
+        }
+        folders.append(newFolder)
+
+        for var lesson in package.lessons {
+            lesson.id = UUID()
+            lesson.folderID = newFolder.id
+            lessons.append(lesson)
+        }
+        return true
     }
 
     // MARK: - Persistence
