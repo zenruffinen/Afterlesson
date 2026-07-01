@@ -312,6 +312,74 @@ struct AfterLessonShare: Codable {
     }
 }
 
+// MARK: - Full App Backup
+
+struct AfterLessonBackup: Codable {
+    var formatVersion: Int = 1
+    var exportDate: Date
+    var teacherName: String
+    var teacherTitle: String
+    var folders: [LessonFolder]
+    var lessons: [Lesson]
+    var students: [Student]
+    var groups: [TeachingGroup]
+    var proNotes: [ProNote]
+    var contentPool: [ContentItem]
+    var contentClasses: [ContentClass]
+    var sessions: [TrainingSession]
+    var progress: [StudentProgress]
+    var fileData: [String: Data]
+
+    init(formatVersion: Int = 1,
+         exportDate: Date,
+         teacherName: String,
+         teacherTitle: String,
+         folders: [LessonFolder],
+         lessons: [Lesson],
+         students: [Student],
+         groups: [TeachingGroup],
+         proNotes: [ProNote],
+         contentPool: [ContentItem],
+         contentClasses: [ContentClass],
+         sessions: [TrainingSession],
+         progress: [StudentProgress],
+         fileData: [String: Data]) {
+        self.formatVersion = formatVersion
+        self.exportDate = exportDate
+        self.teacherName = teacherName
+        self.teacherTitle = teacherTitle
+        self.folders = folders
+        self.lessons = lessons
+        self.students = students
+        self.groups = groups
+        self.proNotes = proNotes
+        self.contentPool = contentPool
+        self.contentClasses = contentClasses
+        self.sessions = sessions
+        self.progress = progress
+        self.fileData = fileData
+    }
+
+    // Defensiver Decoder: ältere Backups können fehlende Felder haben (z. B. vor Datenpool).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        formatVersion = try c.decodeIfPresent(Int.self, forKey: .formatVersion) ?? 1
+        exportDate = try c.decodeIfPresent(Date.self, forKey: .exportDate) ?? Date()
+        teacherName = try c.decodeIfPresent(String.self, forKey: .teacherName) ?? ""
+        teacherTitle = try c.decodeIfPresent(String.self, forKey: .teacherTitle) ?? ""
+        folders = try c.decodeIfPresent([LessonFolder].self, forKey: .folders) ?? []
+        lessons = try c.decodeIfPresent([Lesson].self, forKey: .lessons) ?? []
+        students = try c.decodeIfPresent([Student].self, forKey: .students) ?? []
+        groups = try c.decodeIfPresent([TeachingGroup].self, forKey: .groups) ?? []
+        proNotes = try c.decodeIfPresent([ProNote].self, forKey: .proNotes) ?? []
+        contentPool = try c.decodeIfPresent([ContentItem].self, forKey: .contentPool) ?? []
+        contentClasses = try c.decodeIfPresent([ContentClass].self, forKey: .contentClasses) ?? []
+        sessions = try c.decodeIfPresent([TrainingSession].self, forKey: .sessions) ?? []
+        progress = try c.decodeIfPresent([StudentProgress].self, forKey: .progress) ?? []
+        fileData = try c.decodeIfPresent([String: Data].self, forKey: .fileData) ?? [:]
+    }
+}
+
 // MARK: - Folder Share
 
 struct AfterLessonFolderShare: Codable {
