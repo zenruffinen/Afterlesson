@@ -256,16 +256,6 @@ enum ActivityStatus: String, Codable {
     }
 }
 
-struct ActivityItem: Identifiable {
-    let id = UUID()
-    let date: Date
-    let icon: String
-    let tintHex: String
-    let title: String
-    let subtitle: String
-    let status: ActivityStatus?
-}
-
 // MARK: - Sent Package (Verlauf)
 
 struct SentPackage: Identifiable, Codable, Hashable {
@@ -451,35 +441,4 @@ struct GrünbuchBackup: Codable {
     var studentCaptures: [StudentCapture]
     var settings: GrünbuchBackupSettings
     var exportDate: Date
-}
-
-// MARK: - Folder Share
-
-struct AfterLessonFolderShare: Codable {
-    var folder: LessonFolder
-    var lessons: [Lesson]
-    var imageData: [String: Data]
-    var contentItems: [ContentItem] = []      // Metadaten der über contentItemIDs verknüpften Datenpool-Inhalte
-    var exportDate: Date
-    var teacherName: String
-
-    init(folder: LessonFolder, lessons: [Lesson], imageData: [String: Data], contentItems: [ContentItem] = [], exportDate: Date, teacherName: String) {
-        self.folder = folder
-        self.lessons = lessons
-        self.imageData = imageData
-        self.contentItems = contentItems
-        self.exportDate = exportDate
-        self.teacherName = teacherName
-    }
-
-    // Defensiver Decoder, gleicher Grund wie bei AfterLessonShare.
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        folder = try c.decode(LessonFolder.self, forKey: .folder)
-        lessons = try c.decodeIfPresent([Lesson].self, forKey: .lessons) ?? []
-        imageData = try c.decodeIfPresent([String: Data].self, forKey: .imageData) ?? [:]
-        contentItems = try c.decodeIfPresent([ContentItem].self, forKey: .contentItems) ?? []
-        exportDate = try c.decodeIfPresent(Date.self, forKey: .exportDate) ?? Date()
-        teacherName = try c.decodeIfPresent(String.self, forKey: .teacherName) ?? ""
-    }
 }
