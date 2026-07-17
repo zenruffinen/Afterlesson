@@ -255,6 +255,8 @@ struct SettingsView: View {
                     Text("settings.backup_footer")
                 }
 
+                GrünbuchCloudSection()
+
                 Section {
                     HStack {
                         Image(systemName: isTeacher ? "person.badge.key.fill" : "graduationcap.fill")

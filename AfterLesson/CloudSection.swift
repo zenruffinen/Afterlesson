@@ -1,0 +1,89 @@
+//
+//  CloudSection.swift
+//  Grünbuch — Cloud (Supabase)
+//
+//  Der Cloud-Bereich in den Einstellungen: Sign in with Apple,
+//  Anmelde-Status, Abmelden. Erscheint nur informativ-grau,
+//  solange CloudConfig noch leer ist.
+//
+
+import SwiftUI
+import AuthenticationServices
+
+struct GrünbuchCloudSection: View {
+    @EnvironmentObject var store: AppStore
+    @ObservedObject private var cloud = CloudService.shared
+    @State private var currentNonce: String?
+
+    var body: some View {
+        Section {
+            if !cloud.isConfigured {
+                Label("cloud.not_configured", systemImage: "icloud.slash")
+                    .foregroundStyle(.secondary)
+            } else if cloud.isSignedIn {
+                HStack {
+                    Image(systemName: "checkmark.icloud.fill")
+                        .foregroundStyle(.green)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("cloud.signed_in")
+                        if let mail = cloud.userEmail {
+                            Text(mail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Button(role: .destructive) {
+                    Task { await cloud.signOut() }
+                } label: {
+                    Label("cloud.sign_out", systemImage: "rectangle.portrait.and.arrow.right")
+                }
+            } else {
+                SignInWithAppleButton(.signIn) { request in
+                    let nonce = CloudService.randomNonce()
+                    currentNonce = nonce
+                    request.requestedScopes = [.fullName]
+                    request.nonce = CloudService.sha256(nonce)
+                } onCompletion: { result in
+                    handleSignIn(result)
+                }
+                .signInWithAppleButtonStyle(.black)
+                .frame(height: 44)
+                .listRowBackground(Color.clear)
+
+                if let error = cloud.lastErrorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+        } header: {
+            Text("cloud.header")
+        } footer: {
+            Text(cloud.isConfigured ? "cloud.footer" : "cloud.footer_not_configured")
+        }
+    }
+
+    private func handleSignIn(_ result: Result<ASAuthorization, Error>) {
+        guard case .success(let auth) = result,
+              let credential = auth.credential as? ASAuthorizationAppleIDCredential,
+              let tokenData = credential.identityToken,
+              let idToken = String(data: tokenData, encoding: .utf8),
+              let nonce = currentNonce else {
+            return
+        }
+        let name = [credential.fullName?.givenName, credential.fullName?.familyName]
+            .compactMap { $0 }
+            .joined(separator: " ")
+        let displayName = name.isEmpty ? store.teacherName : name
+        let role = store.appMode == AppMode.teacher.rawValue ? "teacher" : "student"
+        Task {
+            await CloudService.shared.signInWithApple(
+                idToken: idToken,
+                nonce: nonce,
+                displayName: displayName.isEmpty ? nil : displayName,
+                role: role
+            )
+        }
+    }
+}

@@ -364,3 +364,11 @@
 "Grünbuch Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). Er öffnet die Datei in Grünbuch und sieht deine Nachricht." = "Grünbuch Rückmeldung — bitte an deinen Golf Pro senden (AirDrop, WhatsApp oder E-Mail). Er öffnet die Datei in Grünbuch und sieht deine Nachricht.";
 "1 Trainingsprotokoll wartet auf dich" = "1 Trainingsprotokoll wartet auf dich";
 "%d Trainingsprotokolle warten auf dich" = "%d Trainingsprotokolle warten auf dich";
+
+/* Cloud (Supabase) */
+"cloud.header" = "Grünbuch Cloud";
+"cloud.not_configured" = "Cloud noch nicht eingerichtet";
+"cloud.footer_not_configured" = "Die Cloud-Anbindung wird gerade aufgebaut. Sobald sie aktiv ist, kannst du Lektionen direkt an deine Schüler senden — auch wenn sie zuhause sind.";
+"cloud.footer" = "Mit der Cloud kannst du Lektionen und Stunden direkt an deine Schüler senden — ohne AirDrop, egal wo sie sind.";
+"cloud.signed_in" = "Angemeldet";
+"cloud.sign_out" = "Abmelden";
