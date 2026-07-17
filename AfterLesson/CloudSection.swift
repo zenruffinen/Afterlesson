@@ -65,11 +65,20 @@ struct GrünbuchCloudSection: View {
     }
 
     private func handleSignIn(_ result: Result<ASAuthorization, Error>) {
+        if case .failure(let error) = result {
+            let code = (error as? ASAuthorizationError).map { " (Code \($0.code.rawValue))" } ?? ""
+            // Abbruch durch den Nutzer ist kein Fehler, den wir anzeigen müssen
+            if (error as? ASAuthorizationError)?.code != .canceled {
+                CloudService.shared.lastErrorMessage = "Apple: \(error.localizedDescription)\(code)"
+            }
+            return
+        }
         guard case .success(let auth) = result,
               let credential = auth.credential as? ASAuthorizationAppleIDCredential,
               let tokenData = credential.identityToken,
               let idToken = String(data: tokenData, encoding: .utf8),
               let nonce = currentNonce else {
+            CloudService.shared.lastErrorMessage = "Apple-Antwort unvollständig (kein Token)"
             return
         }
         let name = [credential.fullName?.givenName, credential.fullName?.familyName]
