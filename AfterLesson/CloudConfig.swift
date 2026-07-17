@@ -20,10 +20,10 @@ import Foundation
 enum CloudConfig {
 
     /// Projekt-URL, z. B. "https://abcdefgh.supabase.co"
-    static let supabaseURL = ""
+    static let supabaseURL = "https://unkattxznrjjdjwdbkkh.supabase.co"
 
-    /// Der "anon public"-API-Schlüssel des Projekts.
-    static let supabaseAnonKey = ""
+    /// Der öffentliche API-Schlüssel des Projekts (publishable/anon).
+    static let supabaseAnonKey = "sb_publishable_yrJ6rxUkaDAdsljJ-uH2xQ_tZMJ5bV4"
 
     /// Cloud ist erst aktiv, wenn beide Werte eingetragen sind.
     static var isConfigured: Bool {
