@@ -1,6 +1,6 @@
 -- ============================================================
 -- Grünbuch Cloud — Datenbankschema (Supabase)
--- Stand: 17.07.2026
+-- Stand: 17.07.2026 (v2 — Reihenfolge: erst Tabellen, dann Regeln)
 --
 -- Einspielen: Supabase-Dashboard → SQL Editor → einfügen → Run.
 -- Kann gefahrlos mehrfach ausgeführt werden (idempotent).
@@ -13,11 +13,10 @@
 --   Storage       Bucket "media" für Bilder/Videos/PDFs
 --
 -- Sicherheit: Row Level Security überall. Jeder sieht nur, was ihm
--- gehört oder an ihn gesendet wurde — auch mit dem öffentlichen
--- anon-Schlüssel der App kommt niemand an fremde Daten.
+-- gehört oder an ihn gesendet wurde.
 -- ============================================================
 
--- ---------- 1. Profile ----------
+-- ---------- 1. Alle Tabellen ----------
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
@@ -26,7 +25,41 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.invite_codes (
+  code text primary key,
+  pro_id uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  used_by uuid references public.profiles (id),
+  used_at timestamptz
+);
+
+create table if not exists public.pro_students (
+  id uuid primary key default gen_random_uuid(),
+  pro_id uuid not null references public.profiles (id) on delete cascade,
+  student_id uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (pro_id, student_id)
+);
+
+create table if not exists public.packages (
+  id uuid primary key default gen_random_uuid(),
+  pro_id uuid not null references public.profiles (id) on delete cascade,
+  student_id uuid not null references public.profiles (id) on delete cascade,
+  kind text not null check (kind in ('lesson', 'session')),
+  title text not null default '',
+  payload jsonb not null,
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+
+-- ---------- 2. Row Level Security einschalten ----------
+
 alter table public.profiles enable row level security;
+alter table public.invite_codes enable row level security;
+alter table public.pro_students enable row level security;
+alter table public.packages enable row level security;
+
+-- ---------- 3. Regeln: profiles ----------
 
 drop policy if exists "Eigenes Profil lesen" on public.profiles;
 create policy "Eigenes Profil lesen"
@@ -43,7 +76,6 @@ create policy "Eigenes Profil ändern"
   on public.profiles for update
   using (id = auth.uid());
 
--- Verknüpfte Personen dürfen gegenseitig den Namen sehen
 drop policy if exists "Verknüpfte Profile lesen" on public.profiles;
 create policy "Verknüpfte Profile lesen"
   on public.profiles for select
@@ -55,17 +87,7 @@ create policy "Verknüpfte Profile lesen"
     )
   );
 
--- ---------- 2. Einladungscodes ----------
-
-create table if not exists public.invite_codes (
-  code text primary key,
-  pro_id uuid not null references public.profiles (id) on delete cascade,
-  created_at timestamptz not null default now(),
-  used_by uuid references public.profiles (id),
-  used_at timestamptz
-);
-
-alter table public.invite_codes enable row level security;
+-- ---------- 4. Regeln: invite_codes ----------
 
 drop policy if exists "Pro verwaltet eigene Codes" on public.invite_codes;
 create policy "Pro verwaltet eigene Codes"
@@ -73,17 +95,7 @@ create policy "Pro verwaltet eigene Codes"
   using (pro_id = auth.uid())
   with check (pro_id = auth.uid());
 
--- ---------- 3. Verknüpfung Pro ↔ Schüler ----------
-
-create table if not exists public.pro_students (
-  id uuid primary key default gen_random_uuid(),
-  pro_id uuid not null references public.profiles (id) on delete cascade,
-  student_id uuid not null references public.profiles (id) on delete cascade,
-  created_at timestamptz not null default now(),
-  unique (pro_id, student_id)
-);
-
-alter table public.pro_students enable row level security;
+-- ---------- 5. Regeln: pro_students ----------
 
 drop policy if exists "Beteiligte sehen Verknüpfung" on public.pro_students;
 create policy "Beteiligte sehen Verknüpfung"
@@ -95,9 +107,9 @@ create policy "Pro löscht Verknüpfung"
   on public.pro_students for delete
   using (pro_id = auth.uid());
 
--- Der Schüler löst den Code ein — über eine Funktion, weil er die
--- pro_id ja noch nicht kennen darf. Läuft mit erhöhten Rechten,
--- prüft aber selbst alle Bedingungen.
+-- Der Schüler löst den Einladungscode über diese Funktion ein
+-- (er darf die pro_id ja noch nicht kennen). Läuft mit erhöhten
+-- Rechten, prüft aber selbst alle Bedingungen.
 create or replace function public.redeem_invite(invite_code text)
 returns boolean
 language plpgsql
@@ -130,22 +142,8 @@ begin
 end;
 $$;
 
--- ---------- 4. Gesendete Pakete ----------
+-- ---------- 6. Regeln: packages ----------
 
-create table if not exists public.packages (
-  id uuid primary key default gen_random_uuid(),
-  pro_id uuid not null references public.profiles (id) on delete cascade,
-  student_id uuid not null references public.profiles (id) on delete cascade,
-  kind text not null check (kind in ('lesson', 'session')),
-  title text not null default '',
-  payload jsonb not null,
-  created_at timestamptz not null default now(),
-  read_at timestamptz
-);
-
-alter table public.packages enable row level security;
-
--- Der Pro sendet nur an eigene, verknüpfte Schüler
 drop policy if exists "Pro sendet an eigene Schüler" on public.packages;
 create policy "Pro sendet an eigene Schüler"
   on public.packages for insert
@@ -167,14 +165,13 @@ create policy "Schüler sieht Empfangenes"
   on public.packages for select
   using (student_id = auth.uid());
 
--- Der Schüler darf nur den Lesestatus setzen
 drop policy if exists "Schüler markiert gelesen" on public.packages;
 create policy "Schüler markiert gelesen"
   on public.packages for update
   using (student_id = auth.uid())
   with check (student_id = auth.uid());
 
--- ---------- 5. Storage: Bucket "media" ----------
+-- ---------- 7. Storage: Bucket "media" ----------
 -- Dateien liegen unter  <pro_id>/<dateiname>  — der Pro lädt in seinen
 -- eigenen Ordner hoch, verknüpfte Schüler dürfen daraus lesen.
 
