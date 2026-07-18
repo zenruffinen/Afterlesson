@@ -380,3 +380,4 @@
 "cloud.password_placeholder" = "Password (min. 6 characters)";
 "cloud.email_sign_in" = "Sign in";
 "cloud.email_register" = "Create account";
+"cloud.error_title" = "Cloud error";

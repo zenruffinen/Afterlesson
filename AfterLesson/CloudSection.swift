@@ -110,6 +110,18 @@ struct GrünbuchCloudSection: View {
         } footer: {
             Text(cloud.isConfigured ? "cloud.footer" : "cloud.footer_not_configured")
         }
+        // Fehler als Dialog — bleibt stehen, bis man ihn wegtippt
+        .alert(
+            "cloud.error_title",
+            isPresented: Binding(
+                get: { cloud.lastErrorMessage != nil },
+                set: { if !$0 { cloud.lastErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(cloud.lastErrorMessage ?? "")
+        }
     }
 
     private func handleSignIn(_ result: Result<ASAuthorization, Error>) {

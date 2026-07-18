@@ -376,3 +376,4 @@
 "cloud.password_placeholder" = "Passwort (mind. 6 Zeichen)";
 "cloud.email_sign_in" = "Anmelden";
 "cloud.email_register" = "Konto erstellen";
+"cloud.error_title" = "Cloud-Fehler";

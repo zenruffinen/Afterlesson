@@ -364,9 +364,7 @@ struct StudentDetailView: View {
                 // ── Segment ──
                 Picker("", selection: $tab) {
                     Text("Kartei").tag(0)
-                    Text("Lektionen").tag(1)
-                    Text("Unterricht").tag(2)
-                    Text("Pakete").tag(3)
+                    Text("Verlauf").tag(1)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 14)
@@ -378,9 +376,7 @@ struct StudentDetailView: View {
                 // ── Tab Content ──
                 Group {
                     if tab == 0 { karteiTab }
-                    else if tab == 1 { lektionenTab }
-                    else if tab == 2 { unterrichtTab }
-                    else { paketeTab }
+                    else { verlaufTab }
                 }
             }
             .background(Color(.systemGroupedBackground))
@@ -429,15 +425,6 @@ struct StudentDetailView: View {
                 // Großer Avatar
                 PhotosPicker(selection: $photosItem, matching: .images) {
                     ZStack(alignment: .bottomTrailing) {
-                        let prog = store.progressFor(currentStudent)
-                        if prog.total > 0 {
-                            Circle().stroke(ALColor.green.opacity(0.15), lineWidth: 4).frame(width: 88, height: 88)
-                            Circle()
-                                .trim(from: 0, to: CGFloat(prog.viewed) / CGFloat(prog.total))
-                                .stroke(ALColor.green, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                                .frame(width: 88, height: 88)
-                                .rotationEffect(.degrees(-90))
-                        }
                         if let filename = currentStudent.photoFilename,
                            let img = UIImage(contentsOfFile: store.imageURL(for: filename).path) {
                             Image(uiImage: img)
@@ -502,17 +489,18 @@ struct StudentDetailView: View {
                             .clipShape(Capsule())
                         }
                     }
-                    // Stats
-                    HStack(spacing: 12) {
-                        statPill(icon: "rectangle.stack.fill", value: "\(assignedLessons.count)", label: "Lektionen", color: ALColor.green)
-                        statPill(icon: "figure.golf",          value: "\(trainingSessions.count)", label: "Stunden",   color: Color(hex: "1565C0"))
-                        statPill(icon: "camera.fill",          value: "\(liveCaptures.count)", label: "Aufnahmen", color: ALColor.gold)
-                    }
+                    // Stats — eine Zeile, schrumpft statt umzubrechen
+                    Text("\(assignedLessons.count) Lektionen · \(trainingSessions.count) Stunden · \(liveCaptures.count) Aufnahmen")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
 
                 Spacer()
 
-                // Senden + Nachreichung + Stunde erfassen
+                // Zwei Aktionen: Stunde erfassen + Senden-Menü
+                // (Nachreichung wohnt jetzt im Senden-Menü)
                 VStack(spacing: 8) {
                     Button { showQuickCapture = true } label: {
                         VStack(spacing: 3) {
@@ -524,74 +512,34 @@ struct StudentDetailView: View {
                         .background(Color(hex: "1565C0"))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    if !assignedLessons.isEmpty {
-                        Button { showSendSheet = true } label: {
-                            VStack(spacing: 3) {
-                                Image(systemName: "paperplane.fill").font(.system(size: 17))
-                                Text("Nachbesprechung").font(.caption.bold())
-                            }
-                            .foregroundStyle(.white)
-                            .frame(width: 58, height: 50)
-                            .background(ALColor.green)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    Menu {
+                        Button {
+                            showSendSheet = true
+                        } label: {
+                            Label("Nachbesprechung senden", systemImage: "paperplane.fill")
                         }
-                    }
-                    Button { showNachreichung = true } label: {
+                        .disabled(assignedLessons.isEmpty)
+
+                        Button {
+                            showNachreichung = true
+                        } label: {
+                            Label("Nachreichung erstellen", systemImage: "tray.and.arrow.down.fill")
+                        }
+                    } label: {
                         VStack(spacing: 3) {
-                            Image(systemName: "tray.and.arrow.down.fill").font(.system(size: 15))
-                            Text("Nachreichung").font(.caption2.bold())
+                            Image(systemName: "paperplane.fill").font(.system(size: 17))
+                            Text("Senden").font(.caption2.bold())
                         }
-                        .foregroundStyle(ALColor.gold)
+                        .foregroundStyle(.white)
                         .frame(width: 58, height: 50)
-                        .background(ALColor.gold.opacity(0.14))
+                        .background(ALColor.green)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(ALColor.gold.opacity(0.35), lineWidth: 1)
-                        )
                     }
                 }
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
-
-            // Fortschritts-Balken
-            let prog = store.progressFor(currentStudent)
-            if prog.total > 0 {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("Lernfortschritt").font(.caption.bold()).foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(prog.viewed)/\(prog.total) gesehen")
-                            .font(.caption).foregroundStyle(prog.viewed == prog.total ? .green : .secondary)
-                    }
-                    ProgressView(value: Double(prog.viewed), total: Double(prog.total))
-                        .tint(prog.viewed == prog.total ? .green : ALColor.green)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-            } else {
-                Spacer().frame(height: 4)
-            }
-
-            Label {
-                Text("Nachbesprechung und Nachreichung: ca. 5 Minuten am Platz, persönlich per AirDrop — der professionelle Abschluss der Lektion.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } icon: {
-                Image(systemName: "airdrop")
-                    .foregroundStyle(ALColor.green)
-            }
-            .padding(.horizontal, 16)
             .padding(.bottom, 12)
-        }
-    }
-
-    func statPill(icon: String, value: String, label: String, color: Color) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: icon).font(.system(size: 10)).foregroundStyle(color)
-            Text(value).font(.system(size: 13, weight: .bold)).foregroundStyle(color)
-            Text(label).font(.system(size: 12)).foregroundStyle(.secondary)
         }
     }
 
@@ -679,62 +627,81 @@ struct StudentDetailView: View {
         .listStyle(.insetGrouped)
     }
 
-    // MARK: Tab 1 — Lektionen zuweisen
+    // MARK: Tab 1 — Verlauf (alles Gesendete, Stunden, Aufnahmen, Rückmeldungen)
 
-    var lektionenTab: some View {
+    var verlaufTab: some View {
         List {
-            ForEach(store.folders) { folder in
-                let folderLessons = store.lessonsIn(folder)
-                if !folderLessons.isEmpty {
-                    Section {
-                        ForEach(folderLessons) { lesson in
-                            let cs = currentStudent
-                            let assigned = cs.assignedLessonIDs.contains(lesson.id)
-                            let viewed   = cs.viewedLessonIDs.contains(lesson.id)
-                            HStack(spacing: 12) {
-                                Button { store.toggleLessonForStudent(lesson, student: student) } label: {
-                                    Image(systemName: assigned ? "checkmark.circle.fill" : "circle")
-                                        .foregroundStyle(assigned ? ALColor.green : .secondary)
-                                        .font(.title3)
+            // Nachbesprechungen (Composer-Pakete)
+            Section {
+                if currentStudent.sentHistory.isEmpty {
+                    Text("Noch keine Nachbesprechung — Composer erstellt Pakete aus der Bibliothek.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(currentStudent.sentHistory) { pkg in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color(hex: "1565C0").opacity(0.12))
+                                        .frame(width: 34, height: 34)
+                                    Image(systemName: "paperplane.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Color(hex: "1565C0"))
                                 }
-                                .buttonStyle(.plain)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(lesson.title).foregroundStyle(.primary)
-                                    if !lesson.description.isEmpty {
-                                        Text(lesson.description).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(pkg.date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.subheadline.bold())
+                                    HStack(spacing: 6) {
+                                        Text("\(pkg.lessonTitles.count) Lektionen")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                        ShareStatusBadge(status: store.packageStatus(pkg, for: currentStudent))
                                     }
-                                }
-                                Spacer()
-                                if assigned {
-                                    Button { store.toggleLessonViewed(lesson, for: student) } label: {
-                                        Image(systemName: viewed ? "eye.fill" : "eye")
-                                            .foregroundStyle(viewed ? ALColor.gold : .secondary)
-                                            .font(.subheadline)
-                                    }
-                                    .buttonStyle(.plain)
                                 }
                             }
+                            ForEach(pkg.lessonTitles, id: \.self) { title in
+                                HStack(spacing: 6) {
+                                    RoundedRectangle(cornerRadius: 2).fill(ALColor.green).frame(width: 3, height: 14)
+                                    Text(title).font(.subheadline).foregroundStyle(.primary)
+                                }
+                            }
+                            if !pkg.note.isEmpty {
+                                Text("\u{201E}\(pkg.note)\u{201C}")
+                                    .font(.caption).foregroundStyle(.secondary).italic()
+                            }
                         }
-                    } header: {
-                        Label(folder.title, systemImage: folder.icon)
-                            .foregroundStyle(Color(hex: folder.colorHex))
+                        .padding(.vertical, 4)
                     }
                 }
+            } header: {
+                Label(String(format: String(localized: "Nachbesprechungen (%d)"), currentStudent.sentHistory.count), systemImage: "paperplane.fill")
+                    .foregroundStyle(Color(hex: "1565C0"))
             }
-            if store.lessons.isEmpty {
+
+            // Zugewiesene Lektionen mit Gesehen-Status
+            if !assignedLessons.isEmpty {
                 Section {
-                    Text("Zuerst Vorlagen im Vorlagen-Tab anlegen")
-                        .font(.caption).foregroundStyle(.secondary)
+                    ForEach(assignedLessons) { lesson in
+                        let viewed = currentStudent.viewedLessonIDs.contains(lesson.id)
+                        HStack(spacing: 10) {
+                            Image(systemName: lesson.icon)
+                                .foregroundStyle(ALColor.green)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(lesson.title)
+                                    .font(.subheadline.bold())
+                                Text(viewed ? "Gesehen" : "Zugewiesen")
+                                    .font(.caption)
+                                    .foregroundStyle(viewed ? .green : .secondary)
+                            }
+                            Spacer()
+                        }
+                    }
+                } header: {
+                    Label("Zugewiesene Lektionen (\(assignedLessons.count))", systemImage: "rectangle.stack.fill")
+                        .foregroundStyle(ALColor.green)
                 }
             }
-        }
-        .listStyle(.insetGrouped)
-    }
 
-    // MARK: Tab 2 — Unterricht (Live-Aufnahmen + Stundenprotokolle)
-
-    var unterrichtTab: some View {
-        List {
             Section {
                 if liveCaptures.isEmpty {
                     Text("Noch keine Live-Aufnahmen — während der Stunde Foto, Video oder Notiz erfassen.")
@@ -882,97 +849,6 @@ struct StudentDetailView: View {
         .padding(.vertical, 4)
     }
 
-    // MARK: Tab 3 — Pakete (Composer-Zuweisungen)
-
-    var paketeTab: some View {
-        List {
-            Section {
-                if assignedLessons.isEmpty {
-                    Text("Noch keine Lektionen zugewiesen — nutze den Composer für Bibliothek-Inhalte.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(assignedLessons) { lesson in
-                        let viewed = currentStudent.viewedLessonIDs.contains(lesson.id)
-                        HStack(spacing: 10) {
-                            Image(systemName: lesson.icon)
-                                .foregroundStyle(ALColor.green)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(lesson.title)
-                                    .font(.subheadline.bold())
-                                Text(viewed ? "Gesehen" : "Zugewiesen")
-                                    .font(.caption)
-                                    .foregroundStyle(viewed ? .green : .secondary)
-                            }
-                            Spacer()
-                        }
-                    }
-                }
-            } header: {
-                Label("Zugewiesene Lektionen (\(assignedLessons.count))", systemImage: "rectangle.stack.fill")
-                    .foregroundStyle(ALColor.green)
-            }
-
-            Section {
-                if currentStudent.sentHistory.isEmpty {
-                    HStack(spacing: 12) {
-                        Image(systemName: "paperplane")
-                            .font(.system(size: 28))
-                            .foregroundStyle(Color(hex: "1565C0").opacity(0.3))
-                        Text("Noch keine Nachbesprechung — Composer erstellt Pakete aus der Bibliothek.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 8)
-                } else {
-                    ForEach(currentStudent.sentHistory) { pkg in
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color(hex: "1565C0").opacity(0.12))
-                                        .frame(width: 34, height: 34)
-                                    Image(systemName: "paperplane.fill")
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(Color(hex: "1565C0"))
-                                }
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(pkg.date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.subheadline.bold())
-                                    HStack(spacing: 6) {
-                                        Text("\(pkg.lessonTitles.count) Lektionen")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                        ShareStatusBadge(status: store.packageStatus(pkg, for: currentStudent))
-                                    }
-                                }
-                            }
-                            ForEach(pkg.lessonTitles, id: \.self) { title in
-                                HStack(spacing: 6) {
-                                    RoundedRectangle(cornerRadius: 2).fill(ALColor.green).frame(width: 3, height: 14)
-                                    Text(title).font(.subheadline).foregroundStyle(.primary)
-                                }
-                            }
-                            if !pkg.note.isEmpty {
-                                Text("\u{201E}\(pkg.note)\u{201C}")
-                                    .font(.caption).foregroundStyle(.secondary).italic()
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-            } header: {
-                Label(String(format: String(localized: "Nachbesprechungen (%d)"), currentStudent.sentHistory.count), systemImage: "paperplane.fill")
-                    .foregroundStyle(Color(hex: "1565C0"))
-            }
-        }
-        .listStyle(.insetGrouped)
-    }
-
-    // MARK: (legacy helper)
-
-    var verlaufTab: some View {
-        unterrichtTab
-    }
 
     func sessionChip(icon: String, text: String, color: Color) -> some View {
         HStack(alignment: .top, spacing: 6) {
