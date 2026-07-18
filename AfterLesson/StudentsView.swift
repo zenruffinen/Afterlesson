@@ -328,7 +328,9 @@ struct StudentDetailView: View {
     @State private var photosItem: PhotosPickerItem? = nil
     @State private var showQuickCapture = false
     @State private var selectedSession: TrainingSession? = nil
+    @State private var showEditSheet = false
 
+    var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
     var currentStudent: Student { store.currentStudent(student) ?? student }
     var assignedLessons: [Lesson]  { store.assignedLessonsFor(currentStudent) }
     var trainingSessions: [TrainingSession] { store.sessionsFor(currentStudent).sorted { $0.date > $1.date } }
@@ -365,6 +367,15 @@ struct StudentDetailView: View {
             .background(Color(.systemGroupedBackground))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                if isTeacher {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            showEditSheet = true
+                        } label: {
+                            Label("Bearbeiten", systemImage: "pencil")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .principal) {
                     Text(student.name)
                         .font(.system(size: 16, weight: .semibold, design: .serif))
@@ -372,6 +383,25 @@ struct StudentDetailView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fertig") { dismiss() }
                 }
+            }
+            // Schließen auch unten — bequemer erreichbar als "Fertig" oben
+            .safeAreaInset(edge: .bottom) {
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Schließen")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(ALColor.green, in: RoundedRectangle(cornerRadius: 14))
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 6)
+                .background(.ultraThinMaterial)
+            }
+            .sheet(isPresented: $showEditSheet) {
+                StudentEditorSheet(existingStudent: currentStudent)
             }
             .sheet(isPresented: $showShareSheet) {
                 ShareSheet(items: shareItems)
@@ -482,8 +512,9 @@ struct StudentDetailView: View {
 
                 Spacer()
 
-                // Zwei Aktionen: Stunde erfassen + Senden-Menü
+                // Zwei Aktionen: Stunde erfassen + Senden-Menü — nur für den Pro
                 // (Nachreichung wohnt jetzt im Senden-Menü)
+                if isTeacher {
                 VStack(spacing: 8) {
                     Button { showQuickCapture = true } label: {
                         VStack(spacing: 3) {
@@ -519,6 +550,7 @@ struct StudentDetailView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
@@ -530,9 +562,52 @@ struct StudentDetailView: View {
 
     var karteiTab: some View {
         List {
-            // Kontakt
+            // Wichtige Nachrichten vom Pro — nur im Schüler-Modus
+            // (Quelle: Hausaufgaben/Korrekturen der empfangenen Stunden)
+            if !isTeacher {
+                Section {
+                    let messages = trainingSessions.filter { !$0.homework.isEmpty || !$0.corrections.isEmpty }.prefix(3)
+                    if messages.isEmpty {
+                        Text("Noch keine Nachrichten — dein Pro sendet dir Aufgaben und Hinweise nach der Stunde.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(Array(messages)) { session in
+                            VStack(alignment: .leading, spacing: 5) {
+                                HStack {
+                                    Image(systemName: "megaphone.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(ALColor.gold)
+                                    Text(session.date.formatted(date: .abbreviated, time: .omitted))
+                                        .font(.caption.bold())
+                                    if !session.teacherName.isEmpty {
+                                        Text("· \(session.teacherName)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                if !session.homework.isEmpty {
+                                    Text(session.homework)
+                                        .font(.subheadline)
+                                }
+                                if !session.corrections.isEmpty {
+                                    Text(session.corrections)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                } header: {
+                    Label("Wichtige Nachrichten vom Pro", systemImage: "megaphone.fill")
+                        .foregroundStyle(ALColor.gold)
+                }
+            }
+
+            // Kontakt — Telefonnummer braucht nur der Pro
             Section {
-                if !currentStudent.phone.isEmpty {
+                if isTeacher, !currentStudent.phone.isEmpty {
                     HStack(spacing: 12) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8).fill(ALColor.green.opacity(0.12)).frame(width: 34, height: 34)
@@ -568,8 +643,10 @@ struct StudentDetailView: View {
                     }
                     .padding(.vertical, 2)
                 }
-                if currentStudent.phone.isEmpty && currentStudent.birthday == nil {
-                    Text("Keine Kontaktdaten eingetragen")
+                if (currentStudent.phone.isEmpty || !isTeacher) && currentStudent.birthday == nil {
+                    Text(isTeacher
+                         ? "Keine Kontaktdaten — über Bearbeiten (Stift oben links) ergänzen"
+                         : "Keine Angaben")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             } header: {
