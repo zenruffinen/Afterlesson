@@ -321,12 +321,7 @@ struct StudentDetailView: View {
     @Environment(\.dismiss) var dismiss
     let student: Student
     @State private var tab: Int = 0
-    @State private var showShareSheet = false
-    @State private var shareItems: [Any] = []
-    @State private var showSendSheet = false
-    @State private var showNachreichung = false
     @State private var photosItem: PhotosPickerItem? = nil
-    @State private var showQuickCapture = false
     @State private var selectedSession: TrainingSession? = nil
     @State private var showEditSheet = false
 
@@ -402,27 +397,6 @@ struct StudentDetailView: View {
             }
             .sheet(isPresented: $showEditSheet) {
                 StudentEditorSheet(existingStudent: currentStudent)
-            }
-            .sheet(isPresented: $showShareSheet) {
-                ShareSheet(items: shareItems)
-            }
-            .sheet(isPresented: $showSendSheet) {
-                SendWithNoteSheet(student: currentStudent, lessons: assignedLessons) { items in
-                    shareItems = items
-                    showShareSheet = true
-                }
-            }
-            .sheet(isPresented: $showNachreichung) {
-                ComposerSheet(
-                    preselectedStudentIDs: [currentStudent.id],
-                    isSupplemental: true
-                ) { items in
-                    shareItems = items
-                    showShareSheet = true
-                }
-            }
-            .sheet(isPresented: $showQuickCapture) {
-                QuickCaptureSheet(preselectedStudentID: currentStudent.id)
             }
             .sheet(item: $selectedSession) { session in
                 SessionDetailSheet(session: session)
@@ -512,45 +486,8 @@ struct StudentDetailView: View {
 
                 Spacer()
 
-                // Zwei Aktionen: Stunde erfassen + Senden-Menü — nur für den Pro
-                // (Nachreichung wohnt jetzt im Senden-Menü)
-                if isTeacher {
-                VStack(spacing: 8) {
-                    Button { showQuickCapture = true } label: {
-                        VStack(spacing: 3) {
-                            Image(systemName: "figure.golf").font(.system(size: 17))
-                            Text("Stunde").font(.caption2.bold())
-                        }
-                        .foregroundStyle(.white)
-                        .frame(width: 58, height: 50)
-                        .background(Color(hex: "1565C0"))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    Menu {
-                        Button {
-                            showSendSheet = true
-                        } label: {
-                            Label("Nachbesprechung senden", systemImage: "paperplane.fill")
-                        }
-                        .disabled(assignedLessons.isEmpty)
-
-                        Button {
-                            showNachreichung = true
-                        } label: {
-                            Label("Nachreichung erstellen", systemImage: "tray.and.arrow.down.fill")
-                        }
-                    } label: {
-                        VStack(spacing: 3) {
-                            Image(systemName: "paperplane.fill").font(.system(size: 17))
-                            Text("Senden").font(.caption2.bold())
-                        }
-                        .foregroundStyle(.white)
-                        .frame(width: 58, height: 50)
-                        .background(ALColor.green)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                }
-                }
+                // Aktionen wohnen im Composer und auf dem Startbildschirm —
+                // die Kartei zeigt, die Kartei handelt nicht.
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
