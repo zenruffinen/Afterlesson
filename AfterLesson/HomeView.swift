@@ -597,9 +597,8 @@ struct ComposerSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 } else {
-                    stepHeader(step: 2, title: "Inhalte wählen", icon: "books.vertical.fill")
+                    stepHeader(step: 2, title: "Inhalte aus der Bibliothek", icon: "books.vertical.fill")
                     bundlePreviewSection
-                    lessonsSection
                     poolItemsSection
                     stepHeader(step: 3, title: "Nachricht & Datum", icon: "text.bubble")
                     noteSection
@@ -850,50 +849,6 @@ struct ComposerSheet: View {
         }
     }
 
-    @ViewBuilder
-    private var lessonsSection: some View {
-        if store.lessons.isEmpty {
-            Section {
-                Text("Lege zuerst Lektionen in der Bibliothek an.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } header: {
-                Label("Lektionen", systemImage: "book.fill")
-            }
-        } else {
-            ForEach(store.folders) { folder in
-                let folderLessons = store.lessonsIn(folder)
-                if !folderLessons.isEmpty {
-                    Section {
-                        ForEach(folderLessons) { lesson in
-                            lessonRow(lesson)
-                        }
-                    } header: {
-                        HStack {
-                            Label(folder.title, systemImage: folder.icon)
-                                .foregroundStyle(Color(hex: folder.colorHex))
-                            Spacer()
-                            Button {
-                                let ids = folderLessons.map(\.id)
-                                let allSelected = ids.allSatisfy { selectedLessonIDs.contains($0) }
-                                if allSelected {
-                                    ids.forEach { selectedLessonIDs.remove($0) }
-                                } else {
-                                    ids.forEach { selectedLessonIDs.insert($0) }
-                                }
-                            } label: {
-                                Text(folderLessons.map(\.id).allSatisfy { selectedLessonIDs.contains($0) }
-                                     ? "Alle ab" : "Alle")
-                                    .font(.caption)
-                                    .foregroundStyle(ALColor.green)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     @ViewBuilder
     private var poolItemsSection: some View {
@@ -964,34 +919,6 @@ struct ComposerSheet: View {
                     Text(item.type.label)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private func lessonRow(_ lesson: Lesson) -> some View {
-        let selected = selectedLessonIDs.contains(lesson.id)
-        Button {
-            if selected {
-                selectedLessonIDs.remove(lesson.id)
-            } else {
-                selectedLessonIDs.insert(lesson.id)
-            }
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(selected ? ALColor.green : .secondary)
-                    .font(.title3)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(lesson.title).foregroundStyle(.primary)
-                    if !lesson.description.isEmpty {
-                        Text(lesson.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
                 }
             }
         }
