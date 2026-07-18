@@ -587,15 +587,25 @@ struct ComposerSheet: View {
                 }
                 stepHeader(step: 1, title: "Schüler", icon: "figure.golf")
                 studentsSection
-                stepHeader(step: 2, title: "Datum", icon: "calendar")
-                dateSection
-                stepHeader(step: 3, title: "Inhalte wählen", icon: "books.vertical.fill")
-                bundlePreviewSection
-                lessonsSection
-                poolItemsSection
-                stepHeader(step: 4, title: "Nachricht", icon: "text.bubble")
-                noteSection
-                shareHintSection
+
+                // Hans' Regel: Erst wenn ein Schüler gewählt ist,
+                // öffnen sich die Lerninhalte.
+                if selectedStudentIDs.isEmpty {
+                    Section {
+                        Label("Wähle zuerst den Schüler — dann öffnen sich die Lerninhalte.", systemImage: "arrow.up")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    stepHeader(step: 2, title: "Inhalte wählen", icon: "books.vertical.fill")
+                    bundlePreviewSection
+                    lessonsSection
+                    poolItemsSection
+                    stepHeader(step: 3, title: "Nachricht & Datum", icon: "text.bubble")
+                    noteSection
+                    dateSection
+                    shareHintSection
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle(isSupplemental ? "Nachreichung" : "Composer")
