@@ -41,20 +41,8 @@ struct StudentsView: View {
                                 selectedStudent = student
                             } label: {
                                 HStack(spacing: 14) {
-                                    // Avatar mit Fortschritt-Ring
-                                    let prog = store.progressFor(student)
+                                    // Avatar
                                     ZStack {
-                                        // Fortschritt Ring
-                                        if prog.total > 0 {
-                                            Circle()
-                                                .stroke(ALColor.green.opacity(0.15), lineWidth: 3)
-                                                .frame(width: 50, height: 50)
-                                            Circle()
-                                                .trim(from: 0, to: CGFloat(prog.viewed) / CGFloat(prog.total))
-                                                .stroke(ALColor.green, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                                                .frame(width: 50, height: 50)
-                                                .rotationEffect(.degrees(-90))
-                                        }
                                         // Foto oder Initial
                                         if let filename = student.photoFilename,
                                            let img = UIImage(contentsOfFile: store.imageURL(for: filename).path) {
@@ -84,11 +72,6 @@ struct StudentsView: View {
                                                 Text("HCP \(student.handicap)")
                                                     .font(.caption.bold())
                                                     .foregroundStyle(ALColor.gold)
-                                            }
-                                            if prog.total > 0 {
-                                                Text("\(prog.viewed)/\(prog.total) gesehen")
-                                                    .font(.caption)
-                                                    .foregroundStyle(prog.viewed == prog.total ? .green : ALColor.green)
                                             }
                                         }
                                         if let last = student.lastActiveDate {
