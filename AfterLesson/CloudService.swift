@@ -74,6 +74,32 @@ final class CloudService: ObservableObject {
         try? await client?.auth.signOut()
     }
 
+    // MARK: - E-Mail + Passwort (Plan B, solange die iOS-27-Beta
+    // "Sign in with Apple" serverseitig blockiert — und dauerhaft
+    // nützlich für Test-Konten mit verschiedenen Rollen)
+
+    func signUpWithEmail(_ email: String, password: String, displayName: String?, role: String) async {
+        guard let client else { return }
+        do {
+            _ = try await client.auth.signUp(email: email, password: password)
+            try await upsertProfile(displayName: displayName, role: role)
+            lastErrorMessage = nil
+        } catch {
+            lastErrorMessage = error.localizedDescription
+        }
+    }
+
+    func signInWithEmail(_ email: String, password: String, displayName: String?, role: String) async {
+        guard let client else { return }
+        do {
+            _ = try await client.auth.signIn(email: email, password: password)
+            try await upsertProfile(displayName: displayName, role: role)
+            lastErrorMessage = nil
+        } catch {
+            lastErrorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Profil
 
     private struct CloudProfile: Codable {

@@ -14,6 +14,28 @@ struct GrünbuchCloudSection: View {
     @EnvironmentObject var store: AppStore
     @ObservedObject private var cloud = CloudService.shared
     @State private var currentNonce: String?
+    @State private var email = ""
+    @State private var password = ""
+    @State private var isWorking = false
+
+    private var emailFormValid: Bool {
+        email.contains("@") && password.count >= 6
+    }
+
+    private var currentRole: String {
+        store.appMode == AppMode.teacher.rawValue ? "teacher" : "student"
+    }
+
+    private func emailAction(register: Bool) async {
+        isWorking = true
+        defer { isWorking = false }
+        let name = store.teacherName.isEmpty ? nil : store.teacherName
+        if register {
+            await CloudService.shared.signUpWithEmail(email, password: password, displayName: name, role: currentRole)
+        } else {
+            await CloudService.shared.signInWithEmail(email, password: password, displayName: name, role: currentRole)
+        }
+    }
 
     var body: some View {
         Section {
@@ -50,6 +72,32 @@ struct GrünbuchCloudSection: View {
                 .signInWithAppleButtonStyle(.black)
                 .frame(height: 44)
                 .listRowBackground(Color.clear)
+
+                TextField("cloud.email_placeholder", text: $email)
+                    .textContentType(.emailAddress)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                SecureField("cloud.password_placeholder", text: $password)
+                    .textContentType(.password)
+
+                HStack {
+                    Button("cloud.email_sign_in") {
+                        Task { await emailAction(register: false) }
+                    }
+                    .disabled(!emailFormValid || isWorking)
+
+                    Spacer()
+
+                    Button("cloud.email_register") {
+                        Task { await emailAction(register: true) }
+                    }
+                    .disabled(!emailFormValid || isWorking)
+                }
+
+                if isWorking {
+                    ProgressView()
+                }
 
                 if let error = cloud.lastErrorMessage {
                     Text(error)

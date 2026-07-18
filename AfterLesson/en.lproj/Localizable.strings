@@ -376,3 +376,7 @@
 "cloud.footer" = "With the cloud you can send lessons and sessions directly to your students — no AirDrop needed, wherever they are.";
 "cloud.signed_in" = "Signed in";
 "cloud.sign_out" = "Sign out";
+"cloud.email_placeholder" = "Email address";
+"cloud.password_placeholder" = "Password (min. 6 characters)";
+"cloud.email_sign_in" = "Sign in";
+"cloud.email_register" = "Create account";

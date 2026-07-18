@@ -372,3 +372,7 @@
 "cloud.footer" = "Mit der Cloud kannst du Lektionen und Stunden direkt an deine Schüler senden — ohne AirDrop, egal wo sie sind.";
 "cloud.signed_in" = "Angemeldet";
 "cloud.sign_out" = "Abmelden";
+"cloud.email_placeholder" = "E-Mail-Adresse";
+"cloud.password_placeholder" = "Passwort (mind. 6 Zeichen)";
+"cloud.email_sign_in" = "Anmelden";
+"cloud.email_register" = "Konto erstellen";
