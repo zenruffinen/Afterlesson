@@ -191,6 +191,70 @@ final class CloudService: ObservableObject {
         }
     }
 
+    // MARK: - Paket-Versand & Empfang (die Drehscheibe dreht sich)
+
+    enum CloudError: Error {
+        case notReady
+    }
+
+    /// Lädt eine Mediendatei in den eigenen Storage-Ordner des Pros.
+    func uploadMedia(_ data: Data, filename: String) async throws {
+        guard let client, let proID = userID else { throw CloudError.notReady }
+        _ = try await client.storage.from("media").upload(
+            "\(proID.uuidString)/\(filename)",
+            data: data,
+            options: FileOptions(upsert: true)
+        )
+    }
+
+    /// Holt eine Mediendatei aus dem Ordner des (verknüpften) Pros.
+    func downloadMedia(proID: UUID, filename: String) async throws -> Data {
+        guard let client else { throw CloudError.notReady }
+        return try await client.storage.from("media").download(path: "\(proID.uuidString)/\(filename)")
+    }
+
+    private struct PackageInsertRow: Codable {
+        let pro_id: UUID
+        let student_id: UUID
+        let kind: String
+        let title: String
+        let payload: CloudLessonShare
+    }
+
+    /// Legt ein Lernpaket für einen verbundenen Schüler in die Drehscheibe.
+    func insertPackage(title: String, payload: CloudLessonShare, to studentCloudID: UUID) async throws {
+        guard let client, let proID = userID else { throw CloudError.notReady }
+        let row = PackageInsertRow(
+            pro_id: proID, student_id: studentCloudID,
+            kind: "lesson", title: title, payload: payload
+        )
+        try await client.from("packages").insert(row).execute()
+    }
+
+    /// Schüler: alle an mich gesendeten Pakete (RLS filtert serverseitig).
+    func fetchIncomingPackages() async -> [IncomingCloudPackage] {
+        guard let client, isSignedIn else { return [] }
+        do {
+            return try await client.from("packages")
+                .select("id, pro_id, title, payload, created_at")
+                .order("created_at", ascending: false)
+                .execute().value
+        } catch {
+            lastErrorMessage = error.localizedDescription
+            return []
+        }
+    }
+
+    /// Schüler: Lesestatus zurückmelden (Pro sieht "gesehen").
+    func markPackageRead(_ packageID: UUID) async {
+        guard let client else { return }
+        struct ReadPatch: Codable { let read_at: Date }
+        _ = try? await client.from("packages")
+            .update(ReadPatch(read_at: Date()))
+            .eq("id", value: packageID)
+            .execute()
+    }
+
     // MARK: - Nonce-Helfer für Sign in with Apple
 
     /// Zufälliger Einmalwert — Apple bekommt den Hash, Supabase das Original.

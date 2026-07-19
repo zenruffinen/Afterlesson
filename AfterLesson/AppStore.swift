@@ -273,15 +273,24 @@ final class AppStore: ObservableObject {
     }
 
     /// Composer: Schülern Lektionen und Bibliothek-Inhalte zuweisen und Share-Items vorbereiten.
-    func deliverComposerPackage(
+    /// Gemeinsamer Kern für AirDrop- UND Cloud-Versand: baut das Lernpaket,
+    /// weist es zu und schreibt den Verlauf. Die Übertragung selbst
+    /// übernimmt danach der jeweilige Weg.
+    struct ComposerDelivery {
+        let targets: [Student]
+        let lessons: [Lesson]
+        let note: String
+    }
+
+    func prepareComposerDelivery(
         to studentIDs: Set<UUID>,
         lessonIDs: Set<UUID>,
         contentItemIDs: Set<UUID>,
         note: String,
         date: Date
-    ) -> [Any] {
+    ) -> ComposerDelivery {
         let targets = students.filter { studentIDs.contains($0.id) }
-        guard !targets.isEmpty else { return [] }
+        guard !targets.isEmpty else { return ComposerDelivery(targets: [], lessons: [], note: "") }
 
         var lessonsToDeliver = lessons.filter { lessonIDs.contains($0.id) }
 
@@ -303,19 +312,6 @@ final class AppStore: ObservableObject {
         }
 
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        var shareItems: [Any] = [Self.composerShareHint]
-
-        if !trimmedNote.isEmpty {
-            let dateStr = date.formatted(date: .long, time: .omitted)
-            let names = targets.map(\.name).joined(separator: ", ")
-            shareItems.append("Grünbuch · Composer · \(names) · \(dateStr)\n\n\(trimmedNote)")
-        }
-
-        for lesson in lessonsToDeliver {
-            if let url = exportLesson(lesson) {
-                shareItems.append(url)
-            }
-        }
 
         for student in targets {
             for lesson in lessonsToDeliver {
@@ -325,6 +321,36 @@ final class AppStore: ObservableObject {
                 }
             }
             recordSent(to: student, lessons: lessonsToDeliver, note: trimmedNote, date: date)
+        }
+
+        return ComposerDelivery(targets: targets, lessons: lessonsToDeliver, note: trimmedNote)
+    }
+
+    func deliverComposerPackage(
+        to studentIDs: Set<UUID>,
+        lessonIDs: Set<UUID>,
+        contentItemIDs: Set<UUID>,
+        note: String,
+        date: Date
+    ) -> [Any] {
+        let delivery = prepareComposerDelivery(
+            to: studentIDs, lessonIDs: lessonIDs,
+            contentItemIDs: contentItemIDs, note: note, date: date
+        )
+        guard !delivery.targets.isEmpty else { return [] }
+
+        var shareItems: [Any] = [Self.composerShareHint]
+
+        if !delivery.note.isEmpty {
+            let dateStr = date.formatted(date: .long, time: .omitted)
+            let names = delivery.targets.map(\.name).joined(separator: ", ")
+            shareItems.append("Grünbuch · Composer · \(names) · \(dateStr)\n\n\(delivery.note)")
+        }
+
+        for lesson in delivery.lessons {
+            if let url = exportLesson(lesson) {
+                shareItems.append(url)
+            }
         }
 
         return shareItems
@@ -958,6 +984,10 @@ final class AppStore: ObservableObject {
         guard let idx = lessons.firstIndex(where: { $0.id == lesson.id }) else { return }
         if lessons[idx].openedDate == nil {
             lessons[idx].openedDate = Date()
+            // Kam die Lektion über die Cloud, bekommt der Pro den Lesestatus zurück
+            if let packageID = lessons[idx].cloudPackageID {
+                Task { await CloudService.shared.markPackageRead(packageID) }
+            }
         }
     }
 

@@ -81,6 +81,13 @@ struct HomeView: View {
         .onChange(of: showQuickCapture) { _, isShowing in
             if !isShowing { quickCaptureStudentID = nil }
         }
+        // Schüler: beim Betreten des Startbildschirms neue Cloud-Pakete
+        // abholen — sie landen im vertrauten "Neues vom Pro"-Fluss.
+        .task {
+            if !isTeacher {
+                _ = await store.importCloudPackages()
+            }
+        }
     }
 
     // MARK: Header Bar
@@ -543,6 +550,40 @@ struct ComposerSheet: View {
     @State private var selectedLessonIDs: Set<UUID> = []
     @State private var selectedContentItemIDs: Set<UUID> = []
     @State private var note: String = ""
+    @State private var isSendingCloud = false
+    @State private var cloudResultMessage: String? = nil
+
+    /// Cloud-Versand ist möglich, wenn der Pro angemeldet ist und
+    /// mindestens ein gewählter Schüler seinen Code eingelöst hat.
+    private var cloudSendPossible: Bool {
+        CloudService.shared.isSignedIn
+            && store.students.contains { selectedStudentIDs.contains($0.id) && $0.cloudUserID != nil }
+    }
+
+    private func sendViaCloud() {
+        isSendingCloud = true
+        Task {
+            let result = await store.sendComposerPackageViaCloud(
+                to: selectedStudentIDs,
+                lessonIDs: selectedLessonIDs,
+                contentItemIDs: selectedContentItemIDs,
+                note: note,
+                date: assignmentDate
+            )
+            isSendingCloud = false
+            if result.sent > 0 && result.withoutCloud.isEmpty {
+                cloudResultMessage = String(format: String(localized: "cloud.composer_sent"), result.sent)
+            } else if result.sent > 0 {
+                cloudResultMessage = String(
+                    format: String(localized: "cloud.composer_sent_partial"),
+                    result.sent, result.withoutCloud.joined(separator: ", ")
+                )
+            } else {
+                cloudResultMessage = CloudService.shared.lastErrorMessage
+                    ?? String(localized: "cloud.composer_sent_none")
+            }
+        }
+    }
 
     private var selectedLessons: [Lesson] {
         store.lessons.filter { selectedLessonIDs.contains($0.id) }
@@ -656,11 +697,41 @@ struct ComposerSheet: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(ALColor.green)
+
+                        // Der zweite Weg: über die Drehscheibe — erreicht
+                        // verbundene Schüler auch zuhause.
+                        if cloudSendPossible {
+                            Button {
+                                sendViaCloud()
+                            } label: {
+                                if isSendingCloud {
+                                    ProgressView()
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                } else {
+                                    Label("cloud.composer_send", systemImage: "icloud.and.arrow.up.fill")
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(Color(hex: "1565C0"))
+                            .disabled(isSendingCloud)
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(.ultraThinMaterial)
                 }
+            }
+            .alert("cloud.composer_result_title", isPresented: Binding(
+                get: { cloudResultMessage != nil },
+                set: { if !$0 { cloudResultMessage = nil; dismiss() } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(cloudResultMessage ?? "")
             }
         }
         .presentationDetents([.large])

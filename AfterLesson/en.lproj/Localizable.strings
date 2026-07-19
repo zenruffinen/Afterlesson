@@ -391,3 +391,8 @@
 "cloud.code_placeholder" = "Code from your pro";
 "cloud.code_sign_in" = "Sign in with code";
 "cloud.code_invalid" = "Code unknown or already used — ask your pro for a new one.";
+"cloud.composer_send" = "Send via cloud";
+"cloud.composer_result_title" = "Cloud delivery";
+"cloud.composer_sent" = "On its way! Sent %d package(s) to your connected students.";
+"cloud.composer_sent_partial" = "Sent %d package(s). Without cloud connection (use AirDrop or an invite code): %@";
+"cloud.composer_sent_none" = "Nothing sent — none of the selected students is connected to the cloud.";

@@ -69,6 +69,7 @@ struct Lesson: Identifiable, Codable, Hashable {
     var origin: LessonOrigin = .local   // Schüler-Import markiert .receivedFromPro
     var receivedFromPro: String = ""    // Name des Pros bei empfangenen Lektionen
     var openedDate: Date? = nil         // Lesestatus (Schüler-Modus)
+    var cloudPackageID: UUID? = nil     // Herkunfts-Paket in der Cloud (für Lesestatus-Rückmeldung)
 
     init(id: UUID = UUID(),
          folderID: UUID,
@@ -128,6 +129,7 @@ struct Lesson: Identifiable, Codable, Hashable {
         origin = try c.decodeIfPresent(LessonOrigin.self, forKey: .origin) ?? .local
         receivedFromPro = try c.decodeIfPresent(String.self, forKey: .receivedFromPro) ?? ""
         openedDate = try c.decodeIfPresent(Date.self, forKey: .openedDate)
+        cloudPackageID = try c.decodeIfPresent(UUID.self, forKey: .cloudPackageID)
     }
 }
 
