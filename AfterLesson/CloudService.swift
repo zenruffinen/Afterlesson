@@ -171,12 +171,14 @@ final class CloudService: ObservableObject {
             if userID == nil {
                 _ = try await client.auth.signInAnonymously()
             }
+            // Erst das Profil anlegen — die Verknüpfung (pro_students)
+            // verweist per Fremdschlüssel darauf.
+            try await upsertProfile(displayName: nil, role: "student")
             let ok: Bool = try await client.rpc(
                 "redeem_invite",
                 params: ["invite_code": code]
             ).execute().value
             if ok {
-                try await upsertProfile(displayName: nil, role: "student")
                 lastErrorMessage = nil
                 return true
             } else {
