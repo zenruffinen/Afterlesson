@@ -1050,11 +1050,12 @@ struct ContentItemTile: View {
     @ViewBuilder
     var preview: some View {
         if item.type == .image, let img = UIImage(contentsOfFile: store.imageURL(for: item.filename).path) {
-            Image(uiImage: img).resizable().scaledToFill()
+            // "Fit in window": das ganze Bild sichtbar, nichts abgeschnitten
+            Image(uiImage: img).resizable().scaledToFit().padding(4)
         } else if let thumb = item.thumbnailFilename,
                   let img = UIImage(contentsOfFile: store.imageURL(for: thumb).path) {
             ZStack {
-                Image(uiImage: img).resizable().scaledToFill()
+                Image(uiImage: img).resizable().scaledToFit().padding(4)
                 if item.type == .video {
                     Image(systemName: "play.circle.fill")
                         .font(.system(size: 28))
