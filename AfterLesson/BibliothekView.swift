@@ -60,9 +60,7 @@ struct DatenpoolView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             inboxRow
-                            if isTeacher {
-                                newClassRow
-                            }
+                            newClassRow
                             classGrid
                         }
                         .padding(16)
@@ -285,7 +283,8 @@ struct DatenpoolView: View {
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
-                    if isTeacher {
+                    // Organisieren dürfen Pro UND Schüler (19.07.)
+                    if true {
                         Button { editingClass = c } label: {
                             Label("Bearbeiten", systemImage: "pencil")
                         }
@@ -314,7 +313,7 @@ struct DatenpoolView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            if isTeacher {
+            if true {
                 Button { showNewClassSheet = true } label: {
                     Label("Neue Lektionsgruppe", systemImage: "folder.badge.plus")
                         .font(.subheadline.bold())
@@ -444,7 +443,7 @@ struct ClassContentView: View {
         .navigationTitle(contentClass?.title ?? "Eingang")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if isTeacher {
+            if true {
                 if !classItems.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(selectionMode ? "Fertig" : "Auswählen") {
@@ -686,7 +685,8 @@ struct ClassContentView: View {
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
-                    if isTeacher {
+                    // Verschieben dürfen Pro UND Schüler (19.07.)
+                    if true {
                         Menu {
                             ForEach(store.contentClasses.sorted(by: { $0.sortIndex < $1.sortIndex })) { c in
                                 if c.id != contentClass?.id {
