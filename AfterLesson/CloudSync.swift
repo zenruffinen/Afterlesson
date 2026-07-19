@@ -146,7 +146,13 @@ extension AppStore {
         // Hans' Regel: Empfangenes zieht in die Bibliothek des Schülers ein —
         // als eigene Lektionsgruppe "Lektion vom <Datum> – <Pro>", damit auf
         // einen Blick klar ist, was von wem kam.
-        if !newPoolItems.isEmpty {
+        // Auch bereits vorhandene, aber unsortierte Inhalte aus diesem Paket
+        // sollen in die Absender-Gruppe einziehen (z. B. nach erneutem Senden).
+        let existingUnsortedIDs = package.payload.contentItems.map(\.id).filter { id in
+            contentPool.contains(where: { $0.id == id && $0.classID == nil })
+        }
+
+        if !newPoolItems.isEmpty || !existingUnsortedIDs.isEmpty {
             let formatter = DateFormatter()
             formatter.dateFormat = "dd.MM.yyyy"
             let dateStr = formatter.string(from: package.created_at)
@@ -169,7 +175,14 @@ extension AppStore {
             for i in newPoolItems.indices {
                 newPoolItems[i].classID = groupID
             }
-            contentPool.insert(contentsOf: newPoolItems, at: 0)
+            if !newPoolItems.isEmpty {
+                contentPool.insert(contentsOf: newPoolItems, at: 0)
+            }
+            for id in existingUnsortedIDs {
+                if let idx = contentPool.firstIndex(where: { $0.id == id }) {
+                    contentPool[idx].classID = groupID
+                }
+            }
         }
 
         var newLesson = package.payload.lesson
