@@ -18,6 +18,8 @@ struct StudentsView: View {
     @State private var selectedStudent: Student? = nil
     @State private var studentToEdit: Student? = nil
 
+    var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -102,12 +104,22 @@ struct StudentsView: View {
                     .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle("Schüler")
+            .navigationTitle(isTeacher ? "Schüler" : String(localized: "Mein Profil"))
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showAddStudent = true } label: {
-                        Image(systemName: "plus")
+                if isTeacher {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button { showAddStudent = true } label: {
+                            Image(systemName: "plus")
+                        }
                     }
+                }
+            }
+            // Schüler-Modus: Der Nutzer sieht hier SICH SELBST — die eigene
+            // Karteikarte wird beim ersten Besuch automatisch angelegt.
+            .onAppear {
+                if !isTeacher && store.students.isEmpty {
+                    let myName = store.teacherName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    store.students.append(Student(name: myName.isEmpty ? String(localized: "Mein Profil") : myName))
                 }
             }
             .sheet(isPresented: $showAddStudent) {
@@ -301,6 +313,11 @@ struct StudentEditorSheet: View {
             s.avatarColor = avatarColor
             s.photoFilename = photoFilename
             store.updateStudent(s)
+            // Schüler-Modus: Das eigene Profil ist die Quelle des Namens —
+            // Startbildschirm-Begrüßung zieht mit.
+            if store.appMode == AppMode.student.rawValue {
+                store.teacherName = n
+            }
         } else {
             var s = Student(name: n)
             s.phone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -364,13 +381,13 @@ struct StudentDetailView: View {
             .background(Color(.systemGroupedBackground))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if isTeacher {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            showEditSheet = true
-                        } label: {
-                            Label("Bearbeiten", systemImage: "pencil")
-                        }
+                // Stift für beide: Der Pro pflegt seine Schüler,
+                // der Schüler korrigiert sein eigenes Profil.
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showEditSheet = true
+                    } label: {
+                        Label("Bearbeiten", systemImage: "pencil")
                     }
                 }
                 ToolbarItem(placement: .principal) {

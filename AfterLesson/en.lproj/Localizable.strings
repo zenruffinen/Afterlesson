@@ -419,3 +419,4 @@
 "cloud.invite_renew" = "Create new code (e.g. after device change)";
 "cloud.received_group" = "Lesson from %@";
 "cloud.received_group_named" = "Lesson from %@ – %@";
+"Mein Profil" = "My profile";
