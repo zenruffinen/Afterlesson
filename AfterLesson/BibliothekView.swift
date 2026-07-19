@@ -274,8 +274,9 @@ struct DatenpoolView: View {
     // MARK: Lektionsgruppen-Grid (Ordner-Übersicht)
 
     var classGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            ForEach(store.contentClasses.sorted(by: { $0.sortIndex < $1.sortIndex })) { c in
+        // Kleine Kacheln, alphabetisch — wie ein Karteikasten (Hans, 19.07.)
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 10)], spacing: 10) {
+            ForEach(store.contentClasses.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })) { c in
                 NavigationLink {
                     ClassContentView(contentClass: c)
                 } label: {
@@ -344,37 +345,36 @@ struct ContentClassTile: View {
     var title: String { contentClass?.title ?? "Eingang" }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        // Kompakte Karteikarte: Icon mit Zähler, darunter der Name.
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(color.opacity(0.15))
-                        .frame(width: 44, height: 44)
+                        .frame(width: 32, height: 32)
                     Image(systemName: icon)
-                        .font(.title3)
+                        .font(.subheadline)
                         .foregroundStyle(color)
                 }
                 Spacer()
                 Text("\(count)")
-                    .font(.caption.bold())
+                    .font(.caption2.bold())
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
                     .background(color)
                     .clipShape(Capsule())
             }
             Text(title)
-                .font(.headline)
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(.primary)
-                .lineLimit(1)
-            Text(count == 1 ? "1 Inhalt" : "\(count) Inhalte")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .lineLimit(2, reservesSpace: true)
+                .multilineTextAlignment(.leading)
         }
-        .padding(14)
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
