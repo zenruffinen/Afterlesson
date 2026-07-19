@@ -1000,10 +1000,13 @@ struct ContentItemTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack(alignment: .topTrailing) {
-                preview
-                    .frame(height: 110)
+                // Einheitliches 4:3-Vorschauformat: Das Bild füllt den Rahmen,
+                // ohne zu verzerren oder über die Kachel hinauszulaufen.
+                Color.clear
+                    .aspectRatio(4.0 / 3.0, contentMode: .fit)
                     .frame(maxWidth: .infinity)
                     .background(typeColor.opacity(0.12))
+                    .overlay(preview)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
 
                 ZStack {
@@ -1047,11 +1050,11 @@ struct ContentItemTile: View {
     @ViewBuilder
     var preview: some View {
         if item.type == .image, let img = UIImage(contentsOfFile: store.imageURL(for: item.filename).path) {
-            Image(uiImage: img).resizable().scaledToFill().frame(height: 110).clipped()
+            Image(uiImage: img).resizable().scaledToFill()
         } else if let thumb = item.thumbnailFilename,
                   let img = UIImage(contentsOfFile: store.imageURL(for: thumb).path) {
             ZStack {
-                Image(uiImage: img).resizable().scaledToFill().frame(height: 110).clipped()
+                Image(uiImage: img).resizable().scaledToFill()
                 if item.type == .video {
                     Image(systemName: "play.circle.fill")
                         .font(.system(size: 28))
