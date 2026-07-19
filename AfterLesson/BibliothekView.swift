@@ -394,6 +394,8 @@ struct ClassContentView: View {
     @State private var importError: String? = nil
     @State private var selectionMode = false            // Mehrfachauswahl aktiv?
     @State private var selectedIDs: Set<UUID> = []      // Ausgewählte Inhalte
+    @State private var showClassEditor = false          // Gruppe umbenennen
+    @Environment(\.dismiss) private var dismissView
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -443,6 +445,27 @@ struct ClassContentView: View {
         .navigationTitle(contentClass?.title ?? "Eingang")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // Sichtbarer Weg zum Umbenennen/Löschen — gilt auch für die
+            // vordefinierten Golf-Gruppen (Hans, 19.07.)
+            if let c = contentClass {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            showClassEditor = true
+                        } label: {
+                            Label("Lektionsgruppe bearbeiten", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            store.deleteContentClass(c)
+                            dismissView()
+                        } label: {
+                            Label("Lektionsgruppe löschen", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
             if true {
                 if !classItems.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -482,6 +505,9 @@ struct ClassContentView: View {
         }
         .sheet(item: $selectedItem) { item in
             ContentItemDetailView(item: item)
+        }
+        .sheet(isPresented: $showClassEditor) {
+            ContentClassEditorSheet(existingClass: contentClass)
         }
         .overlay {
             if isImporting { importOverlay }
