@@ -143,13 +143,32 @@ extension AppStore {
         var newPoolItems = package.payload.contentItems.filter { item in
             !contentPool.contains(where: { $0.id == item.id })
         }
-        for i in newPoolItems.indices {
-            if let cid = newPoolItems[i].classID,
-               !contentClasses.contains(where: { $0.id == cid }) {
-                newPoolItems[i].classID = nil
-            }
-        }
+        // Hans' Regel: Empfangenes zieht in die Bibliothek des Schülers ein —
+        // als eigene Lektionsgruppe "Lektion vom <Datum> – <Pro>", damit auf
+        // einen Blick klar ist, was von wem kam.
         if !newPoolItems.isEmpty {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "dd.MM.yyyy"
+            let dateStr = formatter.string(from: package.created_at)
+            let teacher = package.payload.teacherName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let groupTitle = teacher.isEmpty
+                ? String(format: String(localized: "cloud.received_group"), dateStr)
+                : String(format: String(localized: "cloud.received_group_named"), dateStr, teacher)
+
+            let groupID: UUID
+            if let existing = contentClasses.first(where: { $0.title == groupTitle }) {
+                groupID = existing.id
+            } else {
+                var group = ContentClass(title: groupTitle)
+                group.icon = "tray.and.arrow.down.fill"
+                group.colorHex = "C9A227"
+                group.sortIndex = (contentClasses.map(\.sortIndex).max() ?? 0) + 1
+                contentClasses.append(group)
+                groupID = group.id
+            }
+            for i in newPoolItems.indices {
+                newPoolItems[i].classID = groupID
+            }
             contentPool.insert(contentsOf: newPoolItems, at: 0)
         }
 
