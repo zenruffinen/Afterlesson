@@ -198,10 +198,12 @@ final class CloudService: ObservableObject {
     }
 
     /// Lädt eine Mediendatei in den eigenen Storage-Ordner des Pros.
+    /// WICHTIG: UUID kleingeschrieben — die Storage-Schutzregel vergleicht
+    /// den Ordnernamen als Text mit auth.uid() (immer klein).
     func uploadMedia(_ data: Data, filename: String) async throws {
         guard let client, let proID = userID else { throw CloudError.notReady }
         _ = try await client.storage.from("media").upload(
-            "\(proID.uuidString)/\(filename)",
+            "\(proID.uuidString.lowercased())/\(filename)",
             data: data,
             options: FileOptions(upsert: true)
         )
@@ -210,7 +212,7 @@ final class CloudService: ObservableObject {
     /// Holt eine Mediendatei aus dem Ordner des (verknüpften) Pros.
     func downloadMedia(proID: UUID, filename: String) async throws -> Data {
         guard let client else { throw CloudError.notReady }
-        return try await client.storage.from("media").download(path: "\(proID.uuidString)/\(filename)")
+        return try await client.storage.from("media").download(path: "\(proID.uuidString.lowercased())/\(filename)")
     }
 
     private struct PackageInsertRow: Codable {
