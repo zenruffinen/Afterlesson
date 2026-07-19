@@ -388,7 +388,7 @@
 "cloud.code_sign_in" = "Mit Code anmelden";
 "cloud.code_invalid" = "Code unbekannt oder schon verwendet — frag deinen Pro nach einem neuen.";
 "cloud.composer_send" = "Über Cloud senden";
-"cloud.composer_result_title" = "Cloud-Versand";
+"cloud.composer_result_title" = "Composer";
 "cloud.composer_sent" = "Unterwegs! %d Paket(e) an deine verbundenen Schüler gesendet.";
 "cloud.composer_sent_partial" = "%d Paket(e) gesendet. Ohne Cloud-Verbindung (bitte per AirDrop oder Code verbinden): %@";
 "cloud.composer_sent_none" = "Kein Paket gesendet — keiner der gewählten Schüler ist mit der Cloud verbunden.";
@@ -399,3 +399,7 @@
 "Noch keine Lektionsgruppen" = "Noch keine Lektionsgruppen";
 "Tippe auf + um eine Lektionsgruppe anzulegen" = "Tippe auf + um eine Lektionsgruppe anzulegen";
 "Noch keiner Lektionsgruppe zugeordnet" = "Noch keiner Lektionsgruppe zugeordnet";
+"composer.assigned" = "Zugewiesen an: %@. Übertrage jetzt über Cloud oder AirDrop — oder später.";
+"Alle wählen" = "Alle wählen";
+"Abwählen" = "Abwählen";
+"Eingang" = "Eingang";

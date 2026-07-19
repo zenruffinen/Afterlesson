@@ -661,9 +661,9 @@ struct ComposerSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        assignAndShare()
+                        assignOnly()
                     } label: {
-                        Label("Nachbesprechung starten", systemImage: "paperplane.fill")
+                        Label("Zuweisen", systemImage: "checkmark.circle.fill")
                     }
                     .disabled(!canAssign)
                 }
@@ -671,26 +671,8 @@ struct ComposerSheet: View {
             .safeAreaInset(edge: .bottom) {
                 if canAssign {
                     VStack(spacing: 10) {
-                        Label {
-                            Text(isSupplemental
-                                 ? "Ergänze in der Nachbesprechung einzelne Lektionen oder Medien — persönlich per AirDrop, wenn ihr zusammen seid."
-                                 : "Die Nachbesprechung dauert ca. 5 Minuten: Paket persönlich per AirDrop übergeben und kurz besprechen — direkt nach der Lektion auf dem Platz.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.leading)
-                        } icon: {
-                            Image(systemName: "airdrop")
-                                .foregroundStyle(ALColor.green)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Text("ca. 5 Minuten · persönlich am Platz")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Button(action: assignAndShare) {
-                            Label("Paket zur Nachbesprechung", systemImage: "paperplane.fill")
+                        Button(action: assignOnly) {
+                            Label("Zuweisen", systemImage: "checkmark.circle.fill")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -719,6 +701,17 @@ struct ComposerSheet: View {
                             .tint(Color(hex: "1565C0"))
                             .disabled(isSendingCloud)
                         }
+
+                        // Der persönliche Weg am Platz — öffnet das
+                        // iOS-Teilen-Fenster mit dem Grünbuch-Paket.
+                        Button(action: assignAndShare) {
+                            Label("Per AirDrop übergeben", systemImage: "airdrop")
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(ALColor.green)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
@@ -922,47 +915,56 @@ struct ComposerSheet: View {
 
 
     @ViewBuilder
+    /// Die Bibliothek im Composer: gegliedert nach Lektionsgruppen (Hans'
+    /// Bündel), alle Inhalte direkt sichtbar, "Alle" wählt gruppenweise.
     private var poolItemsSection: some View {
-        Section {
+        Group {
             if store.contentPool.isEmpty {
-                Text("Importiere wiederverwendbaren Lernstoff im Bibliothek-Tab (Film, Bild, Text, PDF, Audio).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Section {
+                    Text("Importiere wiederverwendbaren Lernstoff im Bibliothek-Tab (Film, Bild, Text, PDF, Audio).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             } else {
-                ForEach(ContentType.allCases, id: \.self) { type in
-                    let items = store.contentPool.filter { $0.type == type }
+                ForEach(store.contentClasses) { group in
+                    let items = store.contentPool.filter { $0.classID == group.id }
                     if !items.isEmpty {
-                        DisclosureGroup {
-                            ForEach(items) { item in
-                                poolItemRow(item)
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: type.icon)
-                                    .foregroundStyle(Color(hex: type.colorHex))
-                                Text(type.label)
-                                    .font(.subheadline.bold())
-                                Spacer()
-                                let count = items.filter { selectedContentItemIDs.contains($0.id) }.count
-                                if count > 0 {
-                                    Text("\(count)")
-                                        .font(.caption2.bold())
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 7)
-                                        .padding(.vertical, 2)
-                                        .background(ALColor.green, in: Capsule())
-                                }
-                            }
-                        }
+                        poolGroupSection(title: group.title, icon: group.icon, colorHex: group.colorHex, items: items)
                     }
                 }
+                let unsorted = store.contentPool.filter { item in
+                    item.classID == nil || !store.contentClasses.contains(where: { $0.id == item.classID })
+                }
+                if !unsorted.isEmpty {
+                    poolGroupSection(title: String(localized: "Eingang"), icon: "tray.fill", colorHex: "8D6E63", items: unsorted)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func poolGroupSection(title: String, icon: String, colorHex: String, items: [ContentItem]) -> some View {
+        Section {
+            ForEach(items) { item in
+                poolItemRow(item)
             }
         } header: {
-            Label("Einzelmedien aus Bibliothek", systemImage: "tray.full.fill")
-        } footer: {
-            if !store.contentPool.isEmpty {
-                Text("Video, Bild, Text und weitere Formate — werden bei Bedarf zu einem Lernpaket gebündelt.")
-                    .font(.caption2)
+            HStack {
+                Label(title, systemImage: icon)
+                    .foregroundStyle(Color(hex: colorHex))
+                    .font(.subheadline.bold())
+                Spacer()
+                let ids = items.map(\.id)
+                let allSelected = ids.allSatisfy { selectedContentItemIDs.contains($0) }
+                Button(allSelected ? String(localized: "Abwählen") : String(localized: "Alle wählen")) {
+                    if allSelected {
+                        ids.forEach { selectedContentItemIDs.remove($0) }
+                    } else {
+                        ids.forEach { selectedContentItemIDs.insert($0) }
+                    }
+                }
+                .font(.caption.bold())
+                .textCase(nil)
             }
         }
     }
@@ -994,6 +996,20 @@ struct ComposerSheet: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    /// Nur zuweisen — kein Teilen-Fenster. Das Paket steht danach im
+    /// Verlauf des Schülers; übertragen wird per Cloud oder AirDrop.
+    private func assignOnly() {
+        let delivery = store.prepareComposerDelivery(
+            to: selectedStudentIDs,
+            lessonIDs: selectedLessonIDs,
+            contentItemIDs: selectedContentItemIDs,
+            note: note,
+            date: assignmentDate
+        )
+        let names = delivery.targets.map(\.name).joined(separator: ", ")
+        cloudResultMessage = String(format: String(localized: "composer.assigned"), names)
     }
 
     private func assignAndShare() {

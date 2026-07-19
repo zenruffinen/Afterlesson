@@ -392,7 +392,7 @@
 "cloud.code_sign_in" = "Sign in with code";
 "cloud.code_invalid" = "Code unknown or already used — ask your pro for a new one.";
 "cloud.composer_send" = "Send via cloud";
-"cloud.composer_result_title" = "Cloud delivery";
+"cloud.composer_result_title" = "Composer";
 "cloud.composer_sent" = "On its way! Sent %d package(s) to your connected students.";
 "cloud.composer_sent_partial" = "Sent %d package(s). Without cloud connection (use AirDrop or an invite code): %@";
 "cloud.composer_sent_none" = "Nothing sent — none of the selected students is connected to the cloud.";
@@ -407,3 +407,9 @@
 "Lektionsgruppe löschen" = "Delete lesson group";
 "Diese Lektionsgruppe ist leer" = "This lesson group is empty";
 "In Lektionsgruppe verschieben" = "Move to lesson group";
+"composer.assigned" = "Assigned to: %@. Deliver now via cloud or AirDrop — or later.";
+"Alle wählen" = "Select all";
+"Abwählen" = "Deselect";
+"Eingang" = "Inbox";
+"Zuweisen" = "Assign";
+"Per AirDrop übergeben" = "Hand over via AirDrop";
