@@ -16,6 +16,7 @@ struct GrünbuchCloudSection: View {
     @State private var currentNonce: String?
     @State private var email = ""
     @State private var password = ""
+    @State private var inviteCode = ""
     @State private var isWorking = false
 
     private var emailFormValid: Bool {
@@ -59,6 +60,34 @@ struct GrünbuchCloudSection: View {
                     Task { await cloud.signOut() }
                 } label: {
                     Label("cloud.sign_out", systemImage: "rectangle.portrait.and.arrow.right")
+                }
+            } else if currentRole == "student" {
+                // Schüler melden sich nur mit dem Code vom Pro an —
+                // kein Passwort, keine E-Mail.
+                TextField("cloud.code_placeholder", text: $inviteCode)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .font(.system(.title3, design: .monospaced))
+
+                Button {
+                    Task {
+                        isWorking = true
+                        _ = await CloudService.shared.signInStudent(withCode: inviteCode)
+                        isWorking = false
+                    }
+                } label: {
+                    if isWorking {
+                        ProgressView()
+                    } else {
+                        Label("cloud.code_sign_in", systemImage: "key.horizontal.fill")
+                    }
+                }
+                .disabled(inviteCode.trimmingCharacters(in: .whitespaces).count < 6 || isWorking)
+
+                if let error = cloud.lastErrorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
                 }
             } else {
                 SignInWithAppleButton(.signIn) { request in

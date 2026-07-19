@@ -324,6 +324,8 @@ struct StudentDetailView: View {
     @State private var photosItem: PhotosPickerItem? = nil
     @State private var selectedSession: TrainingSession? = nil
     @State private var showEditSheet = false
+    @ObservedObject private var cloud = CloudService.shared
+    @State private var isCreatingCode = false
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
     var currentStudent: Student { store.currentStudent(student) ?? student }
@@ -588,6 +590,71 @@ struct StudentDetailView: View {
                 }
             } header: {
                 Label("Kontakt", systemImage: "person.text.rectangle")
+            }
+
+            // Grünbuch Cloud: Einladungscode (nur Lehrer)
+            if isTeacher {
+                Section {
+                    if !cloud.isConfigured || !cloud.isSignedIn {
+                        Text("cloud.invite_needs_login")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if let code = currentStudent.inviteCode {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text(code)
+                                    .font(.system(size: 28, weight: .bold, design: .monospaced))
+                                    .kerning(3)
+                                    .foregroundStyle(ALColor.green)
+                                Spacer()
+                                ShareLink(item: String(format: String(localized: "cloud.invite_share_text"), code)) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.title3)
+                                }
+                            }
+                            if currentStudent.cloudUserID != nil {
+                                Label("cloud.invite_redeemed", systemImage: "checkmark.icloud.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                            } else {
+                                Label("cloud.invite_pending", systemImage: "hourglass")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .task {
+                                        if let uid = await cloud.redeemedUserID(forCode: code) {
+                                            var updated = currentStudent
+                                            updated.cloudUserID = uid
+                                            store.updateStudent(updated)
+                                        }
+                                    }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    } else {
+                        Button {
+                            isCreatingCode = true
+                            Task {
+                                if let code = await cloud.createInviteCode(forLocalStudent: currentStudent.id) {
+                                    var updated = currentStudent
+                                    updated.inviteCode = code
+                                    store.updateStudent(updated)
+                                }
+                                isCreatingCode = false
+                            }
+                        } label: {
+                            if isCreatingCode {
+                                ProgressView()
+                            } else {
+                                Label("cloud.invite_create", systemImage: "qrcode")
+                            }
+                        }
+                    }
+                } header: {
+                    Label("cloud.invite_header", systemImage: "icloud")
+                        .foregroundStyle(ALColor.green)
+                } footer: {
+                    Text("cloud.invite_footer")
+                }
             }
 
             // Pro-Notizen (nur Lehrer)

@@ -116,6 +116,79 @@ final class CloudService: ObservableObject {
         try await client.from("profiles").upsert(profile).execute()
     }
 
+    // MARK: - Einladungscodes (Pro erzeugt, Schüler löst ein)
+
+    private struct InviteRow: Codable {
+        let code: String
+        let pro_id: UUID
+        let local_student_id: UUID
+    }
+
+    private struct InviteStatusRow: Codable {
+        let code: String
+        let used_by: UUID?
+    }
+
+    /// Erzeugt einen Einladungscode für einen Schüler und hinterlegt ihn
+    /// in der Cloud. Ohne 0/O/1/I/L — am Platz gut vorlesbar.
+    func createInviteCode(forLocalStudent localStudentID: UUID) async -> String? {
+        guard let client, let proID = userID else { return nil }
+        let alphabet = Array("23456789ABCDEFGHJKMNPQRSTUVWXYZ")
+        let code = String((0..<6).map { _ in alphabet.randomElement()! })
+        do {
+            let row = InviteRow(code: code, pro_id: proID, local_student_id: localStudentID)
+            try await client.from("invite_codes").insert(row).execute()
+            lastErrorMessage = nil
+            return code
+        } catch {
+            lastErrorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// Prüft, ob der Code eines Schülers schon eingelöst wurde.
+    /// Liefert die Cloud-Nutzer-ID des Schülers, sobald verbunden.
+    func redeemedUserID(forCode code: String) async -> UUID? {
+        guard let client else { return nil }
+        do {
+            let rows: [InviteStatusRow] = try await client.from("invite_codes")
+                .select("code, used_by")
+                .eq("code", value: code)
+                .execute().value
+            return rows.first?.used_by
+        } catch {
+            return nil
+        }
+    }
+
+    /// Schüler-Anmeldung nur mit Code: legt (falls nötig) ein anonymes
+    /// Cloud-Konto an und verknüpft es über den Code mit dem Pro.
+    func signInStudent(withCode rawCode: String) async -> Bool {
+        guard let client else { return false }
+        let code = rawCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard !code.isEmpty else { return false }
+        do {
+            if userID == nil {
+                _ = try await client.auth.signInAnonymously()
+            }
+            let ok: Bool = try await client.rpc(
+                "redeem_invite",
+                params: ["invite_code": code]
+            ).execute().value
+            if ok {
+                try await upsertProfile(displayName: nil, role: "student")
+                lastErrorMessage = nil
+                return true
+            } else {
+                lastErrorMessage = String(localized: "cloud.code_invalid")
+                return false
+            }
+        } catch {
+            lastErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     // MARK: - Nonce-Helfer für Sign in with Apple
 
     /// Zufälliger Einmalwert — Apple bekommt den Hash, Supabase das Original.

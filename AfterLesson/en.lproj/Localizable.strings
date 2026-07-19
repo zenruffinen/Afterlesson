@@ -381,3 +381,13 @@
 "cloud.email_sign_in" = "Sign in";
 "cloud.email_register" = "Create account";
 "cloud.error_title" = "Cloud error";
+"cloud.invite_header" = "Grünbuch Cloud";
+"cloud.invite_needs_login" = "Sign in to the cloud in Settings first to create invite codes.";
+"cloud.invite_create" = "Create invite code";
+"cloud.invite_footer" = "The student signs in to their app with this code — no password needed. After that you can send lessons straight to their iPhone.";
+"cloud.invite_share_text" = "Your access to Grünbuch: download the app, choose 'I am a student' and enter this code: %@";
+"cloud.invite_redeemed" = "Student connected";
+"cloud.invite_pending" = "Waiting for the student to redeem";
+"cloud.code_placeholder" = "Code from your pro";
+"cloud.code_sign_in" = "Sign in with code";
+"cloud.code_invalid" = "Code unknown or already used — ask your pro for a new one.";

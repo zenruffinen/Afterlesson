@@ -214,3 +214,11 @@ create policy "Schüler liest Ordner seines Pros"
         and ps.pro_id::text = (storage.foldername(name))[1]
     )
   );
+
+-- ---------- 8. Einladungscodes: Verknüpfung zur lokalen Schüler-Kartei ----------
+-- Der Pro speichert beim Erzeugen die ID seiner lokalen Schüler-Kartei mit.
+-- Nach der Einlösung liest er used_by zurück und weiß, welches Cloud-Konto
+-- zu welcher Kartei gehört (Student.cloudUserID in der App).
+
+alter table public.invite_codes
+  add column if not exists local_student_id uuid;

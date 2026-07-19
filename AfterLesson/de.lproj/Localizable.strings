@@ -377,3 +377,13 @@
 "cloud.email_sign_in" = "Anmelden";
 "cloud.email_register" = "Konto erstellen";
 "cloud.error_title" = "Cloud-Fehler";
+"cloud.invite_header" = "Grünbuch Cloud";
+"cloud.invite_needs_login" = "Melde dich zuerst in den Einstellungen bei der Cloud an, um Einladungscodes zu erzeugen.";
+"cloud.invite_create" = "Einladungscode erzeugen";
+"cloud.invite_footer" = "Mit diesem Code meldet sich der Schüler in seiner App an — ohne Passwort. Danach kannst du ihm Lektionen direkt aufs iPhone senden.";
+"cloud.invite_share_text" = "Dein Zugang zu Grünbuch: Lade die App, wähle ‚Ich bin Schüler‘ und gib diesen Code ein: %@";
+"cloud.invite_redeemed" = "Schüler verbunden";
+"cloud.invite_pending" = "Wartet auf Einlösung durch den Schüler";
+"cloud.code_placeholder" = "Code vom Pro";
+"cloud.code_sign_in" = "Mit Code anmelden";
+"cloud.code_invalid" = "Code unbekannt oder schon verwendet — frag deinen Pro nach einem neuen.";

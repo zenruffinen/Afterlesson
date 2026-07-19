@@ -27,6 +27,9 @@ struct Student: Identifiable, Codable, Hashable {
     var sentHistory: [SentPackage] = []  // Verlauf aller gesendeten Pakete
     var remarks: String = ""             // Letzte Anmerkung des Schülers (Spiegel der neuesten Rückmeldung)
     var feedbackHistory: [StudentFeedbackEntry] = []  // Chronologie importierter Schüler-Rückmeldungen
+    // Grünbuch Cloud (beide optional → alte Bestände laden weiterhin sauber)
+    var inviteCode: String? = nil        // Vom Pro erzeugter Einladungscode
+    var cloudUserID: UUID? = nil         // Cloud-Konto des Schülers nach Code-Einlösung
 }
 
 // MARK: - Lesson Category (Themen)
