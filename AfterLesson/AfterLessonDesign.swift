@@ -323,6 +323,142 @@ struct GrünbuchComposerOrb: View {
     }
 }
 
+// MARK: - Home-Werkzeugkacheln: Bücherregal & Golfer
+//
+// Die beiden Werkzeuge des Startbildschirms als Bild-Motive statt
+// Icon-Zeilen: die Bibliothek als kleines Golfbücher-Regal, die
+// Stunde als Golfer mit Ballflugbahn — gezeichnet mit SwiftUI-Formen,
+// auf getöntem System-Glas (iOS-27-Designsprache).
+
+struct GrünbuchBookshelfIllustration: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .bottom, spacing: 3) {
+                bookSpine(width: 13, height: 52, color: ALColor.green)
+                bookSpine(width: 11, height: 60, color: ALColor.gold)
+                bookSpine(width: 14, height: 46, color: Color(hex: "F2EDDC"))
+                bookSpine(width: 12, height: 58, color: ALColor.fairway)
+                bookSpine(width: 11, height: 48, color: Color(hex: "8D6E63"))
+                    .rotationEffect(.degrees(9), anchor: .bottomLeading)
+                    .padding(.leading, 2)
+            }
+            // Das Regalbrett
+            Capsule()
+                .fill(Color.white.opacity(0.35))
+                .frame(width: 96, height: 3)
+                .padding(.top, 1)
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func bookSpine(width: CGFloat, height: CGFloat, color: Color) -> some View {
+        RoundedRectangle(cornerRadius: 2.5)
+            .fill(color)
+            .frame(width: width, height: height)
+            .overlay(alignment: .top) {
+                // Goldene Titelbänder wie bei alten Lehrbüchern
+                VStack(spacing: 3) {
+                    Capsule().fill(Color.white.opacity(0.55)).frame(height: 1.5)
+                    Capsule().fill(Color.white.opacity(0.35)).frame(height: 1.5)
+                }
+                .padding(.horizontal, 2)
+                .padding(.top, 6)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 2.5)
+                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.25), radius: 2, x: 1, y: 1)
+    }
+}
+
+struct GrünbuchPlayerIllustration: View {
+    @State private var sway = false
+
+    var body: some View {
+        ZStack {
+            // Ballflugbahn — gestrichelt Richtung Fahne
+            FlightPath()
+                .stroke(
+                    Color.white.opacity(0.55),
+                    style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [1, 6])
+                )
+            // Der Ball am Ende der Bahn
+            Circle()
+                .fill(Color.white)
+                .frame(width: 6, height: 6)
+                .offset(x: 46, y: -24)
+                .shadow(color: .white.opacity(0.6), radius: 3)
+
+            // Der Golfer im Schwung
+            Image(systemName: "figure.golf")
+                .font(.system(size: 46, weight: .thin))
+                .foregroundStyle(.white.opacity(0.95))
+                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                .rotationEffect(.degrees(sway ? -2 : 2))
+                .offset(x: -24, y: 2)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
+                sway = true
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private struct FlightPath: Shape {
+        func path(in rect: CGRect) -> Path {
+            var p = Path()
+            p.move(to: CGPoint(x: rect.midX - 14, y: rect.midY + 18))
+            p.addQuadCurve(
+                to: CGPoint(x: rect.midX + 46, y: rect.midY - 24),
+                control: CGPoint(x: rect.midX + 22, y: rect.midY - 34)
+            )
+            return p
+        }
+    }
+}
+
+struct GrünbuchToolTile<Illustration: View>: View {
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
+    let tint: Color
+    let action: () -> Void
+    @ViewBuilder var illustration: Illustration
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 10) {
+                illustration
+                    .frame(height: 68)
+                    .frame(maxWidth: .infinity)
+
+                VStack(spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .bold, design: .serif))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity)
+            .alGlass(tint: tint.opacity(0.28), interactive: true, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Home Action Button
 
 struct GrünbuchHomeActionButton: View {

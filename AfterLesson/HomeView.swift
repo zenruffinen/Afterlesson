@@ -116,22 +116,27 @@ struct HomeView: View {
             }
             .padding(.bottom, 6)
 
-            VStack(spacing: 14) {
-                GrünbuchHomeActionButton(
-                    icon: "books.vertical.fill",
+            // Die beiden Werkzeuge als Bild-Kacheln: Bücherregal & Golfer
+            HStack(spacing: 14) {
+                GrünbuchToolTile(
                     title: "Bibliothek",
                     subtitle: "Lernstoff & Tipps",
-                    tint: ALColor.gold
-                ) { selectedTab = .lessons }
-
-                GrünbuchHomeActionButton(
-                    icon: "figure.golf",
-                    title: "Stunde erfassen",
-                    subtitle: "Direkt am Schüler — nicht Bibliothek",
-                    tint: Color(hex: "1565C0")
+                    tint: ALColor.gold,
+                    action: { selectedTab = .lessons }
                 ) {
-                    quickCaptureStudentID = nil
-                    showQuickCapture = true
+                    GrünbuchBookshelfIllustration()
+                }
+
+                GrünbuchToolTile(
+                    title: "Stunde erfassen",
+                    subtitle: "Direkt am Schüler",
+                    tint: Color(hex: "1565C0"),
+                    action: {
+                        quickCaptureStudentID = nil
+                        showQuickCapture = true
+                    }
+                ) {
+                    GrünbuchPlayerIllustration()
                 }
             }
             .padding(.horizontal, 20)
