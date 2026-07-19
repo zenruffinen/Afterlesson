@@ -684,7 +684,9 @@ struct ClassContentView: View {
     // MARK: Grid
 
     var grid: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+        // Kleinere Vorschau-Kacheln: 3 pro Reihe auf dem iPhone, iPad mehr —
+        // die Großansicht übernimmt das genaue Hinschauen.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 115), spacing: 10)], spacing: 10) {
             ForEach(filteredItems) { item in
                 Button {
                     if selectionMode {
@@ -1347,13 +1349,13 @@ struct ContentItemDetailView: View {
     @ViewBuilder
     var imagePreview: some View {
         if let img = UIImage(contentsOfFile: store.imageURL(for: item.filename).path) {
-            ScrollView([.horizontal, .vertical]) {
-                Image(uiImage: img)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity)
-            }
-            .background(Color.black)
+            // Ganzes Bild bildschirmfüllend eingepasst — kein Scrollen,
+            // auf iPhone und iPad gleichermaßen (Hans, 19.07.)
+            Image(uiImage: img)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black)
         } else {
             ContentUnavailableView("Bild konnte nicht geladen werden", systemImage: "photo")
         }
