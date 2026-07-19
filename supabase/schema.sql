@@ -222,3 +222,12 @@ create policy "Schüler liest Ordner seines Pros"
 
 alter table public.invite_codes
   add column if not exists local_student_id uuid;
+
+-- Überschreiben eigener Dateien (Upsert beim erneuten Senden gleicher Inhalte)
+drop policy if exists "Pro aktualisiert eigenen Ordner" on storage.objects;
+create policy "Pro aktualisiert eigenen Ordner"
+  on storage.objects for update
+  using (
+    bucket_id = 'media'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
