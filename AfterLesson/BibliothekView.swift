@@ -684,9 +684,9 @@ struct ClassContentView: View {
     // MARK: Grid
 
     var grid: some View {
-        // Kleinere Vorschau-Kacheln: 3 pro Reihe auf dem iPhone, iPad mehr —
-        // die Großansicht übernimmt das genaue Hinschauen.
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 115), spacing: 10)], spacing: 10) {
+        // Briefmarken-Format: 4 pro Reihe auf dem iPhone, iPad mehr —
+        // die Großansicht übernimmt das genaue Hinschauen (Hans, 19.07.).
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 84), spacing: 8)], spacing: 8) {
             ForEach(filteredItems) { item in
                 Button {
                     if selectionMode {
@@ -1013,39 +1013,20 @@ struct ContentItemTile: View {
 
                 ZStack {
                     Circle().fill(typeColor)
-                        .frame(width: 26, height: 26)
+                        .frame(width: 18, height: 18)
                     Image(systemName: item.type.icon)
-                        .font(.system(size: 12))
+                        .font(.system(size: 9))
                         .foregroundStyle(.white)
                 }
-                .padding(6)
+                .padding(4)
                 .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.subheadline.bold())
-                    .lineLimit(1)
-                    .foregroundStyle(.primary)
-                HStack(spacing: 4) {
-                    Image(systemName: item.source == .recorded ? "video.fill" : "square.and.arrow.down.fill")
-                        .font(.system(size: 9))
-                    Text(item.dateCreated.formatted(date: .abbreviated, time: .omitted))
-                        .font(.caption2)
-                }
-                .foregroundStyle(.secondary)
-
-                if let firstTheme = item.tags.first {
-                    HStack(spacing: 3) {
-                        Image(systemName: "tag.fill")
-                            .font(.system(size: 8))
-                        Text(item.tags.count > 1 ? "\(firstTheme) +\(item.tags.count - 1)" : firstTheme)
-                            .font(.caption2.weight(.medium))
-                            .lineLimit(1)
-                    }
-                    .foregroundStyle(ALColor.green)
-                }
-            }
+            // Briefmarke: nur der Titel — Datum und Themen zeigt die Großansicht.
+            Text(item.title)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+                .foregroundStyle(.primary)
         }
     }
 
