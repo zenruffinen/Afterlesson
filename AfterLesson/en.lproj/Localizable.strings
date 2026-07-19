@@ -416,3 +416,4 @@
 "cloud.blocked_not_configured" = "Cloud not set up";
 "cloud.blocked_not_signed_in" = "Cloud: you are not signed in — Settings → Grünbuch Cloud";
 "cloud.blocked_no_connected_student" = "No selected student is connected to the cloud (invite code in the student card)";
+"cloud.invite_renew" = "Create new code (e.g. after device change)";

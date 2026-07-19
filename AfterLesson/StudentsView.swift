@@ -628,6 +628,25 @@ struct StudentDetailView: View {
                                         }
                                     }
                             }
+
+                            // Für Gerätewechsel oder gelöschte App: frischer Code,
+                            // alte Verknüpfung wird dabei verworfen.
+                            Button {
+                                isCreatingCode = true
+                                Task {
+                                    if let newCode = await cloud.createInviteCode(forLocalStudent: currentStudent.id) {
+                                        var updated = currentStudent
+                                        updated.inviteCode = newCode
+                                        updated.cloudUserID = nil
+                                        store.updateStudent(updated)
+                                    }
+                                    isCreatingCode = false
+                                }
+                            } label: {
+                                Label("cloud.invite_renew", systemImage: "arrow.clockwise")
+                                    .font(.caption)
+                            }
+                            .disabled(isCreatingCode)
                         }
                         .padding(.vertical, 4)
                     } else {

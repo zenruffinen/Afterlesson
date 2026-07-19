@@ -406,3 +406,4 @@
 "cloud.blocked_not_configured" = "Cloud nicht eingerichtet";
 "cloud.blocked_not_signed_in" = "Cloud: Du bist nicht angemeldet — Einstellungen → Grünbuch Cloud";
 "cloud.blocked_no_connected_student" = "Kein gewählter Schüler ist mit der Cloud verbunden (Einladungscode in der Schüler-Kartei)";
+"cloud.invite_renew" = "Neuen Code erzeugen (z. B. nach Gerätewechsel)";
