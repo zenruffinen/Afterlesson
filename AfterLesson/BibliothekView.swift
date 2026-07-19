@@ -1,4 +1,4 @@
-// BibliothekView – Bibliothek (früher Datenpool): Golfklassen, Inhalte erfassen & ansehen.
+// BibliothekView – Bibliothek (früher Datenpool): Lektionsgruppen, Inhalte erfassen & ansehen.
 // Ausgelagert aus ContentView.swift beim Aufräumen am 17.07.2026.
 
 import SwiftUI
@@ -39,7 +39,7 @@ struct DatenpoolView: View {
         !searchText.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    /// Suchtreffer über ALLE Klassen hinweg — nach Name oder Thema.
+    /// Suchtreffer über ALLE Lektionsgruppen hinweg — nach Name oder Thema.
     var searchResults: [ContentItem] {
         let q = searchText.trimmingCharacters(in: .whitespaces).lowercased()
         guard !q.isEmpty else { return [] }
@@ -149,7 +149,7 @@ struct DatenpoolView: View {
         }
     }
 
-    // MARK: Suchergebnisse (über alle Klassen)
+    // MARK: Suchergebnisse (über alle Lektionsgruppen)
 
     @ViewBuilder
     var searchResultsView: some View {
@@ -162,7 +162,7 @@ struct DatenpoolView: View {
                         Button { searchSelectedItem = item } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 ContentItemTile(item: item)
-                                // Fundort anzeigen: in welcher Klasse liegt der Treffer?
+                                // Fundort anzeigen: in welcher Lektionsgruppe liegt der Treffer?
                                 HStack(spacing: 4) {
                                     Image(systemName: "folder.fill")
                                         .font(.system(size: 8))
@@ -185,7 +185,7 @@ struct DatenpoolView: View {
     // MARK: Eingang-Feld (breite Zeile ganz oben)
     //
     // Der Eingang ist der Sammelplatz für alle neuen, noch nicht einsortierten
-    // Inhalte — deshalb prominent als breites Feld über den Klassen. Drinnen
+    // Inhalte — deshalb prominent als breites Feld über den Lektionsgruppen. Drinnen
     // gibt es oben rechts das Plus zum Importieren und Aufnehmen.
 
     var inboxRow: some View {
@@ -240,7 +240,7 @@ struct DatenpoolView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: Klasse-erstellen-Feld (breite Zeile unter dem Eingang)
+    // MARK: Lektionsgruppe-erstellen-Feld (breite Zeile unter dem Eingang)
 
     var newClassRow: some View {
         Button { showNewClassSheet = true } label: {
@@ -254,7 +254,7 @@ struct DatenpoolView: View {
                         .foregroundStyle(ALColor.green)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Klasse erstellen")
+                    Text("Lektionsgruppe erstellen")
                         .font(.headline)
                         .foregroundStyle(.primary)
                     Text("Neuen Ordner für deine Inhalte anlegen")
@@ -273,7 +273,7 @@ struct DatenpoolView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: Klassen-Grid (Ordner-Übersicht)
+    // MARK: Lektionsgruppen-Grid (Ordner-Übersicht)
 
     var classGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
@@ -292,7 +292,7 @@ struct DatenpoolView: View {
                         Button(role: .destructive) {
                             store.deleteContentClass(c)
                         } label: {
-                            Label("Klasse löschen", systemImage: "trash")
+                            Label("Lektionsgruppe löschen", systemImage: "trash")
                         }
                     }
                 }
@@ -300,7 +300,7 @@ struct DatenpoolView: View {
         }
     }
 
-    // MARK: Empty State (noch keine Klassen & keine Inhalte)
+    // MARK: Empty State (noch keine Lektionsgruppen & keine Inhalte)
 
     var emptyState: some View {
         VStack(spacing: 16) {
@@ -316,7 +316,7 @@ struct DatenpoolView: View {
 
             if isTeacher {
                 Button { showNewClassSheet = true } label: {
-                    Label("Neue Klasse", systemImage: "folder.badge.plus")
+                    Label("Neue Lektionsgruppe", systemImage: "folder.badge.plus")
                         .font(.subheadline.bold())
                         .foregroundStyle(.white)
                         .padding(.horizontal, 22)
@@ -332,7 +332,7 @@ struct DatenpoolView: View {
     }
 }
 
-// MARK: - Klassen-Kachel (Ordner im Datenpool)
+// MARK: - Lektionsgruppen-Kachel (Ordner im Datenpool)
 
 struct ContentClassTile: View {
     let contentClass: ContentClass?     // nil = "Unsortiert"
@@ -379,7 +379,7 @@ struct ContentClassTile: View {
     }
 }
 
-// MARK: - Klassen-Inhalt (Grid der Inhalte einer Klasse bzw. "Unsortiert")
+// MARK: - Lektionsgruppen-Inhalt (Grid der Inhalte einer Lektionsgruppe bzw. "Unsortiert")
 
 struct ClassContentView: View {
     let contentClass: ContentClass?     // nil = "Unsortiert"
@@ -398,12 +398,12 @@ struct ClassContentView: View {
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
-    /// Die Inhalte dieser Klasse (bzw. alle ohne Klasse bei "Unsortiert").
+    /// Die Inhalte dieser Lektionsgruppe (bzw. alle ohne Lektionsgruppe bei "Unsortiert").
     var classItems: [ContentItem] {
         store.contentPool.filter { $0.classID == contentClass?.id }
     }
 
-    /// Alle in dieser Klasse vergebenen Themen ("Gruppierungen"), alphabetisch —
+    /// Alle in dieser Lektionsgruppe vergebenen Themen ("Gruppierungen"), alphabetisch —
     /// Grundlage für die Themen-Filterleiste. Bleibt leer, solange noch nichts zugeordnet wurde.
     var allThemes: [String] {
         Array(Set(classItems.flatMap { $0.tags })).sorted()
@@ -425,7 +425,7 @@ struct ClassContentView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         // "Unsortiert" ist der Eingangskorb für neue Inhalte —
                         // dort braucht es keine Typ-/Themen-Filter, sondern eine
-                        // freundliche Überschrift mit Hinweis. In echten Klassen
+                        // freundliche Überschrift mit Hinweis. In echten Lektionsgruppen
                         // bleiben die Filterleisten erhalten.
                         if contentClass == nil {
                             inboxHeader
@@ -521,7 +521,7 @@ struct ClassContentView: View {
             Image(systemName: "tray.full.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(ALColor.green.opacity(0.35))
-            Text(contentClass == nil ? "Eingang ist leer" : "Diese Klasse ist leer")
+            Text(contentClass == nil ? "Eingang ist leer" : "Diese Lektionsgruppe ist leer")
                 .font(.title3.bold())
             Text("Importiere Fotos, Videos und PDFs\noder nimm direkt etwas Neues auf")
                 .font(.subheadline)
@@ -570,7 +570,7 @@ struct ClassContentView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Neue Inhalte")
                     .font(.headline)
-                Text("Halte einen Inhalt gedrückt,\num ihn in eine Klasse zu verschieben")
+                Text("Halte einen Inhalt gedrückt,\num ihn in eine Lektionsgruppe zu verschieben")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -705,7 +705,7 @@ struct ClassContentView: View {
                                 }
                             }
                         } label: {
-                            Label("In Klasse verschieben", systemImage: "folder")
+                            Label("In Lektionsgruppe verschieben", systemImage: "folder")
                         }
                     }
                     Button(role: .destructive) {
@@ -816,7 +816,7 @@ struct ClassContentView: View {
     }
 }
 
-// MARK: - Klassen-Editor (Neue Klasse anlegen / bearbeiten)
+// MARK: - Lektionsgruppen-Editor (Neue Lektionsgruppe anlegen / bearbeiten)
 
 struct ContentClassEditorSheet: View {
     let existingClass: ContentClass?
@@ -927,7 +927,7 @@ struct ContentClassEditorSheet: View {
                 .padding(.bottom, 30)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle(isEditing ? "Klasse bearbeiten" : "Neue Klasse")
+            .navigationTitle(isEditing ? "Lektionsgruppe bearbeiten" : "Neue Lektionsgruppe")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 if let c = existingClass {
@@ -1060,7 +1060,7 @@ struct ContentItemDetailView: View {
     }
 
     /// Aktueller Stand des Inhalts aus dem Store — `item` ist nur der Stand
-    /// beim Öffnen; Klasse/Farbe können sich währenddessen ändern.
+    /// beim Öffnen; Lektionsgruppe/Farbe können sich währenddessen ändern.
     var currentItem: ContentItem {
         store.contentPool.first(where: { $0.id == item.id }) ?? item
     }
@@ -1165,7 +1165,7 @@ struct ContentItemDetailView: View {
         updateItem { $0.title = t }
     }
 
-    // MARK: Editor-Leiste (Name, Klasse, Kachel-Farbe)
+    // MARK: Editor-Leiste (Name, Lektionsgruppe, Kachel-Farbe)
 
     var editBar: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -1186,7 +1186,7 @@ struct ContentItemDetailView: View {
 
             HStack(spacing: 10) {
 
-                // Klasse wechseln
+                // Lektionsgruppe wechseln
                 Menu {
                     ForEach(store.contentClasses.sorted(by: { $0.sortIndex < $1.sortIndex })) { c in
                         Button {

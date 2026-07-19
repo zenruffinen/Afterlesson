@@ -396,3 +396,14 @@
 "cloud.composer_sent" = "On its way! Sent %d package(s) to your connected students.";
 "cloud.composer_sent_partial" = "Sent %d package(s). Without cloud connection (use AirDrop or an invite code): %@";
 "cloud.composer_sent_none" = "Nothing sent — none of the selected students is connected to the cloud.";
+"Lektionsgruppen" = "Lesson groups";
+"Neue Lektionsgruppe" = "New lesson group";
+"Lektionsgruppe bearbeiten" = "Edit lesson group";
+"Name der Lektionsgruppe" = "Lesson group name";
+"Noch keine Lektionsgruppen" = "No lesson groups yet";
+"Tippe auf + um eine Lektionsgruppe anzulegen" = "Tap + to create a lesson group";
+"Noch keiner Lektionsgruppe zugeordnet" = "Not assigned to a lesson group yet";
+"Lektionsgruppe erstellen" = "Create lesson group";
+"Lektionsgruppe löschen" = "Delete lesson group";
+"Diese Lektionsgruppe ist leer" = "This lesson group is empty";
+"In Lektionsgruppe verschieben" = "Move to lesson group";

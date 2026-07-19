@@ -392,3 +392,10 @@
 "cloud.composer_sent" = "Unterwegs! %d Paket(e) an deine verbundenen Schüler gesendet.";
 "cloud.composer_sent_partial" = "%d Paket(e) gesendet. Ohne Cloud-Verbindung (bitte per AirDrop oder Code verbinden): %@";
 "cloud.composer_sent_none" = "Kein Paket gesendet — keiner der gewählten Schüler ist mit der Cloud verbunden.";
+"Lektionsgruppen" = "Lektionsgruppen";
+"Neue Lektionsgruppe" = "Neue Lektionsgruppe";
+"Lektionsgruppe bearbeiten" = "Lektionsgruppe bearbeiten";
+"Name der Lektionsgruppe" = "Name der Lektionsgruppe";
+"Noch keine Lektionsgruppen" = "Noch keine Lektionsgruppen";
+"Tippe auf + um eine Lektionsgruppe anzulegen" = "Tippe auf + um eine Lektionsgruppe anzulegen";
+"Noch keiner Lektionsgruppe zugeordnet" = "Noch keiner Lektionsgruppe zugeordnet";
