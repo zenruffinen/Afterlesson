@@ -108,18 +108,15 @@ struct HomeView: View {
 
             Spacer(minLength: 22)
 
-            VStack(spacing: 14) {
-                GrünbuchHomeActionButton(
-                    icon: "square.and.pencil",
-                    title: "Composer",
-                    subtitle: "Paket zur Nachbesprechung",
-                    tint: ALColor.green
-                ) {
-                    composerPreselectedStudents = []
-                    composerIsSupplemental = false
-                    showComposer = true
-                }
+            // Die Drehscheibe: der große grüne Aktions-Orb
+            GrünbuchComposerOrb {
+                composerPreselectedStudents = []
+                composerIsSupplemental = false
+                showComposer = true
+            }
+            .padding(.bottom, 6)
 
+            VStack(spacing: 14) {
                 GrünbuchHomeActionButton(
                     icon: "books.vertical.fill",
                     title: "Bibliothek",

@@ -222,6 +222,107 @@ struct GrünbuchFairwayGraphic: View {
     }
 }
 
+// MARK: - Composer-Orb (die Drehscheibe als Aktionsfläche)
+//
+// Der große grüne Aktionsknopf des Startbildschirms: eine runde
+// "Drehscheibe" aus Liquid Glass mit langsam rotierendem Ring und
+// sanftem Puls — beim Tippen öffnet sich der Composer, der die
+// gesammelten Lerninhalte den Schülern zuweist.
+
+private struct OrbPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+struct GrünbuchComposerOrb: View {
+    let action: () -> Void
+
+    @State private var spin = false
+    @State private var breathe = false
+
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            VStack(spacing: 12) {
+                ZStack {
+                    // Weicher Glow-Atem hinter der Scheibe
+                    Circle()
+                        .fill(ALColor.green.opacity(breathe ? 0.45 : 0.20))
+                        .frame(width: 150, height: 150)
+                        .blur(radius: 24)
+
+                    // Glasring außen
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 1)
+                        .frame(width: 138, height: 138)
+                        .background(Circle().fill(Color.white.opacity(0.06)))
+
+                    // Rotierender Drehscheiben-Ring
+                    Circle()
+                        .stroke(
+                            ALColor.gold.opacity(0.75),
+                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, dash: [1, 14])
+                        )
+                        .frame(width: 122, height: 122)
+                        .rotationEffect(.degrees(spin ? 360 : 0))
+                        .animation(.linear(duration: 24).repeatForever(autoreverses: false), value: spin)
+
+                    // Die grüne Scheibe selbst
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [ALColor.fairway, ALColor.green],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 104, height: 104)
+                        .overlay(
+                            // Lichtkante oben — das Liquid-Glass-Gefühl
+                            Circle()
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [Color.white.opacity(0.55), Color.white.opacity(0.05)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    ),
+                                    lineWidth: 1.5
+                                )
+                        )
+                        .shadow(color: ALColor.green.opacity(0.55), radius: 18, y: 8)
+
+                    // Motiv: Inhalte fliegen zum Schüler
+                    VStack(spacing: 3) {
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 34, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+                        Text("Composer")
+                            .font(.system(size: 13, weight: .bold, design: .serif))
+                            .foregroundStyle(.white.opacity(0.95))
+                    }
+                }
+
+                Text("Lerninhalte zuweisen")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.65))
+            }
+        }
+        .buttonStyle(OrbPressStyle())
+        .onAppear {
+            spin = true
+            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+                breathe = true
+            }
+        }
+        .accessibilityLabel("Composer — Lerninhalte zuweisen")
+    }
+}
+
 // MARK: - Home Action Button
 
 struct GrünbuchHomeActionButton: View {
