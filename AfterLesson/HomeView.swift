@@ -560,6 +560,17 @@ struct ComposerSheet: View {
             && store.students.contains { selectedStudentIDs.contains($0.id) && $0.cloudUserID != nil }
     }
 
+    /// Warum der Cloud-Knopf gerade nicht kann — statt ihn zu verstecken.
+    private var cloudBlockedReason: String {
+        if !CloudService.shared.isConfigured {
+            return String(localized: "cloud.blocked_not_configured")
+        }
+        if !CloudService.shared.isSignedIn {
+            return String(localized: "cloud.blocked_not_signed_in")
+        }
+        return String(localized: "cloud.blocked_no_connected_student")
+    }
+
     private func sendViaCloud() {
         isSendingCloud = true
         Task {
@@ -681,25 +692,31 @@ struct ComposerSheet: View {
                         .tint(ALColor.green)
 
                         // Der zweite Weg: über die Drehscheibe — erreicht
-                        // verbundene Schüler auch zuhause.
-                        if cloudSendPossible {
-                            Button {
-                                sendViaCloud()
-                            } label: {
-                                if isSendingCloud {
-                                    ProgressView()
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 14)
-                                } else {
-                                    Label("cloud.composer_send", systemImage: "icloud.and.arrow.up.fill")
-                                        .font(.headline)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 14)
-                                }
+                        // verbundene Schüler auch zuhause. Immer sichtbar;
+                        // wenn er nicht kann, sagt er warum.
+                        Button {
+                            sendViaCloud()
+                        } label: {
+                            if isSendingCloud {
+                                ProgressView()
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                            } else {
+                                Label("cloud.composer_send", systemImage: "icloud.and.arrow.up.fill")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
                             }
-                            .buttonStyle(.bordered)
-                            .tint(Color(hex: "1565C0"))
-                            .disabled(isSendingCloud)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Color(hex: "1565C0"))
+                        .disabled(isSendingCloud || !cloudSendPossible)
+
+                        if !cloudSendPossible {
+                            Text(cloudBlockedReason)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
                         // Der persönliche Weg am Platz — öffnet das
