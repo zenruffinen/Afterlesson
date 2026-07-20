@@ -49,8 +49,9 @@ Deno.serve(async (req) => {
     .from("device_tokens")
     .select("token")
     .eq("user_id", record.student_id);
+  console.log(`Geräte-Tokens gefunden: ${tokens?.length ?? 0}`);
   if (!tokens || tokens.length === 0) {
-    return new Response("keine Geräte registriert", { status: 200 });
+    return new Response("keine Geraete registriert", { status: 200 });
   }
 
   const jwt = await apnsJWT();
@@ -76,7 +77,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify(push),
     });
-    results.push(`${row.token.slice(0, 8)}…: ${res.status}`);
+    const body = await res.text();
+    results.push(`${row.token.slice(0, 8)}...: ${res.status} ${body}`);
   }
+  console.log("APNs-Antworten:", results.join(" | "));
   return new Response(results.join("\n"), { status: 200 });
 });
