@@ -82,10 +82,13 @@ struct HomeView: View {
         .onChange(of: showQuickCapture) { _, isShowing in
             if !isShowing { quickCaptureStudentID = nil }
         }
-        // Schüler: beim Betreten des Startbildschirms neue Cloud-Pakete
-        // abholen — sie landen im vertrauten "Neues vom Pro"-Fluss.
+        // Schüler: beim Betreten sofort abholen — und danach automatisch
+        // jede Minute nachschauen, solange der Start sichtbar ist.
         .task {
-            if !isTeacher {
+            guard !isTeacher else { return }
+            _ = await store.importCloudPackages()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
                 _ = await store.importCloudPackages()
             }
         }
@@ -192,6 +195,7 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         if !newLessons.isEmpty || !newSessions.isEmpty {
                             studentSectionHeader("Eingang", icon: "tray.and.arrow.down.fill")
+                                .padding(.top, 2)
                             ForEach(newLessons) { lesson in
                                 studentLessonRow(lesson).padding(.horizontal, 20)
                             }
@@ -225,6 +229,10 @@ struct HomeView: View {
                     }
                     .padding(.top, 4)
                     .padding(.bottom, 24)
+                }
+                // Herunterziehen = sofort bei der Drehscheibe nachschauen
+                .refreshable {
+                    _ = await store.importCloudPackages()
                 }
             }
         }
