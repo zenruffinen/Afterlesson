@@ -781,30 +781,12 @@ struct ComposerSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Abbrechen") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        assignOnly()
-                    } label: {
-                        Label("Zuweisen", systemImage: "checkmark.circle.fill")
-                    }
-                    .disabled(!canAssign)
-                }
             }
             .safeAreaInset(edge: .bottom) {
                 if canAssign {
                     VStack(spacing: 10) {
-                        Button(action: assignOnly) {
-                            Label("Zuweisen", systemImage: "checkmark.circle.fill")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(ALColor.green)
-
-                        // Der zweite Weg: über die Drehscheibe — erreicht
-                        // verbundene Schüler auch zuhause. Immer sichtbar;
-                        // wenn er nicht kann, sagt er warum.
+                        // Senden IST Zuweisen (Hans, 20.07.) — zwei Wege,
+                        // beide erledigen Zuweisung + Verlauf automatisch.
                         Button {
                             sendViaCloud()
                         } label: {
@@ -819,8 +801,8 @@ struct ComposerSheet: View {
                                     .padding(.vertical, 14)
                             }
                         }
-                        .buttonStyle(.bordered)
-                        .tint(Color(hex: "1565C0"))
+                        .buttonStyle(.borderedProminent)
+                        .tint(ALColor.green)
                         .disabled(isSendingCloud || !cloudSendPossible)
 
                         if !cloudSendPossible {
@@ -1125,21 +1107,6 @@ struct ComposerSheet: View {
         }
         .buttonStyle(.plain)
     }
-
-    /// Nur zuweisen — kein Teilen-Fenster. Das Paket steht danach im
-    /// Verlauf des Schülers; übertragen wird per Cloud oder AirDrop.
-    private func assignOnly() {
-        let delivery = store.prepareComposerDelivery(
-            to: selectedStudentIDs,
-            lessonIDs: selectedLessonIDs,
-            contentItemIDs: selectedContentItemIDs,
-            note: note,
-            date: assignmentDate
-        )
-        let names = delivery.targets.map(\.name).joined(separator: ", ")
-        cloudResultMessage = String(format: String(localized: "composer.assigned"), names)
-    }
-
     private func assignAndShare() {
         let items = store.deliverComposerPackage(
             to: selectedStudentIDs,
