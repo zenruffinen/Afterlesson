@@ -426,3 +426,4 @@
 "cloud.response_send" = "Send to your pro";
 "cloud.response_sent" = "Sent — your pro will see it on your card.";
 "cloud.response_no_pro" = "No pro linked yet — sign in with your code first.";
+"cloud.feedback_hint_cloud" = "Your message goes straight to your pro via the Grünbuch cloud — it appears on your card.";

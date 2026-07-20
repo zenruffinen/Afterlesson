@@ -336,7 +336,9 @@ struct StudentFeedbackSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Deine Nachricht geht als Datei an deinen Pro — per AirDrop, WhatsApp oder E-Mail. Er sieht sie in Grünbuch.")
+                    Text(CloudService.shared.isSignedIn
+                         ? "cloud.feedback_hint_cloud"
+                         : "Deine Nachricht geht als Datei an deinen Pro — per AirDrop, WhatsApp oder E-Mail. Er sieht sie in Grünbuch.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -410,6 +412,28 @@ struct StudentFeedbackSheet: View {
     }
 
     private func sendFeedback() {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Verbundene Schüler antworten direkt über die Drehscheibe —
+        // Erledigt/Danke/Frage landet sofort in der Kartei des Pros.
+        if CloudService.shared.isSignedIn {
+            var full = trimmed
+            if let lessonTitle {
+                full += " — zu: \(lessonTitle)"
+            } else if let sessionTitle {
+                full += " — zu: \(sessionTitle)"
+            }
+            dismiss()
+            Task { @MainActor in
+                let ok = await CloudService.shared.sendResponseToPro(full)
+                store.importConfirmation = ok
+                    ? String(localized: "cloud.response_sent")
+                    : (CloudService.shared.lastErrorMessage ?? String(localized: "cloud.response_no_pro"))
+            }
+            return
+        }
+
+        // Ohne Cloud: der bisherige Datei-Weg (AirDrop & Co.)
         guard let url = store.exportFeedback(
             kind: selectedKind,
             message: message,
