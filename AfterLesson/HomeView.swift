@@ -178,28 +178,102 @@ struct HomeView: View {
             if store.receivedSessions.isEmpty && store.receivedLessons.isEmpty {
                 StudentEmptyPlaceholder()
                     .padding(.horizontal, 20)
+                Spacer(minLength: 16)
             } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    Label("Eingang", systemImage: "tray.and.arrow.down.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.65))
-                        .padding(.horizontal, 20)
-                    ForEach(store.receivedLessons.prefix(5)) { lesson in
-                        studentLessonRow(lesson).padding(.horizontal, 20)
+                // Drei klare Abschnitte (Hans, 20.07.):
+                // Eingang (neu) → Nachrichten vom Pro → Zugewiesen (gesehen)
+                let newLessons = store.receivedLessons.filter { $0.openedDate == nil }
+                let seenLessons = store.receivedLessons.filter { $0.openedDate != nil }
+                let newSessions = store.receivedSessions.filter { $0.openedDate == nil }
+                let seenSessions = store.receivedSessions.filter { $0.openedDate != nil }
+                let proMessages = store.receivedSessions.filter { !$0.homework.isEmpty || !$0.corrections.isEmpty }.prefix(2)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if !newLessons.isEmpty || !newSessions.isEmpty {
+                            studentSectionHeader("Eingang", icon: "tray.and.arrow.down.fill")
+                            ForEach(newLessons) { lesson in
+                                studentLessonRow(lesson).padding(.horizontal, 20)
+                            }
+                            ForEach(newSessions) { session in
+                                studentSessionRow(session).padding(.horizontal, 20)
+                            }
+                            Text("home.inbox_hint")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.white.opacity(0.45))
+                                .padding(.horizontal, 20)
+                        }
+
+                        if !proMessages.isEmpty {
+                            studentSectionHeader("Nachrichten vom Pro", icon: "megaphone.fill")
+                                .padding(.top, 6)
+                            ForEach(Array(proMessages)) { session in
+                                proMessageRow(session).padding(.horizontal, 20)
+                            }
+                        }
+
+                        if !seenLessons.isEmpty || !seenSessions.isEmpty {
+                            studentSectionHeader("Zugewiesen", icon: "books.vertical.fill")
+                                .padding(.top, 6)
+                            ForEach(seenLessons.prefix(6)) { lesson in
+                                studentLessonRow(lesson).padding(.horizontal, 20)
+                            }
+                            ForEach(seenSessions.prefix(6)) { session in
+                                studentSessionRow(session).padding(.horizontal, 20)
+                            }
+                        }
                     }
-                    ForEach(store.receivedSessions.prefix(5)) { session in
-                        studentSessionRow(session).padding(.horizontal, 20)
-                    }
-                    // Der Prozess in einem Satz — damit keine Magie
-                    // unerklärt bleibt (Hans, 20.07.)
-                    Text("home.inbox_hint")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.45))
-                        .padding(.horizontal, 20)
+                    .padding(.top, 4)
+                    .padding(.bottom, 24)
                 }
             }
-            Spacer(minLength: 16)
         }
+    }
+
+    private func studentSectionHeader(_ title: LocalizedStringKey, icon: String) -> some View {
+        Label(title, systemImage: icon)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.65))
+            .padding(.horizontal, 20)
+    }
+
+    /// Hausaufgaben/Korrekturen aus einer empfangenen Stunde als
+    /// kompakte Nachricht — Antippen öffnet das Stundenprotokoll.
+    @ViewBuilder
+    private func proMessageRow(_ session: TrainingSession) -> some View {
+        Button { selectedSession = session } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "megaphone.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(ALColor.gold)
+                    .alIconTile(tint: ALColor.gold, size: 38)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(session.date.formatted(date: .abbreviated, time: .omitted))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.55))
+                        if !session.teacherName.isEmpty {
+                            Text("· \(session.teacherName)")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.white.opacity(0.45))
+                        }
+                    }
+                    Text(session.homework.isEmpty ? session.corrections : session.homework)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+                    .padding(.top, 12)
+            }
+            .padding(10)
+            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     /// In welche Bibliotheks-Gruppe die Inhalte dieser Lektion eingezogen sind.

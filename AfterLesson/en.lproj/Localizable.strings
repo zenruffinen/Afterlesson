@@ -429,3 +429,5 @@
 "cloud.feedback_hint_cloud" = "Your message goes straight to your pro via the Grünbuch cloud — it appears on your card.";
 "home.inbox_hint" = "Tap to view — your pro can see you opened it. The contents live permanently in your library.";
 "home.in_library" = "In your library: %@";
+"Nachrichten vom Pro" = "Messages from your pro";
+"Zugewiesen" = "Assigned";
