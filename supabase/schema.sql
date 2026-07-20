@@ -231,3 +231,43 @@ create policy "Pro aktualisiert eigenen Ordner"
     bucket_id = 'media'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ---------- 9. Rückkanal: Schüler antwortet dem Pro ----------
+
+create table if not exists public.responses (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid not null references public.profiles (id) on delete cascade,
+  pro_id uuid not null references public.profiles (id) on delete cascade,
+  message text not null,
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+
+alter table public.responses enable row level security;
+
+drop policy if exists "Schüler sendet an seinen Pro" on public.responses;
+create policy "Schüler sendet an seinen Pro"
+  on public.responses for insert
+  with check (
+    student_id = auth.uid()
+    and exists (
+      select 1 from public.pro_students ps
+      where ps.student_id = auth.uid() and ps.pro_id = responses.pro_id
+    )
+  );
+
+drop policy if exists "Schüler sieht eigene Antworten" on public.responses;
+create policy "Schüler sieht eigene Antworten"
+  on public.responses for select
+  using (student_id = auth.uid());
+
+drop policy if exists "Pro sieht Antworten seiner Schüler" on public.responses;
+create policy "Pro sieht Antworten seiner Schüler"
+  on public.responses for select
+  using (pro_id = auth.uid());
+
+drop policy if exists "Pro markiert Antwort gelesen" on public.responses;
+create policy "Pro markiert Antwort gelesen"
+  on public.responses for update
+  using (pro_id = auth.uid())
+  with check (pro_id = auth.uid());

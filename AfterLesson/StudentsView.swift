@@ -114,6 +114,12 @@ struct StudentsView: View {
                     }
                 }
             }
+            // Pro: Beim Öffnen der Schülerliste neue Cloud-Antworten abholen
+            .task {
+                if isTeacher {
+                    _ = await store.importCloudResponses()
+                }
+            }
             // Schüler-Modus: Der Nutzer sieht hier SICH SELBST — die eigene
             // Karteikarte wird beim ersten Besuch automatisch angelegt.
             .onAppear {
@@ -343,6 +349,9 @@ struct StudentDetailView: View {
     @State private var showEditSheet = false
     @ObservedObject private var cloud = CloudService.shared
     @State private var isCreatingCode = false
+    @State private var responseText = ""
+    @State private var isSendingResponse = false
+    @State private var responseSent = false
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
     var currentStudent: Student { store.currentStudent(student) ?? student }
@@ -561,6 +570,49 @@ struct StudentDetailView: View {
                 }
             }
 
+            // Rückkanal: Der Schüler antwortet seinem Pro über die Cloud
+            if !isTeacher && cloud.isSignedIn {
+                Section {
+                    TextField("cloud.response_placeholder", text: $responseText, axis: .vertical)
+                        .lineLimit(2...4)
+                    Button {
+                        isSendingResponse = true
+                        responseSent = false
+                        Task {
+                            let ok = await CloudService.shared.sendResponseToPro(
+                                responseText.trimmingCharacters(in: .whitespacesAndNewlines)
+                            )
+                            if ok {
+                                responseText = ""
+                                responseSent = true
+                            }
+                            isSendingResponse = false
+                        }
+                    } label: {
+                        if isSendingResponse {
+                            ProgressView()
+                        } else {
+                            Label("cloud.response_send", systemImage: "paperplane.fill")
+                        }
+                    }
+                    .disabled(responseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSendingResponse)
+
+                    if responseSent {
+                        Label("cloud.response_sent", systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                    if let error = cloud.lastErrorMessage {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                } header: {
+                    Label("cloud.response_header", systemImage: "arrowshape.turn.up.left.fill")
+                        .foregroundStyle(ALColor.green)
+                }
+            }
+
             // Kontakt — Telefonnummer braucht nur der Pro
             Section {
                 if isTeacher, !currentStudent.phone.isEmpty {
@@ -618,22 +670,24 @@ struct StudentDetailView: View {
                             .foregroundStyle(.secondary)
                     } else if let code = currentStudent.inviteCode {
                         VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text(code)
-                                    .font(.system(size: 28, weight: .bold, design: .monospaced))
-                                    .kerning(3)
-                                    .foregroundStyle(ALColor.green)
-                                Spacer()
-                                ShareLink(item: String(format: String(localized: "cloud.invite_share_text"), code)) {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .font(.title3)
-                                }
-                            }
                             if currentStudent.cloudUserID != nil {
+                                // Verbunden: Code hat seinen Dienst getan
+                                // und verschwindet aus der Ansicht.
                                 Label("cloud.invite_redeemed", systemImage: "checkmark.icloud.fill")
-                                    .font(.caption)
+                                    .font(.subheadline.bold())
                                     .foregroundStyle(.green)
                             } else {
+                                HStack {
+                                    Text(code)
+                                        .font(.system(size: 28, weight: .bold, design: .monospaced))
+                                        .kerning(3)
+                                        .foregroundStyle(ALColor.green)
+                                    Spacer()
+                                    ShareLink(item: String(format: String(localized: "cloud.invite_share_text"), code)) {
+                                        Image(systemName: "square.and.arrow.up")
+                                            .font(.title3)
+                                    }
+                                }
                                 Label("cloud.invite_pending", systemImage: "hourglass")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)

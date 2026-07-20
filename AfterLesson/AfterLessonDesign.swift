@@ -222,6 +222,52 @@ struct GrünbuchFairwayGraphic: View {
     }
 }
 
+// MARK: - Das ARCA-Wappen: A als Pfeil (Hans' Entwurf vom 19.07.2026)
+//
+// Die Spitze des A ist eine Pfeilspitze (aufwärts = Fortschritt),
+// der Querbalken hält es als Buchstaben lesbar. Reine SwiftUI-Formen —
+// skaliert verlustfrei vom Orb bis zum App-Icon.
+
+struct GrünbuchEmblemHead: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.midX - rect.width * 0.42, y: rect.minY + rect.height * 0.30))
+        p.addLine(to: CGPoint(x: rect.midX + rect.width * 0.42, y: rect.minY + rect.height * 0.30))
+        p.closeSubpath()
+        return p
+    }
+}
+
+struct GrünbuchEmblemLegs: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let apexY = rect.minY + rect.height * 0.26
+        p.move(to: CGPoint(x: rect.midX - rect.width * 0.05, y: apexY))
+        p.addLine(to: CGPoint(x: rect.minX + rect.width * 0.10, y: rect.maxY))
+        p.move(to: CGPoint(x: rect.midX + rect.width * 0.05, y: apexY))
+        p.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.10, y: rect.maxY))
+        p.move(to: CGPoint(x: rect.midX - rect.width * 0.24, y: rect.minY + rect.height * 0.66))
+        p.addLine(to: CGPoint(x: rect.midX + rect.width * 0.24, y: rect.minY + rect.height * 0.66))
+        return p
+    }
+}
+
+struct GrünbuchEmblemMark: View {
+    var color: Color = .white
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                GrünbuchEmblemHead().fill(color)
+                GrünbuchEmblemLegs()
+                    .stroke(color, style: StrokeStyle(lineWidth: geo.size.width * 0.16, lineCap: .round))
+            }
+        }
+        .aspectRatio(0.82, contentMode: .fit)
+    }
+}
+
 // MARK: - Composer-Orb (die Drehscheibe als Aktionsfläche)
 //
 // Der große grüne Aktionsknopf des Startbildschirms: eine runde
@@ -295,11 +341,10 @@ struct GrünbuchComposerOrb: View {
                         )
                         .shadow(color: ALColor.green.opacity(0.55), radius: 18, y: 8)
 
-                    // Motiv: Inhalte fliegen zum Schüler
-                    VStack(spacing: 3) {
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 34, weight: .semibold))
-                            .foregroundStyle(.white)
+                    // Das ARCA-Wappen: A als Pfeil — der Orb trägt es
+                    VStack(spacing: 5) {
+                        GrünbuchEmblemMark()
+                            .frame(width: 36, height: 44)
                             .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
                         Text("Composer")
                             .font(.system(size: 13, weight: .bold, design: .serif))

@@ -56,7 +56,8 @@ struct AfterLessonTabBar: View {
         HStack(spacing: 0) {
             tabItem(.home,     icon: "house.fill",            label: "Start")
             tabItem(.lessons,  icon: "books.vertical.fill",   label: "Bibliothek", subtitle: "Tipps & Stoff")
-            tabItem(.students, icon: "figure.golf",           label: "Schüler")
+            tabItem(.students, icon: "figure.golf",
+                    label: store.appMode == AppMode.teacher.rawValue ? "Schüler" : "Profil")
             tabItem(.notes,    icon: "note.text.badge.plus", label: "Notizen", subtitle: "Pro")
             tabItem(.settings, icon: "gearshape.fill",       label: "Einstellungen")
         }

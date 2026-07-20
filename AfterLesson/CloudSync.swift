@@ -10,6 +10,7 @@
 //
 
 import Foundation
+import AVFoundation
 
 // MARK: - Paket-Format (reist als JSON in packages.payload)
 
@@ -85,7 +86,12 @@ extension AppStore {
                 do {
                     for filename in media {
                         let url = imageURL(for: filename)
-                        if let data = try? Data(contentsOf: url) {
+                        // Videos vor dem Upload auf 720p verdichten — schont
+                        // Speicher und das Datenvolumen des Schülers am Platz.
+                        if Self.isVideoFile(filename),
+                           let compressed = await Self.compressedVideoData(at: url) {
+                            try await cloud.uploadMedia(compressed, filename: filename)
+                        } else if let data = try? Data(contentsOf: url) {
                             try await cloud.uploadMedia(data, filename: filename)
                         }
                     }
@@ -106,6 +112,84 @@ extension AppStore {
             }
         }
         return (sent, withoutCloud)
+    }
+
+    // MARK: Rückkanal — Pro holt Schüler-Antworten ab
+
+    private var importedCloudResponseIDs: Set<UUID> {
+        get {
+            guard let data = UserDefaults.standard.data(forKey: "al_cloud_responses"),
+                  let ids = try? JSONDecoder().decode(Set<UUID>.self, from: data) else { return [] }
+            return ids
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                UserDefaults.standard.set(data, forKey: "al_cloud_responses")
+            }
+        }
+    }
+
+    /// Pro: neue Antworten abholen und in die Rückmelde-Chronik der
+    /// jeweiligen Schüler-Kartei einsortieren (bestehende UI zeigt sie).
+    @MainActor
+    func importCloudResponses() async -> Int {
+        let cloud = CloudService.shared
+        guard cloud.isSignedIn, appMode == AppMode.teacher.rawValue else { return 0 }
+
+        var imported = importedCloudResponseIDs
+        let incoming = await cloud.fetchResponses().filter { !imported.contains($0.id) }
+        var count = 0
+
+        for response in incoming {
+            guard let idx = students.firstIndex(where: { $0.cloudUserID == response.student_id }) else {
+                continue // Schüler (noch) nicht zuordenbar — nächstes Mal erneut
+            }
+            var entry = StudentFeedbackEntry(kind: .custom, message: response.message)
+            entry.date = response.created_at
+            students[idx].feedbackHistory.insert(entry, at: 0)
+            students[idx].remarks = response.message
+            imported.insert(response.id)
+            count += 1
+        }
+
+        importedCloudResponseIDs = imported
+        return count
+    }
+
+    // MARK: Video-Kompression (720p, H.264/mp4)
+
+    static func isVideoFile(_ filename: String) -> Bool {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        return ["mov", "mp4", "m4v"].contains(ext)
+    }
+
+    /// Verdichtet ein Video auf 720p. Liefert nil, wenn das Original
+    /// fehlt, der Export scheitert oder nichts gespart würde — dann
+    /// geht das Original in die Cloud.
+    static func compressedVideoData(at url: URL) async -> Data? {
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        let asset = AVURLAsset(url: url)
+        guard let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPreset1280x720) else {
+            return nil
+        }
+        let target = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("mp4")
+        export.outputURL = target
+        export.outputFileType = .mp4
+        export.shouldOptimizeForNetworkUse = true
+
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            export.exportAsynchronously { done.resume() }
+        }
+        defer { try? FileManager.default.removeItem(at: target) }
+
+        guard export.status == .completed,
+              let compressed = try? Data(contentsOf: target),
+              let original = try? Data(contentsOf: url),
+              compressed.count < original.count
+        else { return nil }
+        return compressed
     }
 
     /// Schüler: neue Cloud-Pakete abholen, Medien laden und wie einen

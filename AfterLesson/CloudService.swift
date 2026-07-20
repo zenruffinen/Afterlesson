@@ -257,6 +257,67 @@ final class CloudService: ObservableObject {
             .execute()
     }
 
+    // MARK: - Rückkanal (Schüler → Pro)
+
+    private struct ProLinkRow: Codable {
+        let pro_id: UUID
+    }
+
+    /// Der Pro, mit dem dieser Schüler verknüpft ist.
+    func linkedProID() async -> UUID? {
+        guard let client, let uid = userID else { return nil }
+        let rows: [ProLinkRow]? = try? await client.from("pro_students")
+            .select("pro_id")
+            .eq("student_id", value: uid)
+            .execute().value
+        return rows?.first?.pro_id
+    }
+
+    private struct ResponseInsertRow: Codable {
+        let student_id: UUID
+        let pro_id: UUID
+        let message: String
+    }
+
+    struct IncomingCloudResponse: Codable, Identifiable {
+        let id: UUID
+        let student_id: UUID
+        let message: String
+        let created_at: Date
+    }
+
+    /// Schüler: kurze Antwort an den eigenen Pro senden.
+    func sendResponseToPro(_ message: String) async -> Bool {
+        guard let client, let uid = userID else { return false }
+        guard let proID = await linkedProID() else {
+            lastErrorMessage = String(localized: "cloud.response_no_pro")
+            return false
+        }
+        do {
+            try await client.from("responses")
+                .insert(ResponseInsertRow(student_id: uid, pro_id: proID, message: message))
+                .execute()
+            lastErrorMessage = nil
+            return true
+        } catch {
+            lastErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Pro: alle Antworten seiner Schüler (RLS filtert serverseitig).
+    func fetchResponses() async -> [IncomingCloudResponse] {
+        guard let client, isSignedIn else { return [] }
+        do {
+            return try await client.from("responses")
+                .select("id, student_id, message, created_at")
+                .order("created_at", ascending: false)
+                .execute().value
+        } catch {
+            return []
+        }
+    }
+
     // MARK: - Nonce-Helfer für Sign in with Apple
 
     /// Zufälliger Einmalwert — Apple bekommt den Hash, Supabase das Original.

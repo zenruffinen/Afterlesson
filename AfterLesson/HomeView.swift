@@ -14,6 +14,7 @@ import Combine
 
 struct HomeView: View {
     @EnvironmentObject var store: AppStore
+    @Environment(\.scenePhase) private var scenePhase
     @Binding var selectedTab: ContentView.Tab
     @State private var showComposer = false
     @State private var composerPreselectedStudents: Set<UUID> = []
@@ -86,6 +87,12 @@ struct HomeView: View {
         .task {
             if !isTeacher {
                 _ = await store.importCloudPackages()
+            }
+        }
+        // … und auch immer, wenn die App in den Vordergrund kommt.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active && !isTeacher {
+                Task { _ = await store.importCloudPackages() }
             }
         }
     }

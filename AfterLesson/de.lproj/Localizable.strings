@@ -410,3 +410,8 @@
 "cloud.received_group" = "Lektion vom %@";
 "cloud.received_group_named" = "Lektion vom %@ – %@";
 "Mein Profil" = "Mein Profil";
+"cloud.response_header" = "Antwort an deinen Pro";
+"cloud.response_placeholder" = "Kurze Nachricht — z. B. Hat geklappt!";
+"cloud.response_send" = "An den Pro senden";
+"cloud.response_sent" = "Gesendet — dein Pro sieht es in deiner Kartei.";
+"cloud.response_no_pro" = "Noch kein Pro verknüpft — zuerst mit dem Code anmelden.";

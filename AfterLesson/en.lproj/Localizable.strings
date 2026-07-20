@@ -421,3 +421,8 @@
 "cloud.received_group_named" = "Lesson from %@ – %@";
 "Mein Profil" = "My profile";
 "Direkt am Schüler" = "Live with your student";
+"cloud.response_header" = "Reply to your pro";
+"cloud.response_placeholder" = "Short message — e.g. It worked!";
+"cloud.response_send" = "Send to your pro";
+"cloud.response_sent" = "Sent — your pro will see it on your card.";
+"cloud.response_no_pro" = "No pro linked yet — sign in with your code first.";
