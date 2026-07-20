@@ -1,7 +1,31 @@
 import SwiftUI
+import UserNotifications
+
+// Nimmt das Apple-Gerätetoken entgegen und reicht es an die Cloud
+// weiter — mehr Aufgaben hat dieser Delegate nicht.
+final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        return true
+    }
+
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        let tokenHex = deviceToken.map { String(format: "%02x", $0) }.joined()
+        Task { await CloudService.shared.registerDeviceToken(tokenHex) }
+    }
+
+    // Banner auch zeigen, wenn die App gerade offen ist
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .sound, .badge]
+    }
+}
 
 @main
 struct AfterLessonApp: App {
+    @UIApplicationDelegateAdaptor(PushDelegate.self) private var pushDelegate
     @StateObject private var store = AppStore()
     @AppStorage("hasSelectedMode") var hasSelectedMode: Bool = false
     @Environment(\.scenePhase) private var scenePhase
@@ -33,6 +57,10 @@ struct AfterLessonApp: App {
                     isUnlocked = !store.isLocked
                 } else {
                     isUnlocked = true
+                }
+                // Angemeldete Nutzer (Pro wie Schüler) für Push registrieren
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    CloudService.shared.enablePushIfPossible()
                 }
             }
             .onChange(of: scenePhase) { _, phase in

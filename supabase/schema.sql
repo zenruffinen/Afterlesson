@@ -271,3 +271,19 @@ create policy "Pro markiert Antwort gelesen"
   on public.responses for update
   using (pro_id = auth.uid())
   with check (pro_id = auth.uid());
+
+-- ---------- 10. Push: Gerätetokens ----------
+
+create table if not exists public.device_tokens (
+  token text primary key,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.device_tokens enable row level security;
+
+drop policy if exists "Nutzer verwaltet eigene Tokens" on public.device_tokens;
+create policy "Nutzer verwaltet eigene Tokens"
+  on public.device_tokens for all
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());

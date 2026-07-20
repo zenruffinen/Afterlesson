@@ -14,6 +14,8 @@ import Foundation
 import Combine
 import CryptoKit
 import Supabase
+import UserNotifications
+import UIKit
 
 @MainActor
 final class CloudService: ObservableObject {
@@ -254,6 +256,34 @@ final class CloudService: ObservableObject {
         _ = try? await client.from("packages")
             .update(ReadPatch(read_at: Date()))
             .eq("id", value: packageID)
+            .execute()
+    }
+
+    // MARK: - Push-Nachrichten
+
+    /// Fragt (einmalig) nach Erlaubnis und registriert das Gerät bei
+    /// Apple — das Token landet dann über den App-Delegate in der Cloud.
+    func enablePushIfPossible() {
+        guard isSignedIn else { return }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            guard granted else { return }
+            Task { @MainActor in
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+        }
+    }
+
+    private struct DeviceTokenRow: Codable {
+        let token: String
+        let user_id: UUID
+    }
+
+    /// Hinterlegt das Apple-Gerätetoken in der Drehscheibe, damit die
+    /// Server-Funktion dieses Gerät erreichen kann.
+    func registerDeviceToken(_ tokenHex: String) async {
+        guard let client, let uid = userID else { return }
+        _ = try? await client.from("device_tokens")
+            .upsert(DeviceTokenRow(token: tokenHex, user_id: uid))
             .execute()
     }
 
