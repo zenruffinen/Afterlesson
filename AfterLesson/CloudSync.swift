@@ -19,6 +19,10 @@ struct CloudLessonShare: Codable {
     var mediaFilenames: [String]
     var teacherName: String
     var note: String
+    // Die Lektionsgruppen des Pros reisen mit, damit "Putten" beim
+    // Schüler auch "Putten" heißt. Optional → ältere Pakete ohne
+    // dieses Feld laden weiterhin sauber (Decodable-Regel!).
+    var contentClasses: [ContentClass]? = nil
 }
 
 struct IncomingCloudPackage: Codable, Identifiable {
@@ -85,12 +89,14 @@ extension AppStore {
                             try await cloud.uploadMedia(data, filename: filename)
                         }
                     }
+                    let usedClassIDs = Set(items.compactMap(\.classID))
                     let payload = CloudLessonShare(
                         lesson: lesson,
                         contentItems: items,
                         mediaFilenames: Array(media),
                         teacherName: teacherName,
-                        note: delivery.note
+                        note: delivery.note,
+                        contentClasses: contentClasses.filter { usedClassIDs.contains($0.id) }
                     )
                     try await cloud.insertPackage(title: lesson.title, payload: payload, to: cloudID)
                     sent += 1
@@ -140,19 +146,36 @@ extension AppStore {
     /// Lektion als "vom Pro empfangen" einreihen.
     @MainActor
     private func registerCloudLesson(from package: IncomingCloudPackage) {
+        // 1. Mitgesendete Lektionsgruppen des Pros lokal nachbauen — mit
+        //    denselben IDs, damit wiederholte Sendungen in derselben Gruppe
+        //    landen: "Putten" heißt beim Schüler auch "Putten".
+        for sentClass in package.payload.contentClasses ?? [] {
+            if !contentClasses.contains(where: { $0.id == sentClass.id }) {
+                var copy = sentClass
+                copy.sortIndex = (contentClasses.map(\.sortIndex).max() ?? 0) + 1
+                contentClasses.append(copy)
+            }
+        }
+        let knownClassIDs = Set(contentClasses.map(\.id))
+
         var newPoolItems = package.payload.contentItems.filter { item in
             !contentPool.contains(where: { $0.id == item.id })
         }
-        // Hans' Regel: Empfangenes zieht in die Bibliothek des Schülers ein —
-        // als eigene Lektionsgruppe "Lektion vom <Datum> – <Pro>", damit auf
-        // einen Blick klar ist, was von wem kam.
-        // Auch bereits vorhandene, aber unsortierte Inhalte aus diesem Paket
-        // sollen in die Absender-Gruppe einziehen (z. B. nach erneutem Senden).
+        // Herkunfts-Gruppe je Inhalt (aus Sicht des Pros)
+        let sentClassOf: [UUID: UUID] = Dictionary(
+            uniqueKeysWithValues: package.payload.contentItems.compactMap { item in
+                item.classID.map { (item.id, $0) }
+            }
+        )
+        // Auch bereits vorhandene, aber unsortierte Inhalte aus diesem
+        // Paket werden einsortiert (z. B. nach erneutem Senden).
         let existingUnsortedIDs = package.payload.contentItems.map(\.id).filter { id in
             contentPool.contains(where: { $0.id == id && $0.classID == nil })
         }
 
-        if !newPoolItems.isEmpty || !existingUnsortedIDs.isEmpty {
+        // 2. Auffang-Gruppe "Lektion vom <Datum> – <Pro>" — nur noch für
+        //    Inhalte, die beim Pro in keiner Gruppe lagen.
+        func fallbackGroupID() -> UUID {
             let formatter = DateFormatter()
             formatter.dateFormat = "dd.MM.yyyy"
             let dateStr = formatter.string(from: package.created_at)
@@ -160,27 +183,33 @@ extension AppStore {
             let groupTitle = teacher.isEmpty
                 ? String(format: String(localized: "cloud.received_group"), dateStr)
                 : String(format: String(localized: "cloud.received_group_named"), dateStr, teacher)
-
-            let groupID: UUID
             if let existing = contentClasses.first(where: { $0.title == groupTitle }) {
-                groupID = existing.id
-            } else {
-                var group = ContentClass(title: groupTitle)
-                group.icon = "tray.and.arrow.down.fill"
-                group.colorHex = "C9A227"
-                group.sortIndex = (contentClasses.map(\.sortIndex).max() ?? 0) + 1
-                contentClasses.append(group)
-                groupID = group.id
+                return existing.id
             }
-            for i in newPoolItems.indices {
-                newPoolItems[i].classID = groupID
+            var group = ContentClass(title: groupTitle)
+            group.icon = "tray.and.arrow.down.fill"
+            group.colorHex = "C9A227"
+            group.sortIndex = (contentClasses.map(\.sortIndex).max() ?? 0) + 1
+            contentClasses.append(group)
+            return group.id
+        }
+
+        // 3. Neue Inhalte: Original-Gruppe wenn bekannt, sonst Auffang-Gruppe
+        for i in newPoolItems.indices {
+            if let cid = newPoolItems[i].classID, knownClassIDs.contains(cid) {
+                continue
             }
-            if !newPoolItems.isEmpty {
-                contentPool.insert(contentsOf: newPoolItems, at: 0)
-            }
-            for id in existingUnsortedIDs {
-                if let idx = contentPool.firstIndex(where: { $0.id == id }) {
-                    contentPool[idx].classID = groupID
+            newPoolItems[i].classID = fallbackGroupID()
+        }
+        if !newPoolItems.isEmpty {
+            contentPool.insert(contentsOf: newPoolItems, at: 0)
+        }
+        for id in existingUnsortedIDs {
+            if let idx = contentPool.firstIndex(where: { $0.id == id }) {
+                if let cid = sentClassOf[id], knownClassIDs.contains(cid) {
+                    contentPool[idx].classID = cid
+                } else {
+                    contentPool[idx].classID = fallbackGroupID()
                 }
             }
         }
