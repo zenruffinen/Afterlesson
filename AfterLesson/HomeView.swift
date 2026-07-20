@@ -820,16 +820,10 @@ struct ComposerSheet: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        // Der persönliche Weg am Platz — öffnet das
-                        // iOS-Teilen-Fenster mit dem Grünbuch-Paket.
-                        Button(action: assignAndShare) {
-                            Label("Per AirDrop übergeben", systemImage: "airdrop")
-                                .font(.subheadline)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(ALColor.green)
+                        // Hans' Beschluss (20.07.): Die Cloud ist der einzige
+                        // Versandweg — AirDrop-Knopf entfernt. Der Datei-Weg
+                        // (assignAndShare/exportLesson) bleibt im Code als
+                        // Reserve, ist aber nicht mehr in der Oberfläche.
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
