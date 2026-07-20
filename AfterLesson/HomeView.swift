@@ -180,7 +180,7 @@ struct HomeView: View {
                     .padding(.horizontal, 20)
             } else {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Zugewiesen")
+                    Label("Eingang", systemImage: "tray.and.arrow.down.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.65))
                         .padding(.horizontal, 20)
@@ -190,10 +190,28 @@ struct HomeView: View {
                     ForEach(store.receivedSessions.prefix(5)) { session in
                         studentSessionRow(session).padding(.horizontal, 20)
                     }
+                    // Der Prozess in einem Satz — damit keine Magie
+                    // unerklärt bleibt (Hans, 20.07.)
+                    Text("home.inbox_hint")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.45))
+                        .padding(.horizontal, 20)
                 }
             }
             Spacer(minLength: 16)
         }
+    }
+
+    /// In welche Bibliotheks-Gruppe die Inhalte dieser Lektion eingezogen sind.
+    private func libraryGroupName(for lesson: Lesson) -> String? {
+        for itemID in lesson.contentItemIDs {
+            if let item = store.contentPool.first(where: { $0.id == itemID }),
+               let classID = item.classID,
+               let group = store.contentClasses.first(where: { $0.id == classID }) {
+                return group.title
+            }
+        }
+        return nil
     }
 
     @ViewBuilder
@@ -217,7 +235,17 @@ struct HomeView: View {
                                 .background(ALColor.gold.opacity(0.18), in: Capsule())
                         }
                     }
-                    if !lesson.receivedFromPro.isEmpty {
+                    if lesson.openedDate != nil, let group = libraryGroupName(for: lesson) {
+                        // Gesehen → zeigt, wohin die Inhalte eingezogen sind
+                        HStack(spacing: 3) {
+                            Image(systemName: "books.vertical.fill")
+                                .font(.system(size: 9))
+                            Text(String(format: String(localized: "home.in_library"), group))
+                                .font(.system(size: 11))
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(ALColor.gold.opacity(0.8))
+                    } else if !lesson.receivedFromPro.isEmpty {
                         Text(String(format: String(localized: "von %@"), lesson.receivedFromPro))
                             .font(.system(size: 11))
                             .foregroundStyle(.white.opacity(0.55))

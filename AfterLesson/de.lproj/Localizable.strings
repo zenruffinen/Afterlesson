@@ -416,3 +416,5 @@
 "cloud.response_sent" = "Gesendet — dein Pro sieht es in deiner Kartei.";
 "cloud.response_no_pro" = "Noch kein Pro verknüpft — zuerst mit dem Code anmelden.";
 "cloud.feedback_hint_cloud" = "Deine Nachricht geht direkt über die Grünbuch Cloud an deinen Pro — er sieht sie in deiner Kartei.";
+"home.inbox_hint" = "Antippen zum Ansehen — dein Pro sieht, dass du es geöffnet hast. Die Inhalte liegen dauerhaft in deiner Bibliothek.";
+"home.in_library" = "In der Bibliothek: %@";
