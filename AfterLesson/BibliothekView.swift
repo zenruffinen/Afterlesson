@@ -370,11 +370,9 @@ struct ContentClassTile: View {
             HStack {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(color.opacity(0.15))
+                        .fill(color.opacity(icon.hasPrefix("img:") ? 0 : 0.15))
                         .frame(width: 32, height: 32)
-                    Image(systemName: icon)
-                        .font(.subheadline)
-                        .foregroundStyle(color)
+                    ClassIcon(icon: icon, color: color, side: 32, symbolSize: 15)
                 }
                 Spacer()
                 Text("\(count)")
@@ -823,7 +821,7 @@ struct ClassContentView: View {
                                     Button {
                                         store.move(item, toClass: c.id)
                                     } label: {
-                                        Label(c.title, systemImage: c.icon)
+                                        Label(c.title, systemImage: ClassIcon.menuSymbol(for: c.icon))
                                     }
                                 }
                             }
@@ -861,7 +859,7 @@ struct ClassContentView: View {
                         Button {
                             moveSelected(to: c.id)
                         } label: {
-                            Label(c.title, systemImage: c.icon)
+                            Label(c.title, systemImage: ClassIcon.menuSymbol(for: c.icon))
                         }
                     }
                 }
@@ -1004,11 +1002,15 @@ struct ContentClassEditorSheet: View {
                     // Vorschau
                     ZStack {
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(hex: selectedColor))
+                            .fill(selectedIcon.hasPrefix("img:") ? Color.clear : Color(hex: selectedColor))
                             .frame(width: 72, height: 72)
-                        Image(systemName: selectedIcon)
-                            .font(.system(size: 30))
-                            .foregroundStyle(.white)
+                        if selectedIcon.hasPrefix("img:") {
+                            ClassIcon(icon: selectedIcon, side: 72)
+                        } else {
+                            Image(systemName: selectedIcon)
+                                .font(.system(size: 30))
+                                .foregroundStyle(.white)
+                        }
                     }
                     .padding(.top, 8)
 
@@ -1056,9 +1058,34 @@ struct ContentClassEditorSheet: View {
                             .padding(.horizontal, 4)
                     }
 
+                    // Golf-Icons (eigene Bilder — Hans, 21.07.)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Golf-Icons").font(.caption.bold()).foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
+                            ForEach(GruppenIcons.alle, id: \.self) { asset in
+                                let key = "img:\(asset)"
+                                Button { selectedIcon = key } label: {
+                                    Image(asset)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 48)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        .overlay {
+                                            if selectedIcon == key {
+                                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                    .strokeBorder(Color(hex: selectedColor), lineWidth: 3)
+                                            }
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
                     // Icon-Picker
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Icon").font(.caption.bold()).foregroundStyle(.secondary)
+                        Text("Symbole").font(.caption.bold()).foregroundStyle(.secondary)
                             .padding(.horizontal, 4)
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
                             ForEach(classIcons, id: \.self) { icon in
@@ -1361,7 +1388,7 @@ struct ContentItemDetailView: View {
                         Button {
                             updateItem { $0.classID = c.id }
                         } label: {
-                            Label(c.title, systemImage: currentItem.classID == c.id ? "checkmark" : c.icon)
+                            Label(c.title, systemImage: currentItem.classID == c.id ? "checkmark" : ClassIcon.menuSymbol(for: c.icon))
                         }
                     }
                     Button {

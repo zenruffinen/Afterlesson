@@ -1410,8 +1410,8 @@ struct ComposerSheet: View {
                 }
             } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: group.icon)
-                        .foregroundStyle(Color(hex: group.colorHex))
+                    ClassIcon(icon: group.icon, color: Color(hex: group.colorHex),
+                              side: 28, symbolSize: 15)
                         .frame(width: 28)
                     Text(group.title)
                         .font(.subheadline.bold())
@@ -1474,9 +1474,13 @@ struct ComposerSheet: View {
         let ids = items.map(\.id)
         let allSelected = !ids.isEmpty && ids.allSatisfy { selectedContentItemIDs.contains($0) }
         HStack {
-            Label(cls.title, systemImage: cls.icon)
-                .font(.caption.bold())
-                .foregroundStyle(Color(hex: cls.colorHex))
+            HStack(spacing: 5) {
+                ClassIcon(icon: cls.icon, color: Color(hex: cls.colorHex),
+                          side: 18, symbolSize: 11)
+                Text(cls.title)
+            }
+            .font(.caption.bold())
+            .foregroundStyle(Color(hex: cls.colorHex))
             Spacer()
             Button(allSelected ? String(localized: "Abwählen") : String(localized: "Alle wählen")) {
                 if allSelected {

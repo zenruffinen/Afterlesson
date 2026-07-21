@@ -48,6 +48,54 @@ extension View {
     }
 }
 
+// MARK: - Gruppen-Icons (SF-Symbol ODER eigenes Golf-Bild)
+// Eigene Bild-Icons werden im icon-Feld als "img:<Assetname>" gespeichert
+// (z.B. "img:gb_ball_rot") — SF-Symbole bleiben wie gehabt reine Namen.
+
+/// Zeichnet ein Gruppen-Icon: Golf-Bild aus dem Asset-Katalog oder SF-Symbol.
+struct ClassIcon: View {
+    let icon: String
+    var color: Color = ALColor.green
+    var side: CGFloat = 32          // Kantenlänge des Bild-Icons
+    var symbolSize: CGFloat = 15    // Punktgröße des SF-Symbols
+
+    /// Menü-taugliches SF-Symbol: Bild-Icons können in Menüs nicht
+    /// gezeigt werden → Ordner-Symbol als Stellvertreter.
+    static func menuSymbol(for icon: String) -> String {
+        icon.hasPrefix("img:") ? "folder.fill" : icon
+    }
+
+    var body: some View {
+        if icon.hasPrefix("img:") {
+            Image(String(icon.dropFirst(4)))
+                .resizable()
+                .scaledToFit()
+                .frame(width: side, height: side)
+                .clipShape(RoundedRectangle(cornerRadius: side * 0.24, style: .continuous))
+        } else {
+            Image(systemName: icon)
+                .font(.system(size: symbolSize, weight: .semibold))
+                .foregroundStyle(color)
+        }
+    }
+}
+
+/// Die 40 Golf-Bild-Icons für Lektionsgruppen (Hans, 21.07.).
+enum GruppenIcons {
+    static let alle: [String] = [
+        "gb_ball_rot", "gb_ball_blau", "gb_ball_schwarz", "gb_ball_weiss",
+        "gb_ball_gruen", "gb_ball_gelb", "gb_ball_lila", "gb_ball_orange",
+        "gb_driver", "gb_eisen", "gb_wedges", "gb_putter",
+        "gb_bunker", "gb_rough", "gb_platz", "gb_fahne",
+        "gb_entfernung", "gb_statistik", "gb_video", "gb_foto",
+        "gb_notizen", "gb_uebungen", "gb_pokal", "gb_ziel",
+        "gb_golfbag", "gb_cart", "gb_uhr", "gb_trackman",
+        "gb_protipp", "gb_wetter", "gb_kalender", "gb_pfeife",
+        "gb_abschlag", "gb_ballflug", "gb_schwung", "gb_routine",
+        "gb_mental", "gb_fitness", "gb_trinken", "gb_team",
+    ]
+}
+
 // MARK: - Home Background (LockView-Gradient)
 
 struct GrünbuchHomeBackground: View {
