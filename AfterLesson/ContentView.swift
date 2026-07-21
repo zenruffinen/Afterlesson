@@ -52,15 +52,48 @@ struct AfterLessonTabBar: View {
     @Binding var selected: ContentView.Tab
     @EnvironmentObject var store: AppStore
 
+    // Glaslupe wie im Mac-Dock (Hans, 21.07.): Beim Rüberfahren wächst
+    // die Kachel unter dem Finger, Loslassen wählt sie aus.
+    @State private var fingerX: CGFloat? = nil
+    @State private var barWidth: CGFloat = 0
+
+    private let tabOrder: [ContentView.Tab] = [.home, .lessons, .students, .notes, .settings]
+
     var body: some View {
         HStack(spacing: 0) {
-            tabItem(.home,     icon: "house.fill",            label: "Start")
-            tabItem(.lessons,  icon: "books.vertical.fill",   label: "Bibliothek", subtitle: "Tipps & Stoff")
-            tabItem(.students, icon: "figure.golf",
+            tabItem(.home,     index: 0, icon: "house.fill",            label: "Start")
+            tabItem(.lessons,  index: 1, icon: "books.vertical.fill",   label: "Bibliothek", subtitle: "Tipps & Stoff")
+            tabItem(.students, index: 2, icon: "figure.golf",
                     label: store.appMode == AppMode.teacher.rawValue ? "Schüler" : "Profil")
-            tabItem(.notes,    icon: "note.text.badge.plus", label: "Notizen", subtitle: "Pro")
-            tabItem(.settings, icon: "gearshape.fill",       label: "Einstellungen")
+            tabItem(.notes,    index: 3, icon: "note.text.badge.plus", label: "Notizen", subtitle: "Pro")
+            tabItem(.settings, index: 4, icon: "gearshape.fill",       label: "Einstellungen")
         }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { barWidth = geo.size.width }
+                    .onChange(of: geo.size.width) { _, w in barWidth = w }
+            }
+        }
+        // Kurzes Tippen geht weiter direkt an die Knöpfe — erst das
+        // Rüberfahren (ab ein paar Punkten Bewegung) weckt die Lupe.
+        .gesture(
+            DragGesture(minimumDistance: 8, coordinateSpace: .local)
+                .onChanged { value in
+                    fingerX = value.location.x
+                }
+                .onEnded { value in
+                    if barWidth > 0 {
+                        let idx = min(tabOrder.count - 1,
+                                      max(0, Int(value.location.x / (barWidth / CGFloat(tabOrder.count)))))
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selected = tabOrder[idx]
+                        }
+                    }
+                    fingerX = nil
+                }
+        )
+        .animation(.spring(response: 0.22, dampingFraction: 0.75), value: fingerX)
         .padding(.bottom, 28)
         .background(Color(hex: "0D160D"))
         .overlay(alignment: .top) {
@@ -68,22 +101,32 @@ struct AfterLessonTabBar: View {
         }
     }
 
+    /// Vergrößerung einer Kachel abhängig vom Fingerabstand (Dock-Formel).
+    private func magnification(for index: Int) -> CGFloat {
+        guard let x = fingerX, barWidth > 0 else { return 1 }
+        let slot = barWidth / CGFloat(tabOrder.count)
+        let center = (CGFloat(index) + 0.5) * slot
+        let closeness = max(0, 1 - abs(x - center) / (slot * 1.25))
+        return 1 + 0.5 * closeness
+    }
+
     @ViewBuilder
-    func tabItem(_ tab: ContentView.Tab, icon: String, label: LocalizedStringKey, subtitle: LocalizedStringKey? = nil) -> some View {
+    func tabItem(_ tab: ContentView.Tab, index: Int, icon: String, label: LocalizedStringKey, subtitle: LocalizedStringKey? = nil) -> some View {
         Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 selected = tab
             }
         } label: {
             let isSelected = selected == tab
+            let mag = magnification(for: index)
             VStack(spacing: subtitle == nil ? 4 : 2) {
                 Image(systemName: icon)
                     .font(.system(size: 21, weight: isSelected ? .bold : .regular))
-                    .foregroundStyle(isSelected ? ALColor.gold : Color.white.opacity(0.45))
+                    .foregroundStyle(isSelected || mag > 1.25 ? ALColor.gold : Color.white.opacity(0.45))
                     .scaleEffect(isSelected ? 1.10 : 1.0)
                 Text(label)
                     .font(.system(size: 9, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? ALColor.gold : Color.white.opacity(0.45))
+                    .foregroundStyle(isSelected || mag > 1.25 ? ALColor.gold : Color.white.opacity(0.45))
                     .lineLimit(1)
                     .minimumScaleFactor(0.65)
                 if let subtitle {
@@ -97,6 +140,7 @@ struct AfterLessonTabBar: View {
             .frame(maxWidth: .infinity)
             .padding(.top, 10)
             .padding(.bottom, 4)
+            .scaleEffect(mag, anchor: .bottom)
         }
         .buttonStyle(.plain)
     }
