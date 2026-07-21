@@ -344,3 +344,19 @@ create trigger push_bei_mitteilung
     '{}',
     '5000'
   );
+
+-- ---------- 12. Push auch für Schüler-Antworten ----------
+-- Der Pro soll es klingeln hören, wenn ein Schüler antwortet
+-- (die Funktion erkennt an der Tabelle, dass der Pro der Empfänger ist).
+
+drop trigger if exists push_bei_antwort on public.responses;
+create trigger push_bei_antwort
+  after insert on public.responses
+  for each row
+  execute function supabase_functions.http_request(
+    'https://unkattxznrjjdjwdbkkh.supabase.co/functions/v1/push-package',
+    'POST',
+    '{"Content-type":"application/json"}',
+    '{}',
+    '5000'
+  );

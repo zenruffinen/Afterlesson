@@ -767,7 +767,7 @@ struct StudentDetailView: View {
             // Letzte Schüler-Rückmeldung (wird per Import aktualisiert)
             Section {
                 if currentStudent.remarks.isEmpty && currentStudent.feedbackHistory.isEmpty {
-                    Text("Noch keine Rückmeldung — der Schüler sendet sie als Grünbuch-Rückmeldungsdatei.")
+                    Text("Noch keine Rückmeldung — Antworten des Schülers aus der Cloud erscheinen hier automatisch.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {

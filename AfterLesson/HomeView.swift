@@ -93,19 +93,34 @@ struct HomeView: View {
         // Schüler: beim Betreten sofort abholen — und danach automatisch
         // jede Minute nachschauen, solange der Start sichtbar ist.
         .task {
-            guard !isTeacher else { return }
-            _ = await store.importCloudPackages()
-            _ = await store.importCloudMessages()
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(60))
+            // Beide Rollen holen bei der Drehscheibe ab — der Schüler seine
+            // Pakete und Mitteilungen, der Pro die Antworten seiner Schüler.
+            if isTeacher {
+                _ = await store.importCloudResponses()
+                await store.refreshProMessages()
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(60))
+                    _ = await store.importCloudResponses()
+                    await store.refreshProMessages()
+                }
+            } else {
                 _ = await store.importCloudPackages()
                 _ = await store.importCloudMessages()
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(60))
+                    _ = await store.importCloudPackages()
+                    _ = await store.importCloudMessages()
+                }
             }
         }
         // … und auch immer, wenn die App in den Vordergrund kommt.
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active && !isTeacher {
-                Task {
+            guard phase == .active else { return }
+            Task {
+                if isTeacher {
+                    _ = await store.importCloudResponses()
+                    await store.refreshProMessages()
+                } else {
                     _ = await store.importCloudPackages()
                     _ = await store.importCloudMessages()
                 }

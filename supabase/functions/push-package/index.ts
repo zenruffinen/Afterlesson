@@ -38,7 +38,9 @@ async function apnsJWT(): Promise<string> {
 Deno.serve(async (req) => {
   const payload = await req.json();
   const record = payload?.record;
-  if (!record?.student_id) {
+  // Empfänger: bei Antworten (responses) der Pro, sonst der Schüler.
+  const recipient = payload?.table === "responses" ? record?.pro_id : record?.student_id;
+  if (!recipient) {
     return new Response("kein Datensatz", { status: 400 });
   }
 
@@ -49,7 +51,7 @@ Deno.serve(async (req) => {
   const { data: tokens } = await supabase
     .from("device_tokens")
     .select("token")
-    .eq("user_id", record.student_id);
+    .eq("user_id", recipient);
   console.log(`Geräte-Tokens gefunden: ${tokens?.length ?? 0}`);
   if (!tokens || tokens.length === 0) {
     return new Response("keine Geraete registriert", { status: 200 });
@@ -58,13 +60,19 @@ Deno.serve(async (req) => {
   const jwt = await apnsJWT();
   const host = SANDBOX ? "https://api.sandbox.push.apple.com" : "https://api.push.apple.com";
 
-  // Mitteilung oder Lernpaket? Der Webhook verrät die Tabelle.
+  // Mitteilung, Antwort oder Lernpaket? Der Webhook verrät die Tabelle.
+  const clip = (text: string, fallback: string) => {
+    const t = (text ?? "").trim();
+    return t.length > 120 ? t.slice(0, 117) + "…" : (t || fallback);
+  };
   let alertTitle = "Neues von deinem Pro";
   let alertBody = record.title && record.title.length > 0 ? record.title : "Ein neues Lernpaket wartet auf dich.";
   if (payload?.table === "messages") {
     alertTitle = "Mitteilung von deinem Pro";
-    const body = (record.body ?? "").trim();
-    alertBody = body.length > 120 ? body.slice(0, 117) + "…" : (body || "Du hast eine neue Mitteilung.");
+    alertBody = clip(record.body, "Du hast eine neue Mitteilung.");
+  } else if (payload?.table === "responses") {
+    alertTitle = "Antwort von deinem Schüler";
+    alertBody = clip(record.message, "Du hast eine neue Antwort.");
   }
   const push = {
     aps: {
