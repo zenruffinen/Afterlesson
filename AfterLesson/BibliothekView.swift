@@ -276,8 +276,16 @@ struct DatenpoolView: View {
     var classGrid: some View {
         // Kleine Kacheln, alphabetisch — wie ein Karteikasten (Hans, 19.07.)
         // Oberste Ebene: Untergruppen wohnen in ihrer Obergruppe (21.07.)
+        // Keine leeren Ordner (Hans, 21.07.): Gruppen erscheinen erst,
+        // wenn Inhalte darin liegen — in den Auswahllisten zum
+        // Verschieben bleiben sie trotzdem wählbar.
+        let visible = store.topLevelClasses
+            .filter { store.totalItemCount(of: $0) > 0 }
+            .sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })
+        let hiddenCount = store.topLevelClasses.count - visible.count
+        return VStack(alignment: .leading, spacing: 8) {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 10)], spacing: 10) {
-            ForEach(store.topLevelClasses.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })) { c in
+            ForEach(visible) { c in
                 NavigationLink {
                     ClassContentView(contentClass: c)
                 } label: {
@@ -299,6 +307,15 @@ struct DatenpoolView: View {
                     }
                 }
             }
+        }
+        if hiddenCount > 0 {
+            Text(hiddenCount == 1
+                 ? "1 leere Gruppe ausgeblendet — sie erscheint, sobald Inhalte darin liegen."
+                 : "\(hiddenCount) leere Gruppen ausgeblendet — sie erscheinen, sobald Inhalte darin liegen.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+        }
         }
     }
 
@@ -421,6 +438,11 @@ struct ClassContentView: View {
         return store.subgroups(of: c)
     }
 
+    /// Nur gefüllte Untergruppen werden gezeigt — keine leeren Ordner (21.07.).
+    var visibleSubclasses: [ContentClass] {
+        subclasses.filter { !store.items(in: $0).isEmpty }
+    }
+
     /// Untergruppen kann nur eine Gruppe der obersten Ebene haben (eine Ebene Tiefe).
     var canHaveSubgroups: Bool {
         contentClass != nil && contentClass?.parentID == nil
@@ -447,7 +469,7 @@ struct ClassContentView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         // Erst die Untergruppen (falls vorhanden), dann die eigenen Inhalte
-                        if !subclasses.isEmpty {
+                        if !visibleSubclasses.isEmpty {
                             subgroupGrid
                         }
                         // "Unsortiert" ist der Eingangskorb für neue Inhalte —
@@ -457,7 +479,7 @@ struct ClassContentView: View {
                         if contentClass == nil {
                             inboxHeader
                         } else if !classItems.isEmpty {
-                            if !subclasses.isEmpty {
+                            if !visibleSubclasses.isEmpty {
                                 Text("Inhalte")
                                     .font(.caption.bold())
                                     .foregroundStyle(.secondary)
@@ -636,7 +658,7 @@ struct ClassContentView: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 4)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 10)], spacing: 10) {
-                ForEach(subclasses) { sub in
+                ForEach(visibleSubclasses) { sub in
                     NavigationLink {
                         ClassContentView(contentClass: sub)
                     } label: {
