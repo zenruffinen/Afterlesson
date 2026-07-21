@@ -203,7 +203,7 @@ struct DatenpoolView: View {
             }
         } label: {
             HStack(spacing: 14) {
-                Image("gb_erfassen")
+                Image("gb_erfassen_klein")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 48, height: 48)
@@ -240,7 +240,7 @@ struct DatenpoolView: View {
     var newClassRow: some View {
         Button { showNewClassSheet = true } label: {
             HStack(spacing: 14) {
-                Image("gb_gruppe_neu")
+                Image("gb_gruppe_klein")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 48, height: 48)
