@@ -354,17 +354,42 @@ extension AppStore {
     /// Lektion als "vom Pro empfangen" einreihen.
     @MainActor
     private func registerCloudLesson(from package: IncomingCloudPackage) {
-        // 1. Mitgesendete Lektionsgruppen des Pros lokal nachbauen — mit
-        //    denselben IDs, damit wiederholte Sendungen in derselben Gruppe
-        //    landen: "Putten" heißt beim Schüler auch "Putten".
+        // 1. Mitgesendete Lektionsgruppen des Pros einpassen:
+        //    gleiche ID → schon da; gleicher NAME → verschmelzen (die
+        //    frische Schüler-App bringt vorgefertigte Golf-Gruppen mit
+        //    eigenen IDs mit — ohne Verschmelzen gäbe es "Chippen"
+        //    doppelt); sonst neu anlegen. classIDMap übersetzt die
+        //    Gruppen-Kennungen des Pros auf die lokalen.
+        func normalized(_ s: String) -> String {
+            s.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }
+        var classIDMap: [UUID: UUID] = [:]
         for sentClass in package.payload.contentClasses ?? [] {
-            if !contentClasses.contains(where: { $0.id == sentClass.id }) {
+            if contentClasses.contains(where: { $0.id == sentClass.id }) {
+                classIDMap[sentClass.id] = sentClass.id
+            } else if let local = contentClasses.first(where: { normalized($0.title) == normalized(sentClass.title) }) {
+                classIDMap[sentClass.id] = local.id
+            } else {
                 var copy = sentClass
                 copy.sortIndex = (contentClasses.map(\.sortIndex).max() ?? 0) + 1
                 contentClasses.append(copy)
+                classIDMap[sentClass.id] = copy.id
             }
         }
-        let knownClassIDs = Set(contentClasses.map(\.id))
+        // Hierarchie nachziehen: verschmolzene Eltern-Kennungen übersetzen
+        for i in contentClasses.indices {
+            if let parent = contentClasses[i].parentID,
+               let mapped = classIDMap[parent], mapped != parent {
+                contentClasses[i].parentID = mapped
+            }
+        }
+        let localClassIDs = Set(contentClasses.map(\.id))
+        // Die Gruppe eines Inhalts in lokaler Übersetzung (nil = unbekannt)
+        func localClassID(for sentID: UUID?) -> UUID? {
+            guard let sentID else { return nil }
+            if let mapped = classIDMap[sentID] { return mapped }
+            return localClassIDs.contains(sentID) ? sentID : nil
+        }
 
         var newPoolItems = package.payload.contentItems.filter { item in
             !contentPool.contains(where: { $0.id == item.id })
@@ -402,23 +427,21 @@ extension AppStore {
             return group.id
         }
 
-        // 3. Neue Inhalte: Original-Gruppe wenn bekannt, sonst Auffang-Gruppe
+        // 3. Neue Inhalte: Original-Gruppe (lokal übersetzt) wenn bekannt,
+        //    sonst Auffang-Gruppe
         for i in newPoolItems.indices {
-            if let cid = newPoolItems[i].classID, knownClassIDs.contains(cid) {
-                continue
+            if let local = localClassID(for: newPoolItems[i].classID) {
+                newPoolItems[i].classID = local
+            } else {
+                newPoolItems[i].classID = fallbackGroupID()
             }
-            newPoolItems[i].classID = fallbackGroupID()
         }
         if !newPoolItems.isEmpty {
             contentPool.insert(contentsOf: newPoolItems, at: 0)
         }
         for id in existingUnsortedIDs {
             if let idx = contentPool.firstIndex(where: { $0.id == id }) {
-                if let cid = sentClassOf[id], knownClassIDs.contains(cid) {
-                    contentPool[idx].classID = cid
-                } else {
-                    contentPool[idx].classID = fallbackGroupID()
-                }
+                contentPool[idx].classID = localClassID(for: sentClassOf[id]) ?? fallbackGroupID()
             }
         }
 
