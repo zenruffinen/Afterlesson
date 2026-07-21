@@ -1340,8 +1340,17 @@ struct ComposerSheet: View {
         var allItems: [ContentItem] { ownItems + subgroups.flatMap { $0.items } }
     }
 
+    /// Nur einsortierte Inhalte sind sendbar — der Eingang ist Sammelkiste,
+    /// nicht Versandlager (Hans, 21.07.): erst einsortieren, dann senden.
+    private var composerUnsortedCount: Int {
+        store.contentPool.filter { item in
+            item.classID == nil || !store.contentClasses.contains(where: { $0.id == item.classID })
+        }.count
+    }
+
     private var composerGroups: [ComposerGroup] {
-        let pool = store.contentPool
+        let classIDs = Set(store.contentClasses.map(\.id))
+        let pool = store.contentPool.filter { $0.classID.map(classIDs.contains) ?? false }
         var groups: [ComposerGroup] = []
         guard !pool.isEmpty else { return groups }
 
@@ -1367,16 +1376,6 @@ struct ComposerSheet: View {
                 ))
             }
         }
-        let unsorted = pool.filter { item in
-            item.classID == nil || !store.contentClasses.contains(where: { $0.id == item.classID })
-        }
-        if !unsorted.isEmpty {
-            groups.append(ComposerGroup(
-                key: "inbox", title: String(localized: "Eingang"),
-                icon: "tray.fill", colorHex: "8D6E63",
-                ownItems: unsorted, subgroups: []
-            ))
-        }
         return groups
     }
 
@@ -1391,6 +1390,16 @@ struct ComposerSheet: View {
         } else {
             ForEach(composerGroups) { group in
                 accordionSection(group)
+            }
+            if composerUnsortedCount > 0 {
+                Section {
+                    Label(
+                        String(format: String(localized: "%d Inhalte liegen noch im Eingang — sortiere sie in der Bibliothek in Gruppen, dann kannst du sie senden."), composerUnsortedCount),
+                        systemImage: "tray.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             }
         }
     }
