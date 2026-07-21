@@ -400,10 +400,12 @@ extension AppStore {
                 item.classID.map { (item.id, $0) }
             }
         )
-        // Auch bereits vorhandene, aber unsortierte Inhalte aus diesem
-        // Paket werden einsortiert (z. B. nach erneutem Senden).
-        let existingUnsortedIDs = package.payload.contentItems.map(\.id).filter { id in
-            contentPool.contains(where: { $0.id == id && $0.classID == nil })
+        // Bereits vorhandene Inhalte aus diesem Paket: "Senden IST
+        // Zuweisen" (Hans, 21.07.) — die Gruppe des Pros gilt auch beim
+        // erneuten Senden. Nur wo der Pro selbst keine Gruppe vergeben
+        // hat, bleibt die Ordnung des Schülers unangetastet.
+        let existingIDs = package.payload.contentItems.map(\.id).filter { id in
+            contentPool.contains(where: { $0.id == id })
         }
 
         // 2. Auffang-Gruppe "Lektion vom <Datum> – <Pro>" — nur noch für
@@ -439,9 +441,13 @@ extension AppStore {
         if !newPoolItems.isEmpty {
             contentPool.insert(contentsOf: newPoolItems, at: 0)
         }
-        for id in existingUnsortedIDs {
+        for id in existingIDs {
             if let idx = contentPool.firstIndex(where: { $0.id == id }) {
-                contentPool[idx].classID = localClassID(for: sentClassOf[id]) ?? fallbackGroupID()
+                if let local = localClassID(for: sentClassOf[id]) {
+                    contentPool[idx].classID = local
+                } else if contentPool[idx].classID == nil {
+                    contentPool[idx].classID = fallbackGroupID()
+                }
             }
         }
 
