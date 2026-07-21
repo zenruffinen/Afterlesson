@@ -306,9 +306,11 @@ final class AppStore: ObservableObject {
             let formatter = DateFormatter()
             formatter.dateFormat = "dd.MM.yyyy, HH:mm"
             let dateStr = formatter.string(from: Date())
+            // Nur Datum + Uhrzeit — dass es ein Lernpaket ist, sagt schon
+            // die Überschrift im Eingang (Hans, 21.07.)
             var composerLesson = Lesson(
                 folderID: folderID,
-                title: "Lernpaket \(dateStr) Uhr",
+                title: "\(dateStr) Uhr",
                 description: "Zusammengestellt im Composer",
                 icon: "square.and.pencil",
                 contentItemIDs: Array(contentItemIDs)
