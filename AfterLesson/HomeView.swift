@@ -1347,7 +1347,7 @@ struct ComposerSheet: View {
 
         groups.append(ComposerGroup(
             key: "all",
-            title: String(localized: "Alles"),
+            title: String(localized: "Alle Inhalte"),
             icon: "square.grid.2x2.fill",
             colorHex: "1B5E20",
             ownItems: pool.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending },
