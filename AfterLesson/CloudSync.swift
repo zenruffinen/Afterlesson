@@ -95,7 +95,13 @@ extension AppStore {
                             try await cloud.uploadMedia(data, filename: filename)
                         }
                     }
-                    let usedClassIDs = Set(items.compactMap(\.classID))
+                    // Obergruppen reisen mit: Wer "Putten" (in "Kurzes Spiel")
+                    // sendet, schickt auch "Kurzes Spiel" mit — sonst hinge die
+                    // Untergruppe beim Schüler in der Luft.
+                    var usedClassIDs = Set(items.compactMap(\.classID))
+                    for c in contentClasses where usedClassIDs.contains(c.id) {
+                        if let parent = c.parentID { usedClassIDs.insert(parent) }
+                    }
                     let payload = CloudLessonShare(
                         lesson: lesson,
                         contentItems: items,
@@ -154,6 +160,85 @@ extension AppStore {
 
         importedCloudResponseIDs = imported
         return count
+    }
+
+    // MARK: Mitteilungen („Zettel vom Pro")
+
+    /// Pro: Mitteilung an gewählte Karteien senden.
+    /// Liefert (Anzahl gesendet, Namen ohne Cloud-Verbindung).
+    @MainActor
+    func sendProMessage(_ body: String, toLocalStudentIDs ids: [UUID]) async -> (sent: Int, withoutCloud: [String]) {
+        let cloud = CloudService.shared
+        var withoutCloud: [String] = []
+        var targets: [(local: UUID, cloud: UUID)] = []
+        for id in ids {
+            guard let student = students.first(where: { $0.id == id }) else { continue }
+            if let cid = student.cloudUserID {
+                targets.append((id, cid))
+            } else {
+                withoutCloud.append(student.name)
+            }
+        }
+        guard !targets.isEmpty else { return (0, withoutCloud) }
+
+        let inserted = await cloud.sendMessage(body, to: targets.map(\.cloud))
+        for row in inserted {
+            let localID = targets.first(where: { $0.cloud == row.student_id })?.local
+            proMessages.insert(
+                ProMessage(id: row.id, localStudentID: localID, body: row.body, date: row.created_at),
+                at: 0
+            )
+        }
+        return (inserted.count, withoutCloud)
+    }
+
+    /// Pro: Gelesen-Häkchen aus der Cloud nachführen (und Mitteilungen
+    /// ergänzen, die z.B. von einem anderen Gerät gesendet wurden).
+    @MainActor
+    func refreshProMessages() async {
+        guard appMode == AppMode.teacher.rawValue, CloudService.shared.isSignedIn else { return }
+        let rows = await CloudService.shared.fetchCloudMessages()
+        guard !rows.isEmpty else { return }
+        for row in rows {
+            if let idx = proMessages.firstIndex(where: { $0.id == row.id }) {
+                if proMessages[idx].readDate != row.read_at {
+                    proMessages[idx].readDate = row.read_at
+                }
+            } else {
+                let localID = students.first(where: { $0.cloudUserID == row.student_id })?.id
+                proMessages.append(ProMessage(id: row.id, localStudentID: localID,
+                                              body: row.body, date: row.created_at,
+                                              readDate: row.read_at))
+            }
+        }
+        proMessages.sort { $0.date > $1.date }
+    }
+
+    /// Schüler: neue Mitteilungen abholen. Liefert die Zahl neuer.
+    @MainActor
+    func importCloudMessages() async -> Int {
+        guard appMode == AppMode.student.rawValue, CloudService.shared.isSignedIn else { return 0 }
+        let rows = await CloudService.shared.fetchCloudMessages()
+        var newCount = 0
+        for row in rows {
+            if proMessages.contains(where: { $0.id == row.id }) { continue }
+            proMessages.append(ProMessage(id: row.id, localStudentID: nil,
+                                          body: row.body, date: row.created_at,
+                                          readDate: row.read_at))
+            newCount += 1
+        }
+        if newCount > 0 { proMessages.sort { $0.date > $1.date } }
+        return newCount
+    }
+
+    /// Schüler: Mitteilung als gelesen markieren (lokal sofort, Cloud im Hintergrund).
+    @MainActor
+    func markProMessageRead(_ message: ProMessage) {
+        guard message.readDate == nil else { return }
+        if let idx = proMessages.firstIndex(where: { $0.id == message.id }) {
+            proMessages[idx].readDate = Date()
+        }
+        Task { await CloudService.shared.markMessageRead(message.id) }
     }
 
     // MARK: Video-Kompression (720p, H.264/mp4)

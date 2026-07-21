@@ -287,3 +287,60 @@ create policy "Nutzer verwaltet eigene Tokens"
   on public.device_tokens for all
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
+
+-- ---------- 11. Mitteilungen: "Zettel vom Pro" ----------
+-- Kurze Botschaften Pro → Schüler ("Das hat gut geklappt!",
+-- "Stunde fällt aus"). Eine Rundmitteilung an alle = eine Zeile
+-- pro Empfänger. Der Schüler antwortet NICHT hier, sondern über
+-- die Schnellantworten (responses) — bewusst kein Chat.
+
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  pro_id uuid not null references public.profiles (id) on delete cascade,
+  student_id uuid not null references public.profiles (id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+
+alter table public.messages enable row level security;
+
+drop policy if exists "Pro schreibt eigenen Schülern" on public.messages;
+create policy "Pro schreibt eigenen Schülern"
+  on public.messages for insert
+  with check (
+    pro_id = auth.uid()
+    and exists (
+      select 1 from public.pro_students ps
+      where ps.pro_id = auth.uid() and ps.student_id = messages.student_id
+    )
+  );
+
+drop policy if exists "Pro sieht eigene Mitteilungen" on public.messages;
+create policy "Pro sieht eigene Mitteilungen"
+  on public.messages for select
+  using (pro_id = auth.uid());
+
+drop policy if exists "Schüler sieht seine Mitteilungen" on public.messages;
+create policy "Schüler sieht seine Mitteilungen"
+  on public.messages for select
+  using (student_id = auth.uid());
+
+drop policy if exists "Schüler markiert Mitteilung gelesen" on public.messages;
+create policy "Schüler markiert Mitteilung gelesen"
+  on public.messages for update
+  using (student_id = auth.uid())
+  with check (student_id = auth.uid());
+
+-- Push-Auslöser: neue Mitteilung → Edge Function (wie bei packages)
+drop trigger if exists push_bei_mitteilung on public.messages;
+create trigger push_bei_mitteilung
+  after insert on public.messages
+  for each row
+  execute function supabase_functions.http_request(
+    'https://unkattxznrjjdjwdbkkh.supabase.co/functions/v1/push-package',
+    'POST',
+    '{"Content-type":"application/json"}',
+    '{}',
+    '5000'
+  );

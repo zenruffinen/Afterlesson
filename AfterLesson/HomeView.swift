@@ -25,6 +25,8 @@ struct HomeView: View {
     @State private var selectedReceivedLesson: Lesson? = nil
     @State private var showQuickCapture = false
     @State private var quickCaptureStudentID: UUID? = nil
+    @State private var showMessageCompose = false
+    @State private var selectedProMessage: ProMessage? = nil
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -79,6 +81,12 @@ struct HomeView: View {
         .sheet(isPresented: $showQuickCapture) {
             QuickCaptureSheet(preselectedStudentID: quickCaptureStudentID)
         }
+        .sheet(isPresented: $showMessageCompose) {
+            MessageComposeSheet()
+        }
+        .sheet(item: $selectedProMessage) { message in
+            StudentMessageSheet(message: message)
+        }
         .onChange(of: showQuickCapture) { _, isShowing in
             if !isShowing { quickCaptureStudentID = nil }
         }
@@ -87,15 +95,20 @@ struct HomeView: View {
         .task {
             guard !isTeacher else { return }
             _ = await store.importCloudPackages()
+            _ = await store.importCloudMessages()
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(60))
                 _ = await store.importCloudPackages()
+                _ = await store.importCloudMessages()
             }
         }
         // … und auch immer, wenn die App in den Vordergrund kommt.
         .onChange(of: scenePhase) { _, phase in
             if phase == .active && !isTeacher {
-                Task { _ = await store.importCloudPackages() }
+                Task {
+                    _ = await store.importCloudPackages()
+                    _ = await store.importCloudMessages()
+                }
             }
         }
     }
@@ -151,6 +164,36 @@ struct HomeView: View {
             }
             .padding(.horizontal, 20)
 
+            // Der Umschlag: kurze Mitteilung an einen oder alle Schüler
+            Button {
+                showMessageCompose = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "envelope.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(ALColor.gold)
+                        .alIconTile(tint: ALColor.gold, size: 38)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Mitteilung")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text("Kurze Nachricht an deine Schüler")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.35))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+
             Spacer(minLength: 16)
         }
     }
@@ -178,7 +221,7 @@ struct HomeView: View {
 
             Spacer(minLength: 12)
 
-            if store.receivedSessions.isEmpty && store.receivedLessons.isEmpty {
+            if store.receivedSessions.isEmpty && store.receivedLessons.isEmpty && store.proMessages.isEmpty {
                 StudentEmptyPlaceholder()
                     .padding(.horizontal, 20)
                 Spacer(minLength: 16)
@@ -189,7 +232,8 @@ struct HomeView: View {
                 let seenLessons = store.receivedLessons.filter { $0.openedDate != nil }
                 let newSessions = store.receivedSessions.filter { $0.openedDate == nil }
                 let seenSessions = store.receivedSessions.filter { $0.openedDate != nil }
-                let proMessages = store.receivedSessions.filter { !$0.homework.isEmpty || !$0.corrections.isEmpty }.prefix(2)
+                let sessionNotes = store.receivedSessions.filter { !$0.homework.isEmpty || !$0.corrections.isEmpty }.prefix(2)
+                let cloudMessages = store.proMessages.prefix(5)
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 10) {
@@ -208,10 +252,13 @@ struct HomeView: View {
                                 .padding(.horizontal, 20)
                         }
 
-                        if !proMessages.isEmpty {
+                        if !cloudMessages.isEmpty || !sessionNotes.isEmpty {
                             studentSectionHeader("Nachrichten vom Pro", icon: "megaphone.fill")
                                 .padding(.top, 6)
-                            ForEach(Array(proMessages)) { session in
+                            ForEach(Array(cloudMessages)) { message in
+                                cloudMessageRow(message).padding(.horizontal, 20)
+                            }
+                            ForEach(Array(sessionNotes)) { session in
                                 proMessageRow(session).padding(.horizontal, 20)
                             }
                         }
@@ -233,6 +280,7 @@ struct HomeView: View {
                 // Herunterziehen = sofort bei der Drehscheibe nachschauen
                 .refreshable {
                     _ = await store.importCloudPackages()
+                    _ = await store.importCloudMessages()
                 }
             }
         }
@@ -243,6 +291,45 @@ struct HomeView: View {
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(.white.opacity(0.65))
             .padding(.horizontal, 20)
+    }
+
+    /// Eine Cloud-Mitteilung des Pros — Antippen öffnet das Lese-Blatt
+    /// (und markiert die Mitteilung als gelesen).
+    @ViewBuilder
+    private func cloudMessageRow(_ message: ProMessage) -> some View {
+        Button { selectedProMessage = message } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: message.readDate == nil ? "envelope.badge.fill" : "envelope.open.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(ALColor.gold)
+                    .alIconTile(tint: ALColor.gold, size: 38)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        if message.readDate == nil {
+                            Circle()
+                                .fill(Color(hex: "66BB6A"))
+                                .frame(width: 8, height: 8)
+                        }
+                        Text(message.date.formatted(date: .abbreviated, time: .shortened))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
+                    Text(message.body)
+                        .font(.system(size: 13, weight: message.readDate == nil ? .semibold : .regular))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+                    .padding(.top, 12)
+            }
+            .padding(10)
+            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     /// Hausaufgaben/Korrekturen aus einer empfangenen Stunde als
@@ -671,6 +758,11 @@ struct ComposerSheet: View {
     @State private var note: String = ""
     @State private var isSendingCloud = false
     @State private var cloudResultMessage: String? = nil
+    // Composer-Redesign (Hans, 21.07.): Nach der Schülerwahl verschwindet
+    // die Liste (Chips oben), die Bibliothek wird zum Akkordeon — immer
+    // nur eine Gruppe offen, Zähler-Plakette an den zugeklappten.
+    @State private var studentsCollapsed = false
+    @State private var openGroupKey: String? = nil
 
     /// Cloud-Versand ist möglich, wenn der Pro angemeldet ist und
     /// mindestens ein gewählter Schüler seinen Code eingelöst hat.
@@ -715,39 +807,24 @@ struct ComposerSheet: View {
         }
     }
 
-    private var selectedLessons: [Lesson] {
-        store.lessons.filter { selectedLessonIDs.contains($0.id) }
-    }
-
-    private var selectedPoolItems: [ContentItem] {
-        store.contentPool.filter { selectedContentItemIDs.contains($0.id) }
-    }
-
-    private var bundleTypeCounts: [(ContentType, Int)] {
-        ContentType.allCases.compactMap { type in
-            let count = selectedPoolItems.filter { $0.type == type }.count
-            return count > 0 ? (type, count) : nil
-        }
-    }
-
     private var canAssign: Bool {
         !selectedStudentIDs.isEmpty
             && (!selectedLessonIDs.isEmpty || !selectedContentItemIDs.isEmpty)
     }
 
-    private var packageSummary: String {
-        var parts: [String] = []
-        if !selectedLessons.isEmpty {
-            parts.append("\(selectedLessons.count) Lektion\(selectedLessons.count == 1 ? "" : "en")")
-        }
-        if !selectedPoolItems.isEmpty {
-            parts.append("\(selectedPoolItems.count) Einzelinhalt\(selectedPoolItems.count == 1 ? "" : "e")")
-        }
-        if bundleTypeCounts.count > 1 {
-            let types = bundleTypeCounts.map { "\($0.1)× \($0.0.label)" }.joined(separator: ", ")
-            parts.append("(\(types))")
-        }
-        return parts.joined(separator: " · ")
+    /// Die Bilanz auf dem grünen Knopf: "5 Inhalte an Tomas senden" —
+    /// man weiß immer, was gleich passiert.
+    private var sendButtonTitle: String {
+        let count = selectedLessonIDs.count + selectedContentItemIDs.count
+        guard count > 0 else { return String(localized: "Inhalte wählen") }
+        let chosen = store.students.filter { selectedStudentIDs.contains($0.id) }
+        let target = chosen.count == 1
+            ? (chosen.first?.name ?? "")
+            : String(format: String(localized: "%d Schüler"), chosen.count)
+        let content = count == 1
+            ? String(localized: "1 Inhalt")
+            : String(format: String(localized: "%d Inhalte"), count)
+        return String(format: String(localized: "%@ an %@ senden"), content, target)
     }
 
     var body: some View {
@@ -756,8 +833,26 @@ struct ComposerSheet: View {
                 if isSupplemental {
                     supplementalBanner
                 }
-                stepHeader(step: 1, title: "Schüler", icon: "figure.golf")
-                studentsSection
+
+                if studentsCollapsed && !selectedStudentIDs.isEmpty {
+                    // Schüler als Chips oben — antippen entfernt, Plus holt die Liste zurück
+                    studentChipsSection
+                } else {
+                    stepHeader(step: 1, title: "Schüler", icon: "figure.golf")
+                    studentsSection
+                    if !selectedStudentIDs.isEmpty {
+                        Section {
+                            Button {
+                                withAnimation { studentsCollapsed = true }
+                            } label: {
+                                Label("Weiter zu den Inhalten", systemImage: "arrow.down.circle.fill")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(ALColor.green)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                    }
+                }
 
                 // Hans' Regel: Erst wenn ein Schüler gewählt ist,
                 // öffnen sich die Lerninhalte.
@@ -767,14 +862,12 @@ struct ComposerSheet: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
-                } else {
+                } else if studentsCollapsed {
                     stepHeader(step: 2, title: "Inhalte aus der Bibliothek", icon: "books.vertical.fill")
-                    bundlePreviewSection
-                    poolItemsSection
+                    accordionSections
                     stepHeader(step: 3, title: "Nachricht & Datum", icon: "text.bubble")
                     noteSection
                     dateSection
-                    shareHintSection
                 }
             }
             .listStyle(.insetGrouped)
@@ -783,6 +876,7 @@ struct ComposerSheet: View {
             .onAppear {
                 if !preselectedStudentIDs.isEmpty {
                     selectedStudentIDs = preselectedStudentIDs
+                    studentsCollapsed = true
                 }
             }
             .toolbar {
@@ -791,10 +885,10 @@ struct ComposerSheet: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if canAssign {
+                if studentsCollapsed && !selectedStudentIDs.isEmpty {
                     VStack(spacing: 10) {
-                        // Senden IST Zuweisen (Hans, 20.07.) — zwei Wege,
-                        // beide erledigen Zuweisung + Verlauf automatisch.
+                        // Senden IST Zuweisen (Hans, 20.07.) — und der Knopf
+                        // sagt in Klartext, was gleich passiert (21.07.).
                         Button {
                             sendViaCloud()
                         } label: {
@@ -803,7 +897,7 @@ struct ComposerSheet: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                             } else {
-                                Label("cloud.composer_send", systemImage: "icloud.and.arrow.up.fill")
+                                Label(sendButtonTitle, systemImage: "icloud.and.arrow.up.fill")
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
@@ -811,7 +905,7 @@ struct ComposerSheet: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(ALColor.green)
-                        .disabled(isSendingCloud || !cloudSendPossible)
+                        .disabled(isSendingCloud || !canAssign || !cloudSendPossible)
 
                         if !cloudSendPossible {
                             Text(cloudBlockedReason)
@@ -880,54 +974,49 @@ struct ComposerSheet: View {
         }
     }
 
-    @ViewBuilder
-    private var bundlePreviewSection: some View {
-        if canAssign {
-            Section {
-                HStack(spacing: 12) {
-                    Image(systemName: "shippingbox.fill")
-                        .font(.title2)
-                        .foregroundStyle(ALColor.gold)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Lernpaket")
-                            .font(.subheadline.bold())
-                        Text(packageSummary)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.vertical, 4)
-
-                if !bundleTypeCounts.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(bundleTypeCounts, id: \.0) { type, count in
-                                HStack(spacing: 4) {
-                                    Image(systemName: type.icon)
-                                    Text("\(count)× \(type.label)")
-                                }
-                                .font(.caption2.bold())
-                                .foregroundStyle(Color(hex: type.colorHex))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color(hex: type.colorHex).opacity(0.12), in: Capsule())
-                            }
+    /// Die gewählten Schüler als Chips — antippen entfernt,
+    /// das Plus holt die Auswahlliste zurück (Hans, 21.07.).
+    private var studentChipsSection: some View {
+        Section {
+            FlowChips {
+                ForEach(store.students.filter { selectedStudentIDs.contains($0.id) }) { student in
+                    Button {
+                        selectedStudentIDs.remove(student.id)
+                        if selectedStudentIDs.isEmpty {
+                            withAnimation { studentsCollapsed = false }
                         }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(student.name)
+                                .font(.system(size: 14, weight: .semibold))
+                            Image(systemName: "xmark")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(ALColor.green))
+                        .foregroundStyle(.white)
                     }
+                    .buttonStyle(.plain)
                 }
-
-                if selectedPoolItems.isEmpty == false && selectedLessons.isEmpty == false {
-                    Text("Lektionen und Einzelmedien werden als separate .afterlesson-Dateien geteilt.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else if !selectedPoolItems.isEmpty && selectedLessons.isEmpty {
-                    Text("Einzelmedien werden zu einem Lernpaket gebündelt.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                Button {
+                    withAnimation { studentsCollapsed = false }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 13, weight: .bold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(Color(.secondarySystemFill)))
+                        .foregroundStyle(.primary)
                 }
-            } header: {
-                Text("Paket-Vorschau")
+                .buttonStyle(.plain)
             }
+            .padding(.vertical, 2)
+        } header: {
+            Label("An", systemImage: "figure.golf")
+                .font(.subheadline.bold())
+                .foregroundStyle(ALColor.green)
+                .textCase(nil)
         }
     }
 
@@ -1008,77 +1097,169 @@ struct ComposerSheet: View {
         }
     }
 
-    private var shareHintSection: some View {
-        Section {
-            Label {
-                Text(isSupplemental
-                     ? "Nachreichungen in der Nachbesprechung — persönlich per AirDrop, wenn ihr zusammen seid."
-                     : "Wähle im nächsten Schritt AirDrop und deinen Schüler. Die Nachbesprechung ist der professionelle Abschluss eurer Lektion — ca. 5 Minuten am Platz.")
+    // MARK: Akkordeon — die Bibliothek als aufklappbare Gruppen (Hans, 21.07.)
+    // "Alles" → Obergruppen (mit Untergruppen darin) → "Eingang".
+    // Immer nur eine Gruppe offen; zugeklappte zeigen eine grüne
+    // Zähler-Plakette, damit nichts verloren geht.
+
+    private struct ComposerGroup: Identifiable {
+        let key: String
+        let title: String
+        let icon: String
+        let colorHex: String
+        let ownItems: [ContentItem]
+        let subgroups: [(cls: ContentClass, items: [ContentItem])]
+        var id: String { key }
+        var allItems: [ContentItem] { ownItems + subgroups.flatMap { $0.items } }
+    }
+
+    private var composerGroups: [ComposerGroup] {
+        let pool = store.contentPool
+        var groups: [ComposerGroup] = []
+        guard !pool.isEmpty else { return groups }
+
+        groups.append(ComposerGroup(
+            key: "all",
+            title: String(localized: "Alles"),
+            icon: "square.grid.2x2.fill",
+            colorHex: "1B5E20",
+            ownItems: pool.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending },
+            subgroups: []
+        ))
+        for cls in store.topLevelClasses.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending }) {
+            let own = pool.filter { $0.classID == cls.id }
+            let subs = store.subgroups(of: cls).compactMap { sub -> (cls: ContentClass, items: [ContentItem])? in
+                let items = pool.filter { $0.classID == sub.id }
+                return items.isEmpty ? nil : (sub, items)
+            }
+            if !own.isEmpty || !subs.isEmpty {
+                groups.append(ComposerGroup(
+                    key: cls.id.uuidString, title: cls.title,
+                    icon: cls.icon, colorHex: cls.colorHex,
+                    ownItems: own, subgroups: subs
+                ))
+            }
+        }
+        let unsorted = pool.filter { item in
+            item.classID == nil || !store.contentClasses.contains(where: { $0.id == item.classID })
+        }
+        if !unsorted.isEmpty {
+            groups.append(ComposerGroup(
+                key: "inbox", title: String(localized: "Eingang"),
+                icon: "tray.fill", colorHex: "8D6E63",
+                ownItems: unsorted, subgroups: []
+            ))
+        }
+        return groups
+    }
+
+    @ViewBuilder
+    private var accordionSections: some View {
+        if store.contentPool.isEmpty {
+            Section {
+                Text("Importiere wiederverwendbaren Lernstoff im Bibliothek-Tab (Film, Bild, Text, PDF, Audio).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            } icon: {
-                Image(systemName: "airdrop")
-                    .foregroundStyle(ALColor.green)
             }
-        } header: {
-            Text("Nachbesprechung")
+        } else {
+            ForEach(composerGroups) { group in
+                accordionSection(group)
+            }
         }
     }
 
-
     @ViewBuilder
-    /// Die Bibliothek im Composer: gegliedert nach Lektionsgruppen (Hans'
-    /// Bündel), alle Inhalte direkt sichtbar, "Alle" wählt gruppenweise.
-    private var poolItemsSection: some View {
-        Group {
-            if store.contentPool.isEmpty {
-                Section {
-                    Text("Importiere wiederverwendbaren Lernstoff im Bibliothek-Tab (Film, Bild, Text, PDF, Audio).")
+    private func accordionSection(_ group: ComposerGroup) -> some View {
+        let isOpen = openGroupKey == group.key
+        let selectedCount = group.allItems.filter { selectedContentItemIDs.contains($0.id) }.count
+        Section {
+            // Kopfzeile: Icon, Name, Plakette, Pfeil
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    openGroupKey = isOpen ? nil : group.key
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: group.icon)
+                        .foregroundStyle(Color(hex: group.colorHex))
+                        .frame(width: 28)
+                    Text(group.title)
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if selectedCount > 0 {
+                        Text("\(selectedCount)")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
+                            .background(ALColor.green, in: Capsule())
+                    }
+                    Text("\(group.allItems.count)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.down")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isOpen ? 180 : 0))
                 }
-            } else {
-                ForEach(store.contentClasses) { group in
-                    let items = store.contentPool.filter { $0.classID == group.id }
-                    if !items.isEmpty {
-                        poolGroupSection(title: group.title, icon: group.icon, colorHex: group.colorHex, items: items)
-                    }
-                }
-                let unsorted = store.contentPool.filter { item in
-                    item.classID == nil || !store.contentClasses.contains(where: { $0.id == item.classID })
-                }
-                if !unsorted.isEmpty {
-                    poolGroupSection(title: String(localized: "Eingang"), icon: "tray.fill", colorHex: "8D6E63", items: unsorted)
+                .padding(.vertical, 2)
+            }
+            .buttonStyle(.plain)
+
+            if isOpen {
+                selectAllRow(items: group.allItems)
+                ForEach(group.ownItems) { poolItemRow($0) }
+                ForEach(group.subgroups, id: \.cls.id) { sub in
+                    subgroupHeaderRow(sub.cls, items: sub.items)
+                    ForEach(sub.items) { poolItemRow($0) }
                 }
             }
         }
     }
 
+    /// "Alle wählen"-Zeile für eine geöffnete Gruppe.
     @ViewBuilder
-    private func poolGroupSection(title: String, icon: String, colorHex: String, items: [ContentItem]) -> some View {
-        Section {
-            ForEach(items) { item in
-                poolItemRow(item)
+    private func selectAllRow(items: [ContentItem]) -> some View {
+        let ids = items.map(\.id)
+        let allSelected = !ids.isEmpty && ids.allSatisfy { selectedContentItemIDs.contains($0) }
+        Button {
+            if allSelected {
+                ids.forEach { selectedContentItemIDs.remove($0) }
+            } else {
+                ids.forEach { selectedContentItemIDs.insert($0) }
             }
-        } header: {
-            HStack {
-                Label(title, systemImage: icon)
-                    .foregroundStyle(Color(hex: colorHex))
-                    .font(.subheadline.bold())
-                Spacer()
-                let ids = items.map(\.id)
-                let allSelected = ids.allSatisfy { selectedContentItemIDs.contains($0) }
-                Button(allSelected ? String(localized: "Abwählen") : String(localized: "Alle wählen")) {
-                    if allSelected {
-                        ids.forEach { selectedContentItemIDs.remove($0) }
-                    } else {
-                        ids.forEach { selectedContentItemIDs.insert($0) }
-                    }
-                }
+        } label: {
+            Label(allSelected ? String(localized: "Abwählen") : String(localized: "Alle wählen"),
+                  systemImage: allSelected ? "checkmark.circle.badge.xmark" : "checkmark.circle")
                 .font(.caption.bold())
-                .textCase(nil)
-            }
+                .foregroundStyle(ALColor.green)
         }
+        .buttonStyle(.plain)
+    }
+
+    /// Untergruppen-Zwischenzeile innerhalb einer geöffneten Obergruppe.
+    @ViewBuilder
+    private func subgroupHeaderRow(_ cls: ContentClass, items: [ContentItem]) -> some View {
+        let ids = items.map(\.id)
+        let allSelected = !ids.isEmpty && ids.allSatisfy { selectedContentItemIDs.contains($0) }
+        HStack {
+            Label(cls.title, systemImage: cls.icon)
+                .font(.caption.bold())
+                .foregroundStyle(Color(hex: cls.colorHex))
+            Spacer()
+            Button(allSelected ? String(localized: "Abwählen") : String(localized: "Alle wählen")) {
+                if allSelected {
+                    ids.forEach { selectedContentItemIDs.remove($0) }
+                } else {
+                    ids.forEach { selectedContentItemIDs.insert($0) }
+                }
+            }
+            .font(.caption.bold())
+            .buttonStyle(.plain)
+            .foregroundStyle(ALColor.green)
+        }
+        .padding(.top, 2)
     }
 
     @ViewBuilder

@@ -275,12 +275,14 @@ struct DatenpoolView: View {
 
     var classGrid: some View {
         // Kleine Kacheln, alphabetisch — wie ein Karteikasten (Hans, 19.07.)
+        // Oberste Ebene: Untergruppen wohnen in ihrer Obergruppe (21.07.)
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 10)], spacing: 10) {
-            ForEach(store.contentClasses.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })) { c in
+            ForEach(store.topLevelClasses.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })) { c in
                 NavigationLink {
                     ClassContentView(contentClass: c)
                 } label: {
-                    ContentClassTile(contentClass: c, count: store.items(in: c).count)
+                    ContentClassTile(contentClass: c, count: store.totalItemCount(of: c),
+                                     subgroupCount: store.subgroups(of: c).count)
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
@@ -337,6 +339,7 @@ struct DatenpoolView: View {
 struct ContentClassTile: View {
     let contentClass: ContentClass?     // nil = "Unsortiert"
     let count: Int
+    var subgroupCount: Int = 0          // Obergruppen zeigen ihre Untergruppen an
 
     var color: Color {
         contentClass.map { Color(hex: $0.colorHex) } ?? ALColor.gold
@@ -368,8 +371,14 @@ struct ContentClassTile: View {
             Text(title)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.primary)
-                .lineLimit(2, reservesSpace: true)
+                .lineLimit(subgroupCount > 0 ? 1 : 2, reservesSpace: subgroupCount == 0)
                 .multilineTextAlignment(.leading)
+            if subgroupCount > 0 {
+                Text(subgroupCount == 1 ? "1 Untergruppe" : "\(subgroupCount) Untergruppen")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -395,6 +404,8 @@ struct ClassContentView: View {
     @State private var selectionMode = false            // Mehrfachauswahl aktiv?
     @State private var selectedIDs: Set<UUID> = []      // Ausgewählte Inhalte
     @State private var showClassEditor = false          // Gruppe umbenennen
+    @State private var showNewSubgroup = false          // Untergruppe anlegen
+    @State private var editingSubclass: ContentClass? = nil  // Untergruppe bearbeiten
     @Environment(\.dismiss) private var dismissView
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
@@ -402,6 +413,17 @@ struct ClassContentView: View {
     /// Die Inhalte dieser Lektionsgruppe (bzw. alle ohne Lektionsgruppe bei "Unsortiert").
     var classItems: [ContentItem] {
         store.contentPool.filter { $0.classID == contentClass?.id }
+    }
+
+    /// Untergruppen dieser Gruppe (z.B. Kurzes Spiel → Putten/Chippen/Pitchen).
+    var subclasses: [ContentClass] {
+        guard let c = contentClass else { return [] }
+        return store.subgroups(of: c)
+    }
+
+    /// Untergruppen kann nur eine Gruppe der obersten Ebene haben (eine Ebene Tiefe).
+    var canHaveSubgroups: Bool {
+        contentClass != nil && contentClass?.parentID == nil
     }
 
     /// Alle in dieser Lektionsgruppe vergebenen Themen ("Gruppierungen"), alphabetisch —
@@ -419,22 +441,34 @@ struct ClassContentView: View {
 
     var body: some View {
         Group {
-            if classItems.isEmpty {
+            if classItems.isEmpty && subclasses.isEmpty {
                 emptyState
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
+                        // Erst die Untergruppen (falls vorhanden), dann die eigenen Inhalte
+                        if !subclasses.isEmpty {
+                            subgroupGrid
+                        }
                         // "Unsortiert" ist der Eingangskorb für neue Inhalte —
                         // dort braucht es keine Typ-/Themen-Filter, sondern eine
                         // freundliche Überschrift mit Hinweis. In echten Lektionsgruppen
                         // bleiben die Filterleisten erhalten.
                         if contentClass == nil {
                             inboxHeader
-                        } else {
+                        } else if !classItems.isEmpty {
+                            if !subclasses.isEmpty {
+                                Text("Inhalte")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 4)
+                            }
                             filterBar
                             themeFilterBar
                         }
-                        grid
+                        if !classItems.isEmpty {
+                            grid
+                        }
                     }
                     .padding(16)
                     .padding(.bottom, 30)
@@ -454,6 +488,13 @@ struct ClassContentView: View {
                             showClassEditor = true
                         } label: {
                             Label("Lektionsgruppe bearbeiten", systemImage: "pencil")
+                        }
+                        if canHaveSubgroups {
+                            Button {
+                                showNewSubgroup = true
+                            } label: {
+                                Label("Neue Untergruppe", systemImage: "folder.badge.plus")
+                            }
                         }
                         Button(role: .destructive) {
                             store.deleteContentClass(c)
@@ -508,6 +549,12 @@ struct ClassContentView: View {
         }
         .sheet(isPresented: $showClassEditor) {
             ContentClassEditorSheet(existingClass: contentClass)
+        }
+        .sheet(isPresented: $showNewSubgroup) {
+            ContentClassEditorSheet(existingClass: nil, presetParentID: contentClass?.id)
+        }
+        .sheet(item: $editingSubclass) { sub in
+            ContentClassEditorSheet(existingClass: sub)
         }
         .overlay {
             if isImporting { importOverlay }
@@ -578,6 +625,39 @@ struct ClassContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
+    }
+
+    // MARK: Untergruppen-Grid (Obergruppe zeigt ihre Untergruppen)
+
+    var subgroupGrid: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Untergruppen")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 10)], spacing: 10) {
+                ForEach(subclasses) { sub in
+                    NavigationLink {
+                        ClassContentView(contentClass: sub)
+                    } label: {
+                        ContentClassTile(contentClass: sub, count: store.items(in: sub).count)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            editingSubclass = sub
+                        } label: {
+                            Label("Bearbeiten", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            store.deleteContentClass(sub)
+                        } label: {
+                            Label("Untergruppe löschen", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: Eingang-Überschrift (nur bei "Unsortiert")
@@ -848,14 +928,29 @@ struct ClassContentView: View {
 
 struct ContentClassEditorSheet: View {
     let existingClass: ContentClass?
+    var presetParentID: UUID? = nil     // Neue Untergruppe direkt in einer Obergruppe anlegen
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
 
     @State private var title = ""
     @State private var selectedIcon = "folder.fill"
     @State private var selectedColor = "2C5F2D"
+    @State private var parentID: UUID? = nil
 
     var isEditing: Bool { existingClass != nil }
+
+    /// Mögliche Obergruppen: nur oberste Ebene (genau EINE Ebene Tiefe),
+    /// nicht die Gruppe selbst — und wer selbst Untergruppen hat, bleibt Obergruppe.
+    var parentChoices: [ContentClass] {
+        store.topLevelClasses
+            .filter { $0.id != existingClass?.id }
+            .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+
+    var hasSubgroups: Bool {
+        guard let c = existingClass else { return false }
+        return !store.subgroups(of: c).isEmpty
+    }
 
     // Golfbezogene Icon-Auswahl: Schwung, Fahne/Green, Ball, Ziel, Platz,
     // Wetter, Fitness & Mental — plus ein paar neutrale für Theorie & Medien.
@@ -903,6 +998,40 @@ struct ContentClassEditorSheet: View {
                             .padding(12)
                             .background(Color(.secondarySystemGroupedBackground))
                             .cornerRadius(10)
+                    }
+
+                    // Obergruppe (z.B. Kurzes Spiel → Putten) — genau eine Ebene
+                    if !hasSubgroups && !parentChoices.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Gehört zu").font(.caption.bold()).foregroundStyle(.secondary)
+                                .padding(.horizontal, 4)
+                            Menu {
+                                Button("Keine Obergruppe") { parentID = nil }
+                                ForEach(parentChoices) { choice in
+                                    Button(choice.title) { parentID = choice.id }
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: parentID == nil ? "square.grid.2x2" : "folder.fill")
+                                        .foregroundStyle(ALColor.green)
+                                    Text(parentChoices.first(where: { $0.id == parentID })?.title ?? "Keine Obergruppe")
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(12)
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                            }
+                        }
+                    } else if hasSubgroups {
+                        Text("Diese Gruppe hat Untergruppen und bleibt daher auf der obersten Ebene.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 4)
                     }
 
                     // Icon-Picker
@@ -962,6 +1091,9 @@ struct ContentClassEditorSheet: View {
                     title = c.title
                     selectedIcon = c.icon
                     selectedColor = c.colorHex
+                    parentID = c.parentID
+                } else {
+                    parentID = presetParentID
                 }
             }
             .toolbar {
@@ -975,9 +1107,11 @@ struct ContentClassEditorSheet: View {
                             c.title = t
                             c.icon = selectedIcon
                             c.colorHex = selectedColor
+                            c.parentID = hasSubgroups ? nil : parentID
                             store.updateContentClass(c)
                         } else {
-                            store.addContentClass(title: t, icon: selectedIcon, colorHex: selectedColor)
+                            store.addContentClass(title: t, icon: selectedIcon,
+                                                  colorHex: selectedColor, parentID: parentID)
                         }
                         dismiss()
                     }

@@ -1,6 +1,7 @@
 // Grünbuch Cloud — Push-Funktion
 // Wird vom Datenbank-Webhook bei jedem neuen Paket (packages INSERT)
-// aufgerufen und schickt dem Schüler eine Apple-Push-Nachricht.
+// und jeder neuen Mitteilung (messages INSERT) aufgerufen und schickt
+// dem Schüler eine Apple-Push-Nachricht.
 // Secrets: APNS_TEAM_ID, APNS_KEY_ID, APNS_P8 (Inhalt der .p8-Datei),
 // optional APNS_SANDBOX ("true" für Entwicklungs-Builds).
 
@@ -56,10 +57,18 @@ Deno.serve(async (req) => {
 
   const jwt = await apnsJWT();
   const host = SANDBOX ? "https://api.sandbox.push.apple.com" : "https://api.push.apple.com";
-  const alertBody = record.title && record.title.length > 0 ? record.title : "Ein neues Lernpaket wartet auf dich.";
+
+  // Mitteilung oder Lernpaket? Der Webhook verrät die Tabelle.
+  let alertTitle = "Neues von deinem Pro";
+  let alertBody = record.title && record.title.length > 0 ? record.title : "Ein neues Lernpaket wartet auf dich.";
+  if (payload?.table === "messages") {
+    alertTitle = "Mitteilung von deinem Pro";
+    const body = (record.body ?? "").trim();
+    alertBody = body.length > 120 ? body.slice(0, 117) + "…" : (body || "Du hast eine neue Mitteilung.");
+  }
   const push = {
     aps: {
-      alert: { title: "Neues von deinem Pro", body: alertBody },
+      alert: { title: alertTitle, body: alertBody },
       sound: "default",
       badge: 1,
     },

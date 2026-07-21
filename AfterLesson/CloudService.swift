@@ -348,6 +348,69 @@ final class CloudService: ObservableObject {
         }
     }
 
+    // MARK: - Mitteilungen („Zettel vom Pro")
+
+    private struct MessageInsertRow: Codable {
+        let pro_id: UUID
+        let student_id: UUID
+        let body: String
+    }
+
+    struct CloudMessage: Codable, Identifiable {
+        let id: UUID
+        let pro_id: UUID
+        let student_id: UUID
+        let body: String
+        let created_at: Date
+        let read_at: Date?
+    }
+
+    /// Pro: eine Mitteilung an einen oder mehrere Schüler senden.
+    /// Eine Rundmitteilung ist einfach eine Zeile pro Empfänger.
+    /// Liefert die angelegten Zeilen (mit Cloud-IDs für das Gelesen-Häkchen).
+    func sendMessage(_ body: String, to studentCloudIDs: [UUID]) async -> [CloudMessage] {
+        guard let client, let uid = userID, !studentCloudIDs.isEmpty else { return [] }
+        let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return [] }
+        let rows = studentCloudIDs.map { MessageInsertRow(pro_id: uid, student_id: $0, body: text) }
+        do {
+            let inserted: [CloudMessage] = try await client.from("messages")
+                .insert(rows)
+                .select("id, pro_id, student_id, body, created_at, read_at")
+                .execute().value
+            lastErrorMessage = nil
+            return inserted
+        } catch {
+            lastErrorMessage = error.localizedDescription
+            return []
+        }
+    }
+
+    /// Alle Mitteilungen, die mich betreffen — RLS filtert serverseitig:
+    /// der Pro sieht Gesendetes, der Schüler Empfangenes.
+    func fetchCloudMessages() async -> [CloudMessage] {
+        guard let client, isSignedIn else { return [] }
+        do {
+            return try await client.from("messages")
+                .select("id, pro_id, student_id, body, created_at, read_at")
+                .order("created_at", ascending: false)
+                .execute().value
+        } catch {
+            return []
+        }
+    }
+
+    /// Schüler: Mitteilung als gelesen markieren (der Pro sieht das Häkchen).
+    func markMessageRead(_ messageID: UUID) async {
+        guard let client else { return }
+        struct ReadPatch: Codable { let read_at: Date }
+        _ = try? await client.from("messages")
+            .update(ReadPatch(read_at: Date()))
+            .eq("id", value: messageID)
+            .is("read_at", value: nil)
+            .execute()
+    }
+
     // MARK: - Nonce-Helfer für Sign in with Apple
 
     /// Zufälliger Einmalwert — Apple bekommt den Hash, Supabase das Original.

@@ -35,6 +35,9 @@ final class AppStore: ObservableObject {
     @Published var sessions: [TrainingSession] = [] {
         didSet { saveSessions() }
     }
+    @Published var proMessages: [ProMessage] = [] {
+        didSet { saveProMessages() }
+    }
     @Published var studentCaptures: [StudentCapture] = [] {
         didSet { saveStudentCaptures() }
     }
@@ -443,8 +446,9 @@ final class AppStore: ObservableObject {
 
     // MARK: - Content Classes (Klassen im Datenpool)
 
-    func addContentClass(title: String, icon: String = "folder.fill", colorHex: String = "2C5F2D") {
-        let c = ContentClass(title: title, icon: icon, colorHex: colorHex, sortIndex: contentClasses.count)
+    func addContentClass(title: String, icon: String = "folder.fill", colorHex: String = "2C5F2D", parentID: UUID? = nil) {
+        var c = ContentClass(title: title, icon: icon, colorHex: colorHex, sortIndex: contentClasses.count)
+        c.parentID = parentID
         contentClasses.append(c)
     }
 
@@ -461,7 +465,34 @@ final class AppStore: ObservableObject {
         for i in contentPool.indices where contentPool[i].classID == contentClass.id {
             contentPool[i].classID = nil
         }
+        // Untergruppen werden nicht mitgelöscht, sondern eigenständig (Obergruppe weg → Ebene hoch)
+        for i in contentClasses.indices where contentClasses[i].parentID == contentClass.id {
+            contentClasses[i].parentID = nil
+        }
         contentClasses.removeAll { $0.id == contentClass.id }
+    }
+
+    // MARK: Hierarchie (Obergruppe → Untergruppen, genau eine Ebene)
+
+    /// Gruppen der obersten Ebene — defensiv: Wer auf eine verschwundene
+    /// Obergruppe zeigt (z.B. unvollständiges Cloud-Paket), gilt als oberste Ebene.
+    var topLevelClasses: [ContentClass] {
+        let ids = Set(contentClasses.map(\.id))
+        return contentClasses.filter { $0.parentID == nil || !ids.contains($0.parentID!) }
+    }
+
+    /// Die Untergruppen einer Gruppe, alphabetisch.
+    func subgroups(of contentClass: ContentClass) -> [ContentClass] {
+        contentClasses
+            .filter { $0.parentID == contentClass.id }
+            .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+
+    /// Anzahl Inhalte einer Gruppe MIT allen Untergruppen (für die Kachel-Zähler).
+    func totalItemCount(of contentClass: ContentClass) -> Int {
+        var ids: Set<UUID> = [contentClass.id]
+        ids.formUnion(subgroups(of: contentClass).map(\.id))
+        return contentPool.filter { $0.classID.map(ids.contains) ?? false }.count
     }
 
     func items(in contentClass: ContentClass) -> [ContentItem] {
@@ -825,6 +856,16 @@ final class AppStore: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "al_studentcaptures"),
            let decoded = try? JSONDecoder().decode([StudentCapture].self, from: data) {
             studentCaptures = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: "al_promessages"),
+           let decoded = try? JSONDecoder().decode([ProMessage].self, from: data) {
+            proMessages = decoded
+        }
+    }
+
+    private func saveProMessages() {
+        if let data = try? JSONEncoder().encode(proMessages) {
+            UserDefaults.standard.set(data, forKey: "al_promessages")
         }
     }
 

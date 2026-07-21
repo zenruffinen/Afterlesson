@@ -115,9 +115,11 @@ struct StudentsView: View {
                 }
             }
             // Pro: Beim Öffnen der Schülerliste neue Cloud-Antworten abholen
+            // und die Gelesen-Häkchen der Mitteilungen nachführen
             .task {
                 if isTeacher {
                     _ = await store.importCloudResponses()
+                    await store.refreshProMessages()
                 }
             }
             // Schüler-Modus: Der Nutzer sieht hier SICH SELBST — die eigene
@@ -830,6 +832,41 @@ struct StudentDetailView: View {
             } header: {
                 Label(String(format: String(localized: "Nachbesprechungen (%d)"), currentStudent.sentHistory.count), systemImage: "paperplane.fill")
                     .foregroundStyle(Color(hex: "1565C0"))
+            }
+
+            // Gesendete Mitteilungen ("Zettel vom Pro") mit Gelesen-Häkchen
+            if isTeacher {
+                let sentMessages = store.proMessages.filter { $0.localStudentID == currentStudent.id }
+                if !sentMessages.isEmpty {
+                    Section {
+                        ForEach(sentMessages) { message in
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "envelope.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(ALColor.gold)
+                                    .alIconTile(tint: ALColor.gold, size: 30)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(message.date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption.bold())
+                                        .foregroundStyle(.secondary)
+                                    Text(message.body)
+                                        .font(.subheadline)
+                                }
+                                Spacer(minLength: 4)
+                                if message.readDate != nil {
+                                    Label("Gelesen", systemImage: "checkmark.circle.fill")
+                                        .font(.caption2)
+                                        .foregroundStyle(.green)
+                                        .labelStyle(.iconOnly)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    } header: {
+                        Label("Mitteilungen", systemImage: "envelope.fill")
+                            .foregroundStyle(ALColor.gold)
+                    }
+                }
             }
 
             // Zugewiesene Lektionen mit Gesehen-Status

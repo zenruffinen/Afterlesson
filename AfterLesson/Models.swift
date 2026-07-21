@@ -203,6 +203,9 @@ struct ContentClass: Identifiable, Codable, Hashable {
     var colorHex: String = "2C5F2D"
     var sortIndex: Int = 0
     var dateCreated: Date = Date()
+    var parentID: UUID? = nil               // Obergruppe, z.B. "Kurzes Spiel" → Putten/Chippen/Pitchen.
+                                            // Genau EINE Ebene. Optional, daher decodieren alte
+                                            // Bestände und Cloud-Pakete fehlende Schlüssel als nil.
 }
 
 struct ContentItem: Identifiable, Codable, Hashable {
@@ -375,6 +378,19 @@ struct StudentFeedbackEntry: Identifiable, Codable, Hashable {
     var lessonTitle: String?
     var sessionTitle: String?
     var viewedLessonTitles: [String] = []
+}
+
+// MARK: - Mitteilung („Zettel vom Pro")
+
+/// Kurze Botschaft des Pros ("Das hat gut geklappt!", "Stunde fällt aus").
+/// Beim Pro: Ablage im Verlauf der Schüler-Kartei (localStudentID gesetzt).
+/// Beim Schüler: Empfangene Mitteilungen (localStudentID bleibt nil).
+struct ProMessage: Identifiable, Codable, Hashable {
+    var id = UUID()                   // = Cloud-ID der messages-Zeile
+    var localStudentID: UUID? = nil   // Karteikarte des Empfängers (nur Pro)
+    var body: String
+    var date: Date = Date()
+    var readDate: Date? = nil         // Gelesen-Zeitpunkt (Pro: Häkchen, Schüler: eigener Status)
 }
 
 struct AfterLessonFeedbackShare: Codable {
