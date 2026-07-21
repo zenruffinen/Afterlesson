@@ -31,6 +31,7 @@ struct HomeView: View {
     @State private var inboxSelectionMode = false
     @State private var inboxSelectedLessonIDs: Set<UUID> = []
     @State private var inboxSelectedSessionIDs: Set<UUID> = []
+    @State private var showMessageArchive = false
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -90,6 +91,9 @@ struct HomeView: View {
         }
         .sheet(item: $selectedProMessage) { message in
             StudentMessageSheet(message: message)
+        }
+        .sheet(isPresented: $showMessageArchive) {
+            MessageArchiveSheet()
         }
         .onChange(of: showQuickCapture) { _, isShowing in
             if !isShowing { quickCaptureStudentID = nil }
@@ -252,7 +256,8 @@ struct HomeView: View {
                 let newSessions = store.receivedSessions.filter { $0.openedDate == nil }
                 let seenSessions = store.receivedSessions.filter { $0.openedDate != nil }
                 let sessionNotes = store.receivedSessions.filter { !$0.homework.isEmpty || !$0.corrections.isEmpty }.prefix(2)
-                let cloudMessages = store.proMessages.prefix(5)
+                let cloudMessages = store.proMessages.filter { $0.archivedDate == nil }.prefix(5)
+                let archivedCount = store.proMessages.filter { $0.archivedDate != nil }.count
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 10) {
@@ -292,7 +297,7 @@ struct HomeView: View {
                                 .padding(.horizontal, 20)
                         }
 
-                        if !cloudMessages.isEmpty || !sessionNotes.isEmpty {
+                        if !cloudMessages.isEmpty || !sessionNotes.isEmpty || archivedCount > 0 {
                             studentSectionHeader("Nachrichten vom Pro", icon: "megaphone.fill")
                                 .padding(.top, 6)
                             ForEach(Array(cloudMessages)) { message in
@@ -301,25 +306,33 @@ struct HomeView: View {
                             ForEach(Array(sessionNotes)) { session in
                                 proMessageRow(session).padding(.horizontal, 20)
                             }
+                            if archivedCount > 0 {
+                                Button {
+                                    showMessageArchive = true
+                                } label: {
+                                    Label("Archiv (\(archivedCount))", systemImage: "archivebox")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(.white.opacity(0.6))
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.horizontal, 20)
+                            }
                         }
 
                         if !seenLessons.isEmpty || !seenSessions.isEmpty {
                             studentSectionHeader("Zugewiesen", icon: "books.vertical.fill")
                                 .padding(.top, 6)
-                            ForEach(seenLessons.prefix(6)) { lesson in
-                                inboxRow(selected: inboxSelectedLessonIDs.contains(lesson.id),
-                                         toggle: { toggleSelection(lessonID: lesson.id) }) {
-                                    studentLessonRow(lesson)
+                            // Die wachsende Sammlung als Briefmarken-Raster —
+                            // wie in der Bibliothek (Hans, 21.07.)
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 10)], spacing: 10) {
+                                ForEach(seenLessons) { lesson in
+                                    studentLessonTile(lesson)
                                 }
-                                .padding(.horizontal, 20)
-                            }
-                            ForEach(seenSessions.prefix(6)) { session in
-                                inboxRow(selected: inboxSelectedSessionIDs.contains(session.id),
-                                         toggle: { toggleSelection(sessionID: session.id) }) {
-                                    studentSessionRow(session)
+                                ForEach(seenSessions) { session in
+                                    studentSessionTile(session)
                                 }
-                                .padding(.horizontal, 20)
                             }
+                            .padding(.horizontal, 20)
                         }
                     }
                     .padding(.top, 4)
@@ -353,6 +366,84 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    // MARK: Kacheln für "Zugewiesen" (Briefmarken-Raster)
+
+    @ViewBuilder
+    private func studentLessonTile(_ lesson: Lesson) -> some View {
+        let selected = inboxSelectedLessonIDs.contains(lesson.id)
+        Button {
+            if inboxSelectionMode {
+                toggleSelection(lessonID: lesson.id)
+            } else {
+                selectedReceivedLesson = lesson
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: lesson.icon)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(ALColor.gold)
+                        .alIconTile(tint: ALColor.gold, size: 30)
+                    Spacer()
+                    if inboxSelectionMode {
+                        Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 17))
+                            .foregroundStyle(selected ? Color(hex: "66BB6A") : .white.opacity(0.45))
+                    }
+                }
+                Text(lesson.title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(2, reservesSpace: true)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(selected ? 0.12 : 0.06),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func studentSessionTile(_ session: TrainingSession) -> some View {
+        let selected = inboxSelectedSessionIDs.contains(session.id)
+        Button {
+            if inboxSelectionMode {
+                toggleSelection(sessionID: session.id)
+            } else {
+                selectedSession = session
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "figure.golf")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(hex: "64B5F6"))
+                        .alIconTile(tint: Color(hex: "1565C0"), size: 30)
+                    Spacer()
+                    if inboxSelectionMode {
+                        Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 17))
+                            .foregroundStyle(selected ? Color(hex: "66BB6A") : .white.opacity(0.45))
+                    }
+                }
+                Text(session.title.isEmpty
+                     ? session.date.formatted(date: .abbreviated, time: .omitted)
+                     : session.title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(2, reservesSpace: true)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(selected ? 0.12 : 0.06),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Aufräumen per Checkbox

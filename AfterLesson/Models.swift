@@ -429,6 +429,7 @@ struct ProMessage: Identifiable, Codable, Hashable {
     var body: String
     var date: Date = Date()
     var readDate: Date? = nil         // Gelesen-Zeitpunkt (Pro: Häkchen, Schüler: eigener Status)
+    var archivedDate: Date? = nil     // Schüler hat archiviert (optional → alte Bestände laden sauber)
 }
 
 struct AfterLessonFeedbackShare: Codable {

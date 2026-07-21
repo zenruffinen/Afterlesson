@@ -281,6 +281,33 @@ struct StudentMessageSheet: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
+                // Aufräumen: Archiv bewahrt, Löschen entfernt endgültig
+                HStack(spacing: 10) {
+                    Button {
+                        store.archiveProMessage(message, archived: message.archivedDate == nil)
+                        dismiss()
+                    } label: {
+                        Label(message.archivedDate == nil ? "Archivieren" : "Zurückholen",
+                              systemImage: message.archivedDate == nil ? "archivebox" : "arrow.uturn.backward")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(ALColor.green)
+
+                    Button(role: .destructive) {
+                        store.deleteProMessage(message)
+                        dismiss()
+                    } label: {
+                        Label("Löschen", systemImage: "trash")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
                 if replySent {
                     Label("Antwort ist unterwegs zu deinem Pro.", systemImage: "checkmark.circle.fill")
                         .font(.subheadline)
@@ -335,6 +362,65 @@ struct StudentMessageSheet: View {
             let ok = await CloudService.shared.sendResponseToPro(text)
             isReplying = false
             if ok { replySent = true }
+        }
+    }
+}
+
+// MARK: - Archiv der Mitteilungen (Schüler)
+
+struct MessageArchiveSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+
+    private var archived: [ProMessage] {
+        store.proMessages.filter { $0.archivedDate != nil }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if archived.isEmpty {
+                    Text("Das Archiv ist leer.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(archived) { message in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(message.date.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            Text(message.body)
+                                .font(.subheadline)
+                            HStack(spacing: 16) {
+                                Button {
+                                    store.archiveProMessage(message, archived: false)
+                                } label: {
+                                    Label("Zurückholen", systemImage: "arrow.uturn.backward")
+                                        .font(.caption.bold())
+                                }
+                                .buttonStyle(.borderless)
+                                .tint(ALColor.green)
+                                Button(role: .destructive) {
+                                    store.deleteProMessage(message)
+                                } label: {
+                                    Label("Löschen", systemImage: "trash")
+                                        .font(.caption.bold())
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                            .padding(.top, 2)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .navigationTitle("Archiv")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { dismiss() }
+                }
+            }
         }
     }
 }

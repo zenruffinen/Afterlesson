@@ -214,13 +214,30 @@ extension AppStore {
         proMessages.sort { $0.date > $1.date }
     }
 
+    /// Vom Schüler gelöschte Mitteilungen — Merkliste, damit sie beim
+    /// nächsten Cloud-Abruf nicht wieder auftauchen.
+    private var deletedMessageIDs: Set<UUID> {
+        get {
+            guard let data = UserDefaults.standard.data(forKey: "al_deleted_messages"),
+                  let ids = try? JSONDecoder().decode(Set<UUID>.self, from: data) else { return [] }
+            return ids
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                UserDefaults.standard.set(data, forKey: "al_deleted_messages")
+            }
+        }
+    }
+
     /// Schüler: neue Mitteilungen abholen. Liefert die Zahl neuer.
     @MainActor
     func importCloudMessages() async -> Int {
         guard appMode == AppMode.student.rawValue, CloudService.shared.isSignedIn else { return 0 }
+        let deleted = deletedMessageIDs
         let rows = await CloudService.shared.fetchCloudMessages()
         var newCount = 0
         for row in rows {
+            if deleted.contains(row.id) { continue }
             if proMessages.contains(where: { $0.id == row.id }) { continue }
             proMessages.append(ProMessage(id: row.id, localStudentID: nil,
                                           body: row.body, date: row.created_at,
@@ -239,6 +256,24 @@ extension AppStore {
             proMessages[idx].readDate = Date()
         }
         Task { await CloudService.shared.markMessageRead(message.id) }
+    }
+
+    /// Schüler: Mitteilung ins Archiv legen (oder mit archived=false zurückholen).
+    @MainActor
+    func archiveProMessage(_ message: ProMessage, archived: Bool = true) {
+        if let idx = proMessages.firstIndex(where: { $0.id == message.id }) {
+            proMessages[idx].archivedDate = archived ? Date() : nil
+        }
+    }
+
+    /// Schüler: Mitteilung endgültig löschen — kommt dank Merkliste
+    /// auch nicht aus der Cloud zurück.
+    @MainActor
+    func deleteProMessage(_ message: ProMessage) {
+        proMessages.removeAll { $0.id == message.id }
+        var ids = deletedMessageIDs
+        ids.insert(message.id)
+        deletedMessageIDs = ids
     }
 
     // MARK: Video-Kompression (720p, H.264/mp4)
