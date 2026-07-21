@@ -46,8 +46,15 @@ final class CloudService: ObservableObject {
     private func observeAuthChanges() async {
         guard let client else { return }
         for await (_, session) in client.auth.authStateChanges {
+            let wasSignedOut = userID == nil
             userID = session?.user.id
             userEmail = session?.user.email
+            // Wer sich NACH dem App-Start anmeldet (z.B. Schüler mit
+            // frischem Einladungscode), bekommt sein Klingelzeichen
+            // sofort registriert — nicht erst beim nächsten Start.
+            if wasSignedOut, userID != nil {
+                enablePushIfPossible()
+            }
         }
     }
 
