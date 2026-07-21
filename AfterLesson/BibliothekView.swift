@@ -203,14 +203,11 @@ struct DatenpoolView: View {
             }
         } label: {
             HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(ALColor.gold.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "tray.and.arrow.down.fill")
-                        .font(.title3)
-                        .foregroundStyle(ALColor.gold)
-                }
+                Image("gb_erfassen")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Golf-Inhalte erfassen")
                         .font(.headline)
@@ -243,14 +240,11 @@ struct DatenpoolView: View {
     var newClassRow: some View {
         Button { showNewClassSheet = true } label: {
             HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(ALColor.green.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "folder.badge.plus")
-                        .font(.title3)
-                        .foregroundStyle(ALColor.green)
-                }
+                Image("gb_gruppe_neu")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Lektionsgruppe erstellen")
                         .font(.headline)
