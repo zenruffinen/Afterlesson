@@ -266,7 +266,7 @@ struct StudentMessageSheet: View {
                         .foregroundStyle(ALColor.gold)
                         .alIconTile(tint: ALColor.gold, size: 42)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(store.teacherName.isEmpty ? "Dein Pro" : store.teacherName)
+                        Text(store.proName.isEmpty ? "Dein Pro" : store.proName)
                             .font(.headline)
                         Text(message.date.formatted(date: .long, time: .shortened))
                             .font(.caption)

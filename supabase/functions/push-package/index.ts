@@ -65,13 +65,21 @@ Deno.serve(async (req) => {
     const t = (text ?? "").trim();
     return t.length > 120 ? t.slice(0, 117) + "…" : (t || fallback);
   };
-  let alertTitle = "Neues von deinem Pro";
+  // Absender-Name aus dem Profil — macht den Banner persönlich
+  const { data: senderProfile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", payload?.table === "responses" ? record.student_id : record.pro_id)
+    .maybeSingle();
+  const senderName = (senderProfile?.display_name ?? "").trim();
+
+  let alertTitle = senderName ? `Neues von ${senderName}` : "Neues von deinem Pro";
   let alertBody = record.title && record.title.length > 0 ? record.title : "Ein neues Lernpaket wartet auf dich.";
   if (payload?.table === "messages") {
-    alertTitle = "Mitteilung von deinem Pro";
+    alertTitle = senderName ? `Mitteilung von ${senderName}` : "Mitteilung von deinem Pro";
     alertBody = clip(record.body, "Du hast eine neue Mitteilung.");
   } else if (payload?.table === "responses") {
-    alertTitle = "Antwort von deinem Schüler";
+    alertTitle = senderName ? `Antwort von ${senderName}` : "Antwort von deinem Schüler";
     alertBody = clip(record.message, "Du hast eine neue Antwort.");
   }
   const push = {

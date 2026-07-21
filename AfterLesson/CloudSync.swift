@@ -233,6 +233,10 @@ extension AppStore {
     @MainActor
     func importCloudMessages() async -> Int {
         guard appMode == AppMode.student.rawValue, CloudService.shared.isSignedIn else { return 0 }
+        // Den Namen des Pros einmalig aus dem Cloud-Profil holen
+        if proName.isEmpty, let name = await CloudService.shared.linkedProName() {
+            proName = name
+        }
         let deleted = deletedMessageIDs
         let rows = await CloudService.shared.fetchCloudMessages()
         var newCount = 0
@@ -422,6 +426,9 @@ extension AppStore {
         newLesson.id = UUID()
         newLesson.origin = .receivedFromPro
         newLesson.receivedFromPro = package.payload.teacherName
+        // Der Paket-Absender ist unser Pro — Name für die Oberfläche merken
+        let senderName = package.payload.teacherName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !senderName.isEmpty { proName = senderName }
         newLesson.openedDate = nil
         newLesson.dateCreated = package.created_at
         newLesson.cloudPackageID = package.id

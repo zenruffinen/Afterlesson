@@ -43,6 +43,8 @@ final class AppStore: ObservableObject {
     }
     @AppStorage("appMode") var appMode: String = AppMode.teacher.rawValue
     @AppStorage("teacherName") var teacherName: String = ""
+    // Schüler-Modus: Name des verbundenen Pros (aus Paketen/Cloud-Profil)
+    @AppStorage("al_proname") var proName: String = ""
     @AppStorage("teacherTitle") var teacherTitle: String = "PGA Teaching Professional"
     @AppStorage("isLocked") var isLocked: Bool = false
     @AppStorage("lockEnabled") var lockEnabled: Bool = false

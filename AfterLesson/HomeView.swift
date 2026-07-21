@@ -298,8 +298,14 @@ struct HomeView: View {
                         }
 
                         if !cloudMessages.isEmpty || !sessionNotes.isEmpty || archivedCount > 0 {
-                            studentSectionHeader("Nachrichten vom Pro", icon: "megaphone.fill")
-                                .padding(.top, 6)
+                            // Mit Namen ist es persönlicher: "Nachrichten von Hans"
+                            studentSectionHeaderText(
+                                store.proName.isEmpty
+                                    ? String(localized: "Nachrichten vom Pro")
+                                    : String(format: String(localized: "Nachrichten von %@"), store.proName),
+                                icon: "megaphone.fill"
+                            )
+                            .padding(.top, 6)
                             ForEach(Array(cloudMessages)) { message in
                                 cloudMessageRow(message).padding(.horizontal, 20)
                             }
@@ -499,6 +505,15 @@ struct HomeView: View {
     }
 
     private func studentSectionHeader(_ title: LocalizedStringKey, icon: String) -> some View {
+        Label(title, systemImage: icon)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.65))
+            .padding(.horizontal, 20)
+    }
+
+    /// Wie studentSectionHeader, aber für zur Laufzeit gebaute Titel
+    /// (z.B. "Nachrichten von Hans").
+    private func studentSectionHeaderText(_ title: String, icon: String) -> some View {
         Label(title, systemImage: icon)
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(.white.opacity(0.65))

@@ -311,6 +311,18 @@ final class CloudService: ObservableObject {
         return rows?.first?.pro_id
     }
 
+    /// Anzeigename des verbundenen Pros (aus seinem Cloud-Profil).
+    func linkedProName() async -> String? {
+        guard let client, let proID = await linkedProID() else { return nil }
+        struct NameRow: Codable { let display_name: String? }
+        let rows: [NameRow]? = try? await client.from("profiles")
+            .select("display_name")
+            .eq("id", value: proID)
+            .execute().value
+        let name = rows?.first?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (name?.isEmpty ?? true) ? nil : name
+    }
+
     private struct ResponseInsertRow: Codable {
         let student_id: UUID
         let pro_id: UUID
