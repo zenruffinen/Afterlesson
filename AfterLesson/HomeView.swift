@@ -27,6 +27,10 @@ struct HomeView: View {
     @State private var quickCaptureStudentID: UUID? = nil
     @State private var showMessageCompose = false
     @State private var selectedProMessage: ProMessage? = nil
+    // Aufräumen per Checkbox (Hans, 21.07.): Auswählen → ankreuzen → löschen
+    @State private var inboxSelectionMode = false
+    @State private var inboxSelectedLessonIDs: Set<UUID> = []
+    @State private var inboxSelectedSessionIDs: Set<UUID> = []
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -252,17 +256,32 @@ struct HomeView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 10) {
+                        // Aufräum-Schalter: Auswählen → ankreuzen → unten löschen
+                        HStack {
+                            Spacer()
+                            Button(inboxSelectionMode ? "Fertig" : "Auswählen") {
+                                inboxSelectionMode.toggle()
+                                inboxSelectedLessonIDs.removeAll()
+                                inboxSelectedSessionIDs.removeAll()
+                            }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.75))
+                        }
+                        .padding(.horizontal, 20)
+
                         if !newLessons.isEmpty || !newSessions.isEmpty {
                             studentSectionHeader("Eingang", icon: "tray.and.arrow.down.fill")
                                 .padding(.top, 2)
                             ForEach(newLessons) { lesson in
-                                SwipeToDeleteRow(onDelete: { store.deleteLesson(lesson) }) {
+                                inboxRow(selected: inboxSelectedLessonIDs.contains(lesson.id),
+                                         toggle: { toggleSelection(lessonID: lesson.id) }) {
                                     studentLessonRow(lesson)
                                 }
                                 .padding(.horizontal, 20)
                             }
                             ForEach(newSessions) { session in
-                                SwipeToDeleteRow(onDelete: { store.deleteSession(session) }) {
+                                inboxRow(selected: inboxSelectedSessionIDs.contains(session.id),
+                                         toggle: { toggleSelection(sessionID: session.id) }) {
                                     studentSessionRow(session)
                                 }
                                 .padding(.horizontal, 20)
@@ -288,13 +307,15 @@ struct HomeView: View {
                             studentSectionHeader("Zugewiesen", icon: "books.vertical.fill")
                                 .padding(.top, 6)
                             ForEach(seenLessons.prefix(6)) { lesson in
-                                SwipeToDeleteRow(onDelete: { store.deleteLesson(lesson) }) {
+                                inboxRow(selected: inboxSelectedLessonIDs.contains(lesson.id),
+                                         toggle: { toggleSelection(lessonID: lesson.id) }) {
                                     studentLessonRow(lesson)
                                 }
                                 .padding(.horizontal, 20)
                             }
                             ForEach(seenSessions.prefix(6)) { session in
-                                SwipeToDeleteRow(onDelete: { store.deleteSession(session) }) {
+                                inboxRow(selected: inboxSelectedSessionIDs.contains(session.id),
+                                         toggle: { toggleSelection(sessionID: session.id) }) {
                                     studentSessionRow(session)
                                 }
                                 .padding(.horizontal, 20)
@@ -309,8 +330,81 @@ struct HomeView: View {
                     _ = await store.importCloudPackages()
                     _ = await store.importCloudMessages()
                 }
+
+                // Löschleiste des Auswahl-Modus
+                if inboxSelectionMode {
+                    let count = inboxSelectedLessonIDs.count + inboxSelectedSessionIDs.count
+                    Button {
+                        deleteSelectedInboxItems()
+                    } label: {
+                        Label(count == 0 ? String(localized: "Zum Löschen ankreuzen")
+                                         : String(format: String(localized: "%d löschen"), count),
+                              systemImage: "trash.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 13)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                    .disabled(count == 0)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                }
             }
         }
+    }
+
+    // MARK: Aufräumen per Checkbox
+
+    /// Im Auswahl-Modus bekommt jede Zeile eine Checkbox davor —
+    /// Antippen kreuzt an statt zu öffnen.
+    @ViewBuilder
+    private func inboxRow<Content: View>(selected: Bool,
+                                         toggle: @escaping () -> Void,
+                                         @ViewBuilder content: () -> Content) -> some View {
+        if inboxSelectionMode {
+            Button(action: toggle) {
+                HStack(spacing: 10) {
+                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .foregroundStyle(selected ? Color(hex: "66BB6A") : .white.opacity(0.45))
+                    content()
+                        .allowsHitTesting(false)
+                }
+            }
+            .buttonStyle(.plain)
+        } else {
+            content()
+        }
+    }
+
+    private func toggleSelection(lessonID: UUID) {
+        if inboxSelectedLessonIDs.contains(lessonID) {
+            inboxSelectedLessonIDs.remove(lessonID)
+        } else {
+            inboxSelectedLessonIDs.insert(lessonID)
+        }
+    }
+
+    private func toggleSelection(sessionID: UUID) {
+        if inboxSelectedSessionIDs.contains(sessionID) {
+            inboxSelectedSessionIDs.remove(sessionID)
+        } else {
+            inboxSelectedSessionIDs.insert(sessionID)
+        }
+    }
+
+    private func deleteSelectedInboxItems() {
+        for lesson in store.receivedLessons where inboxSelectedLessonIDs.contains(lesson.id) {
+            store.deleteLesson(lesson)
+        }
+        for session in store.receivedSessions where inboxSelectedSessionIDs.contains(session.id) {
+            store.deleteSession(session)
+        }
+        inboxSelectedLessonIDs.removeAll()
+        inboxSelectedSessionIDs.removeAll()
+        inboxSelectionMode = false
     }
 
     private func studentSectionHeader(_ title: LocalizedStringKey, icon: String) -> some View {
@@ -1330,64 +1424,6 @@ struct ComposerSheet: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 onShare(items)
             }
-        }
-    }
-}
-
-// MARK: - Wisch-links zum Löschen (für Zeilen außerhalb einer List)
-
-/// Die Schüler-Startseite ist eine ScrollView mit eigenen Karten-Zeilen —
-/// dort gibt es Apples List-Wischgesten nicht gratis. Dieser Umschlag
-/// baut sie nach: Zeile nach links wischen → roter Löschen-Knopf.
-struct SwipeToDeleteRow<Content: View>: View {
-    let onDelete: () -> Void
-    @ViewBuilder let content: Content
-
-    @State private var offset: CGFloat = 0
-    @State private var isOpen = false
-    private let buttonWidth: CGFloat = 76
-
-    var body: some View {
-        ZStack(alignment: .trailing) {
-            Button {
-                withAnimation(.easeOut(duration: 0.2)) { onDelete() }
-            } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Löschen")
-                        .font(.caption2.bold())
-                }
-                .foregroundStyle(.white)
-                .frame(width: buttonWidth)
-                .frame(maxHeight: .infinity)
-                .background(Color.red, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .opacity(offset < -10 ? 1 : 0)
-
-            content
-                .offset(x: offset)
-                .gesture(
-                    DragGesture(minimumDistance: 20)
-                        .onChanged { value in
-                            // Nur horizontale Wische — das Scrollen bleibt ungestört
-                            guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                            let base: CGFloat = isOpen ? -(buttonWidth + 8) : 0
-                            offset = min(0, max(-(buttonWidth + 24), base + value.translation.width))
-                        }
-                        .onEnded { _ in
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                if offset < -buttonWidth / 2 {
-                                    offset = -(buttonWidth + 8)
-                                    isOpen = true
-                                } else {
-                                    offset = 0
-                                    isOpen = false
-                                }
-                            }
-                        }
-                )
         }
     }
 }
