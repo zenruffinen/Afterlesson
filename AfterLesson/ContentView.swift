@@ -56,9 +56,10 @@ struct AfterLessonTabBar: View {
     // die Kachel unter dem Finger, Loslassen wählt sie aus.
     @State private var fingerX: CGFloat? = nil
     @State private var barWidth: CGFloat = 0
-    // Wassertropfen (Hans, 21.07.): Glaskapsel unter dem aktiven Reiter,
-    // schwappt beim Wechsel federnd hinüber.
-    @Namespace private var tropfen
+    // Organischer Wassertropfen (Hans, 21.07. v2): folgt dem Finger,
+    // streckt sich beim Ziehen wie Gel und schwabbelt beim Loslassen aus.
+    @State private var dropX: CGFloat? = nil     // Fingerposition während des Ziehens
+    @State private var stretch: CGFloat = 0      // momentane Gel-Verzerrung -1…1
 
     private let tabOrder: [ContentView.Tab] = [.home, .lessons, .students, .notes, .settings]
 
@@ -72,17 +73,38 @@ struct AfterLessonTabBar: View {
             tabItem(.settings, index: 4, icon: "gearshape.fill",       label: "Einstellungen")
         }
         .background {
+            // Der Tropfen liegt HINTER den Reitern und wird von Hand
+            // positioniert: am Finger, wenn gezogen wird — sonst auf dem
+            // aktiven Reiter. Streckung folgt der Zugbewegung (Gel).
             GeometryReader { geo in
+                let slot = geo.size.width / CGFloat(tabOrder.count)
+                let selIdx = CGFloat(tabOrder.firstIndex(of: selected) ?? 0)
+                let cx = dropX.map { min(max($0, slot / 2), geo.size.width - slot / 2) }
+                    ?? (selIdx + 0.5) * slot
                 Color.clear
+                    .alGlassCapsule(tint: ALColor.gold.opacity(0.35))
+                    .frame(width: slot - 14, height: 50)
+                    .scaleEffect(x: 1 + abs(stretch) * 0.30,
+                                 y: 1 - abs(stretch) * 0.18)
+                    .position(x: cx, y: 33)
+                    .animation(dropX == nil
+                               ? .spring(response: 0.45, dampingFraction: 0.45)   // Ausschwabbeln
+                               : .interactiveSpring(response: 0.12, dampingFraction: 0.8), // Fingerfolge
+                               value: cx)
                     .onAppear { barWidth = geo.size.width }
                     .onChange(of: geo.size.width) { _, w in barWidth = w }
             }
         }
         // Kurzes Tippen geht weiter direkt an die Knöpfe — erst das
-        // Rüberfahren (ab ein paar Punkten Bewegung) weckt die Lupe.
+        // Rüberfahren (ab ein paar Punkten Bewegung) weckt Tropfen & Lupe.
         .gesture(
-            DragGesture(minimumDistance: 8, coordinateSpace: .local)
+            DragGesture(minimumDistance: 5, coordinateSpace: .local)
                 .onChanged { value in
+                    let previous = dropX ?? value.location.x
+                    withAnimation(.spring(response: 0.18, dampingFraction: 0.55)) {
+                        stretch = max(-1, min(1, (value.location.x - previous) / 12))
+                    }
+                    dropX = value.location.x
                     fingerX = value.location.x
                 }
                 .onEnded { value in
@@ -93,6 +115,11 @@ struct AfterLessonTabBar: View {
                             selected = tabOrder[idx]
                         }
                     }
+                    // Loslassen: Tropfen setzt sich aufs Ziel und schwabbelt aus
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.4)) {
+                        stretch = 0
+                    }
+                    dropX = nil
                     fingerX = nil
                 }
         )
@@ -143,17 +170,6 @@ struct AfterLessonTabBar: View {
             .frame(maxWidth: .infinity)
             .padding(.top, 10)
             .padding(.bottom, 4)
-            .background {
-                if isSelected {
-                    // Der Wassertropfen: Glaskapsel, die per
-                    // matchedGeometryEffect zum neuen Reiter schwappt
-                    Color.clear
-                        .alGlassCapsule(tint: ALColor.gold.opacity(0.35))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .matchedGeometryEffect(id: "tropfen", in: tropfen)
-                }
-            }
             .scaleEffect(mag, anchor: .bottom)
         }
         .buttonStyle(.plain)
