@@ -80,7 +80,7 @@ struct ClassIcon: View {
     }
 }
 
-/// Die 40 Golf-Bild-Icons für Lektionsgruppen (Hans, 21.07.).
+/// Die 62 Golf-Bild-Icons für Lektionsgruppen (Hans' Bogen v2, 21.07.).
 enum GruppenIcons {
     static let alle: [String] = [
         "gb_ball_rot", "gb_ball_blau", "gb_ball_schwarz", "gb_ball_weiss",
@@ -93,6 +93,12 @@ enum GruppenIcons {
         "gb_protipp", "gb_wetter", "gb_kalender", "gb_pfeife",
         "gb_abschlag", "gb_ballflug", "gb_schwung", "gb_routine",
         "gb_mental", "gb_fitness", "gb_trinken", "gb_team",
+        "gb_course", "gb_checkliste", "gb_fitting", "gb_analyse",
+        "gb_wissen", "gb_buecher", "gb_apps", "gb_sicherheit",
+        "gb_cloud", "gb_sync", "gb_sprachaufnahme", "gb_videoaufnahme",
+        "gb_pdf", "gb_erfassen_klein", "gb_gruppe_klein", "gb_schueler",
+        "gb_trainer", "gb_lektionen", "gb_scorekarte", "gb_handicap",
+        "gb_favoriten", "gb_suche",
     ]
 }
 
