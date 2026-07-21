@@ -816,7 +816,37 @@ final class AppStore: ObservableObject {
         }
     }
 
+    /// Rettungsanker (21.07.2026): Liegt in Documents eine "rettung.plist"
+    /// (per Kabel vom Mac eingespielte Kopie der Einstellungsdatei) und die
+    /// App ist leer, werden die Daten einmalig übernommen — über die
+    /// offiziellen UserDefaults-Kanäle, damit iOS' Einstellungs-Daemon sie
+    /// nicht wieder überschreibt (extern in den Container kopierte Plists
+    /// verwirft er beim nächsten Neustart).
+    private func rescueImportIfNeeded() {
+        // Liegt die Datei da, gewinnt sie — sie kommt ja nur per Kabel
+        // dorthin und wird nach dem Einspielen sofort gelöscht.
+        let url = imageURL(for: "rettung.plist")
+        guard FileManager.default.fileExists(atPath: url.path),
+              let data = try? Data(contentsOf: url),
+              let dict = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any]
+        else { return }
+        let keys = [
+            "al_folders", "al_lessons", "al_progress", "al_students", "al_groups",
+            "al_pronotes", "al_contentpool", "al_contentclasses", "al_sessions",
+            "al_studentcaptures", "al_promessages", "al_cloud_imported",
+            "al_cloud_responses", "al_defaultclasses_v1",
+            "teacherName", "teacherTitle", "appMode", "hasSelectedMode", "pinnedNoteID"
+        ]
+        for key in keys {
+            if let value = dict[key] {
+                UserDefaults.standard.set(value, forKey: key)
+            }
+        }
+        try? FileManager.default.removeItem(at: url)
+    }
+
     private func load() {
+        rescueImportIfNeeded()
         if let data = UserDefaults.standard.data(forKey: "al_folders"),
            let decoded = try? JSONDecoder().decode([LessonFolder].self, from: data) {
             folders = decoded

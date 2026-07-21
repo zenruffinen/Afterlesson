@@ -30,6 +30,44 @@ struct Student: Identifiable, Codable, Hashable {
     // Grünbuch Cloud (beide optional → alte Bestände laden weiterhin sauber)
     var inviteCode: String? = nil        // Vom Pro erzeugter Einladungscode
     var cloudUserID: UUID? = nil         // Cloud-Konto des Schülers nach Code-Einlösung
+
+    init(name: String,
+         phone: String = "",
+         notes: String = "",
+         avatarColor: String = "1B5E20") {
+        self.name = name
+        self.phone = phone
+        self.notes = notes
+        self.avatarColor = avatarColor
+    }
+
+    // Defensiver Decoder (21.07.2026): Schüler-Datensätze aus älteren
+    // App-Versionen kennen neuere Felder (phone, feedbackHistory, …) nicht.
+    // Die Standard-Synthese bricht bei fehlenden Schlüsseln komplett ab —
+    // und da per try? geladen wird, verschwinden dann ALLE Schüler still.
+    // decodeIfPresent mit Standardwert macht das robust (Haus-Regel, siehe
+    // gleicher Fix in Lesson).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? ""
+        phone = try c.decodeIfPresent(String.self, forKey: .phone) ?? ""
+        birthday = try c.decodeIfPresent(Date.self, forKey: .birthday)
+        handicap = try c.decodeIfPresent(String.self, forKey: .handicap) ?? ""
+        notes = try c.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        dateCreated = try c.decodeIfPresent(Date.self, forKey: .dateCreated) ?? Date()
+        avatarColor = try c.decodeIfPresent(String.self, forKey: .avatarColor) ?? "1B5E20"
+        photoFilename = try c.decodeIfPresent(String.self, forKey: .photoFilename)
+        assignedFolderIDs = try c.decodeIfPresent([UUID].self, forKey: .assignedFolderIDs) ?? []
+        assignedLessonIDs = try c.decodeIfPresent([UUID].self, forKey: .assignedLessonIDs) ?? []
+        viewedLessonIDs = try c.decodeIfPresent([UUID].self, forKey: .viewedLessonIDs) ?? []
+        lastActiveDate = try c.decodeIfPresent(Date.self, forKey: .lastActiveDate)
+        sentHistory = (try? c.decodeIfPresent([SentPackage].self, forKey: .sentHistory)) ?? []
+        remarks = try c.decodeIfPresent(String.self, forKey: .remarks) ?? ""
+        feedbackHistory = (try? c.decodeIfPresent([StudentFeedbackEntry].self, forKey: .feedbackHistory)) ?? []
+        inviteCode = try c.decodeIfPresent(String.self, forKey: .inviteCode)
+        cloudUserID = try c.decodeIfPresent(UUID.self, forKey: .cloudUserID)
+    }
 }
 
 // MARK: - Lesson Category (Themen)
