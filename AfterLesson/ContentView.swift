@@ -56,6 +56,9 @@ struct AfterLessonTabBar: View {
     // die Kachel unter dem Finger, Loslassen wählt sie aus.
     @State private var fingerX: CGFloat? = nil
     @State private var barWidth: CGFloat = 0
+    // Wassertropfen (Hans, 21.07.): Glaskapsel unter dem aktiven Reiter,
+    // schwappt beim Wechsel federnd hinüber.
+    @Namespace private var tropfen
 
     private let tabOrder: [ContentView.Tab] = [.home, .lessons, .students, .notes, .settings]
 
@@ -86,7 +89,7 @@ struct AfterLessonTabBar: View {
                     if barWidth > 0 {
                         let idx = min(tabOrder.count - 1,
                                       max(0, Int(value.location.x / (barWidth / CGFloat(tabOrder.count)))))
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.6)) {
                             selected = tabOrder[idx]
                         }
                     }
@@ -113,7 +116,7 @@ struct AfterLessonTabBar: View {
     @ViewBuilder
     func tabItem(_ tab: ContentView.Tab, index: Int, icon: String, label: LocalizedStringKey, subtitle: LocalizedStringKey? = nil) -> some View {
         Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.6)) {
                 selected = tab
             }
         } label: {
@@ -140,6 +143,17 @@ struct AfterLessonTabBar: View {
             .frame(maxWidth: .infinity)
             .padding(.top, 10)
             .padding(.bottom, 4)
+            .background {
+                if isSelected {
+                    // Der Wassertropfen: Glaskapsel, die per
+                    // matchedGeometryEffect zum neuen Reiter schwappt
+                    Color.clear
+                        .alGlassCapsule(tint: ALColor.gold.opacity(0.35))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .matchedGeometryEffect(id: "tropfen", in: tropfen)
+                }
+            }
             .scaleEffect(mag, anchor: .bottom)
         }
         .buttonStyle(.plain)
