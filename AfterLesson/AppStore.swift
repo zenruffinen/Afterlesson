@@ -301,12 +301,14 @@ final class AppStore: ObservableObject {
 
         if !contentItemIDs.isEmpty {
             let folderID = folders.first?.id ?? UUID()
+            // Mit Uhrzeit — so lassen sich mehrere Sendungen am selben
+            // Tag auseinanderhalten (Hans, 21.07.)
             let formatter = DateFormatter()
-            formatter.dateFormat = "dd.MM.yyyy"
-            let dateStr = formatter.string(from: date)
+            formatter.dateFormat = "dd.MM.yyyy, HH:mm"
+            let dateStr = formatter.string(from: Date())
             var composerLesson = Lesson(
                 folderID: folderID,
-                title: "Lernpaket \(dateStr)",
+                title: "Lernpaket \(dateStr) Uhr",
                 description: "Zusammengestellt im Composer",
                 icon: "square.and.pencil",
                 contentItemIDs: Array(contentItemIDs)
