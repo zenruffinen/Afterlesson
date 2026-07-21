@@ -1354,14 +1354,8 @@ struct ComposerSheet: View {
         var groups: [ComposerGroup] = []
         guard !pool.isEmpty else { return groups }
 
-        groups.append(ComposerGroup(
-            key: "all",
-            title: String(localized: "Alle Inhalte"),
-            icon: "square.grid.2x2.fill",
-            colorHex: "1B5E20",
-            ownItems: pool.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending },
-            subgroups: []
-        ))
+        // Kein "Alle Inhalte" mehr (Hans, 21.07.): Im Composer stehen
+        // ausschließlich die eingelagerten Gruppen — das Lager-Prinzip.
         for cls in store.topLevelClasses.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending }) {
             let own = pool.filter { $0.classID == cls.id }
             let subs = store.subgroups(of: cls).compactMap { sub -> (cls: ContentClass, items: [ContentItem])? in
