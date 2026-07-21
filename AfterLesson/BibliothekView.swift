@@ -950,6 +950,8 @@ struct ContentClassEditorSheet: View {
     @State private var selectedIcon = "folder.fill"
     @State private var selectedColor = "2C5F2D"
     @State private var parentID: UUID? = nil
+    @State private var magnifiedIcon: String? = nil     // Glaslupe über der Auswahl
+    @State private var magnifyTask: Task<Void, Never>? = nil
 
     var isEditing: Bool { existingClass != nil }
 
@@ -987,6 +989,16 @@ struct ContentClassEditorSheet: View {
     ]
 
     var canSave: Bool { !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// Zeigt das Icon eine gute Sekunde lang groß (Glaslupe).
+    private func showMagnifier(_ asset: String) {
+        magnifyTask?.cancel()
+        magnifiedIcon = asset
+        magnifyTask = Task {
+            try? await Task.sleep(for: .seconds(1.1))
+            if !Task.isCancelled { magnifiedIcon = nil }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -1059,7 +1071,10 @@ struct ContentClassEditorSheet: View {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
                             ForEach(GruppenIcons.alle, id: \.self) { asset in
                                 let key = "img:\(asset)"
-                                Button { selectedIcon = key } label: {
+                                Button {
+                                    selectedIcon = key
+                                    showMagnifier(asset)
+                                } label: {
                                     Image(asset)
                                         .resizable()
                                         .scaledToFit()
@@ -1129,6 +1144,21 @@ struct ContentClassEditorSheet: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle(isEditing ? "Lektionsgruppe bearbeiten" : "Neue Lektionsgruppe")
             .navigationBarTitleDisplayMode(.inline)
+            // Glaslupe: das angetippte Icon erscheint kurz groß in der Mitte —
+            // bei 62 kleinen Kacheln sieht man so genau, was man gewählt hat.
+            .overlay {
+                if let asset = magnifiedIcon {
+                    Image(asset)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 190, height: 190)
+                        .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+                        .shadow(color: .black.opacity(0.35), radius: 24, y: 10)
+                        .transition(.scale(scale: 0.6).combined(with: .opacity))
+                        .allowsHitTesting(false)
+                }
+            }
+            .animation(.spring(duration: 0.25), value: magnifiedIcon)
             .onAppear {
                 if let c = existingClass {
                     title = c.title
