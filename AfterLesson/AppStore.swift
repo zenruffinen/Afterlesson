@@ -847,6 +847,45 @@ final class AppStore: ObservableObject {
         try? FileManager.default.removeItem(at: url)
     }
 
+    /// Ordnung beim Start: Gleichnamige Lektionsgruppen (gleiche Ebene)
+    /// werden verschmolzen — Altlasten aus der Zeit, als empfangene
+    /// Gruppen neben den vorgefertigten landeten ("Chippen" doppelt).
+    /// Behalten wird die Gruppe mit den meisten Inhalten; Inhalte und
+    /// Untergruppen der Dubletten ziehen um. Läuft gefahrlos bei jedem
+    /// Start (idempotent).
+    private func mergeDuplicateContentClasses() {
+        let counts = Dictionary(grouping: contentPool.compactMap(\.classID), by: { $0 })
+            .mapValues(\.count)
+        func key(_ c: ContentClass) -> String {
+            let title = c.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            return "\(title)|\(c.parentID?.uuidString ?? "-")"
+        }
+        var keeper: [String: UUID] = [:]
+        var replaced: [UUID: UUID] = [:]   // Dublette → behaltene Gruppe
+        let ranked = contentClasses.sorted {
+            (counts[$0.id] ?? 0, $1.sortIndex) > (counts[$1.id] ?? 0, $0.sortIndex)
+        }
+        for c in ranked {
+            if let kept = keeper[key(c)] {
+                replaced[c.id] = kept
+            } else {
+                keeper[key(c)] = c.id
+            }
+        }
+        guard !replaced.isEmpty else { return }
+        for i in contentPool.indices {
+            if let cid = contentPool[i].classID, let kept = replaced[cid] {
+                contentPool[i].classID = kept
+            }
+        }
+        for i in contentClasses.indices {
+            if let pid = contentClasses[i].parentID, let kept = replaced[pid] {
+                contentClasses[i].parentID = kept
+            }
+        }
+        contentClasses.removeAll { replaced[$0.id] != nil }
+    }
+
     private func load() {
         rescueImportIfNeeded()
         if let data = UserDefaults.standard.data(forKey: "al_folders"),
@@ -893,6 +932,7 @@ final class AppStore: ObservableObject {
            let decoded = try? JSONDecoder().decode([ProMessage].self, from: data) {
             proMessages = decoded
         }
+        mergeDuplicateContentClasses()
     }
 
     private func saveProMessages() {
