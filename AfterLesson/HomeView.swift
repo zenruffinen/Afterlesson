@@ -256,10 +256,16 @@ struct HomeView: View {
                             studentSectionHeader("Eingang", icon: "tray.and.arrow.down.fill")
                                 .padding(.top, 2)
                             ForEach(newLessons) { lesson in
-                                studentLessonRow(lesson).padding(.horizontal, 20)
+                                SwipeToDeleteRow(onDelete: { store.deleteLesson(lesson) }) {
+                                    studentLessonRow(lesson)
+                                }
+                                .padding(.horizontal, 20)
                             }
                             ForEach(newSessions) { session in
-                                studentSessionRow(session).padding(.horizontal, 20)
+                                SwipeToDeleteRow(onDelete: { store.deleteSession(session) }) {
+                                    studentSessionRow(session)
+                                }
+                                .padding(.horizontal, 20)
                             }
                             Text("home.inbox_hint")
                                 .font(.system(size: 11))
@@ -282,10 +288,16 @@ struct HomeView: View {
                             studentSectionHeader("Zugewiesen", icon: "books.vertical.fill")
                                 .padding(.top, 6)
                             ForEach(seenLessons.prefix(6)) { lesson in
-                                studentLessonRow(lesson).padding(.horizontal, 20)
+                                SwipeToDeleteRow(onDelete: { store.deleteLesson(lesson) }) {
+                                    studentLessonRow(lesson)
+                                }
+                                .padding(.horizontal, 20)
                             }
                             ForEach(seenSessions.prefix(6)) { session in
-                                studentSessionRow(session).padding(.horizontal, 20)
+                                SwipeToDeleteRow(onDelete: { store.deleteSession(session) }) {
+                                    studentSessionRow(session)
+                                }
+                                .padding(.horizontal, 20)
                             }
                         }
                     }
@@ -1318,6 +1330,64 @@ struct ComposerSheet: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 onShare(items)
             }
+        }
+    }
+}
+
+// MARK: - Wisch-links zum Löschen (für Zeilen außerhalb einer List)
+
+/// Die Schüler-Startseite ist eine ScrollView mit eigenen Karten-Zeilen —
+/// dort gibt es Apples List-Wischgesten nicht gratis. Dieser Umschlag
+/// baut sie nach: Zeile nach links wischen → roter Löschen-Knopf.
+struct SwipeToDeleteRow<Content: View>: View {
+    let onDelete: () -> Void
+    @ViewBuilder let content: Content
+
+    @State private var offset: CGFloat = 0
+    @State private var isOpen = false
+    private let buttonWidth: CGFloat = 76
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) { onDelete() }
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: "trash.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Löschen")
+                        .font(.caption2.bold())
+                }
+                .foregroundStyle(.white)
+                .frame(width: buttonWidth)
+                .frame(maxHeight: .infinity)
+                .background(Color.red, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .opacity(offset < -10 ? 1 : 0)
+
+            content
+                .offset(x: offset)
+                .gesture(
+                    DragGesture(minimumDistance: 20)
+                        .onChanged { value in
+                            // Nur horizontale Wische — das Scrollen bleibt ungestört
+                            guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                            let base: CGFloat = isOpen ? -(buttonWidth + 8) : 0
+                            offset = min(0, max(-(buttonWidth + 24), base + value.translation.width))
+                        }
+                        .onEnded { _ in
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                if offset < -buttonWidth / 2 {
+                                    offset = -(buttonWidth + 8)
+                                    isOpen = true
+                                } else {
+                                    offset = 0
+                                    isOpen = false
+                                }
+                            }
+                        }
+                )
         }
     }
 }
