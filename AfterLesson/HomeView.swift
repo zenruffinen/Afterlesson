@@ -139,11 +139,14 @@ struct HomeView: View {
 
     // MARK: Header Bar
 
-    /// Frisches der letzten 24 Stunden für die Glocke: beim Pro die
-    /// Schüler-Antworten, beim Schüler der ungelesene Eingang.
+    /// Wann der Pro zuletzt auf die Glocke getippt hat — alles Neuere zählt.
+    @AppStorage("al_bellseen") private var bellSeenTime: Double = 0
+
+    /// Die Glocke: beim Pro die noch ungesehenen Schüler-Nachrichten
+    /// (Antippen = gesehen), beim Schüler der ungelesene Eingang.
     private var bellCount: Int {
         if isTeacher {
-            let seit = Date().addingTimeInterval(-86400)
+            let seit = Date(timeIntervalSince1970: bellSeenTime)
             return store.students
                 .flatMap(\.feedbackHistory)
                 .filter { $0.date > seit }
@@ -156,7 +159,11 @@ struct HomeView: View {
 
     var headerBar: some View {
         GrünbuchHomeHeader(roleLabel: roleLabel, bellCount: bellCount) {
-            // Antippen springt dorthin, wo das Frische liegt
+            // Antippen springt dorthin, wo das Frische liegt — und beim
+            // Pro gilt: gesehen ist gesehen, der Zähler leert sich
+            if isTeacher {
+                bellSeenTime = Date().timeIntervalSince1970
+            }
             selectedTab = isTeacher ? .students : .home
         }
         .padding(.horizontal, 20)
