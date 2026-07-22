@@ -140,7 +140,7 @@ struct GrünbuchHomeBackground: View {
                     GrünbuchWolken(t: t)
                     GrünbuchLichtstrahlen(t: t)
                 }
-                .scaleEffect(1.05 + 0.03 * sin(t / 41))
+                .scaleEffect(1.06 + 0.045 * sin(t / 33))
             }
             .ignoresSafeArea()
         }
@@ -156,9 +156,9 @@ private struct GrünbuchWolken: View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
-            wolke(w: w, period: 140, phase: 0.10, y: h * 0.10, breite: w * 0.75, hoehe: 54, alpha: 0.050)
-            wolke(w: w, period: 95,  phase: 0.55, y: h * 0.20, breite: w * 0.55, hoehe: 40, alpha: 0.040)
-            wolke(w: w, period: 180, phase: 0.80, y: h * 0.05, breite: w * 0.90, hoehe: 68, alpha: 0.035)
+            wolke(w: w, period: 140, phase: 0.10, y: h * 0.10, breite: w * 0.75, hoehe: 54, alpha: 0.10)
+            wolke(w: w, period: 95,  phase: 0.55, y: h * 0.20, breite: w * 0.55, hoehe: 40, alpha: 0.08)
+            wolke(w: w, period: 180, phase: 0.80, y: h * 0.05, breite: w * 0.90, hoehe: 68, alpha: 0.07)
         }
         .allowsHitTesting(false)
     }
@@ -184,8 +184,8 @@ private struct GrünbuchLichtstrahlen: View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
-            strahl(w: w, h: h, x: w * (0.30 + 0.22 * sin(t / 31)), breite: w * 0.34, alpha: 0.055)
-            strahl(w: w, h: h, x: w * (0.72 + 0.18 * sin(t / 47 + 3)), breite: w * 0.22, alpha: 0.040)
+            strahl(w: w, h: h, x: w * (0.30 + 0.22 * sin(t / 31)), breite: w * 0.34, alpha: 0.10)
+            strahl(w: w, h: h, x: w * (0.72 + 0.18 * sin(t / 47 + 3)), breite: w * 0.22, alpha: 0.08)
         }
         .allowsHitTesting(false)
     }
@@ -390,16 +390,21 @@ struct GrünbuchFairwayGraphic: View {
                 .frame(width: w * 0.55, alignment: .leading)
                 .position(x: w * 0.30, y: h * 0.46)
 
-                // Gestrichelte Flugbahn als stilles Versprechen
-                Path { path in
-                    path.move(to: CGPoint(x: w * 0.62, y: h * 0.60))
-                    path.addQuadCurve(
-                        to: CGPoint(x: w * 0.88, y: h * 0.34),
-                        control: CGPoint(x: w * 0.76, y: h * 0.10)
-                    )
+                // Gestrichelte Flugbahn — die Strichel wandern langsam
+                // Richtung Fahne (die Seite atmet, Hans, 22.07.)
+                TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { ctx in
+                    let phase = -CGFloat(ctx.date.timeIntervalSinceReferenceDate * 10)
+                        .truncatingRemainder(dividingBy: 9)
+                    Path { path in
+                        path.move(to: CGPoint(x: w * 0.62, y: h * 0.60))
+                        path.addQuadCurve(
+                            to: CGPoint(x: w * 0.88, y: h * 0.34),
+                            control: CGPoint(x: w * 0.76, y: h * 0.10)
+                        )
+                    }
+                    .stroke(ALColor.goldHell.opacity(0.55),
+                            style: StrokeStyle(lineWidth: 1.4, dash: [4, 5], dashPhase: phase))
                 }
-                .stroke(ALColor.goldHell.opacity(0.55),
-                        style: StrokeStyle(lineWidth: 1.4, dash: [4, 5]))
 
                 // Fahne auf dem Grün
                 VStack(spacing: 0) {
@@ -516,12 +521,18 @@ struct GrünbuchComposerCard: View {
     let action: () -> Void
 
     @State private var spin = false
+    @State private var breathe = false
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
-                // Medaillon: Wappen + Punktring
+                // Medaillon: Wappen + Punktring + Atem-Glühen
                 ZStack {
+                    Circle()
+                        .fill(ALColor.goldHell.opacity(breathe ? 0.30 : 0.10))
+                        .frame(width: 88, height: 88)
+                        .blur(radius: 16)
+                        .animation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: breathe)
                     Circle()
                         .fill(
                             LinearGradient(
@@ -538,7 +549,7 @@ struct GrünbuchComposerCard: View {
                         )
                         .frame(width: 62, height: 62)
                         .rotationEffect(.degrees(spin ? 360 : 0))
-                        .animation(.linear(duration: 24).repeatForever(autoreverses: false), value: spin)
+                        .animation(.linear(duration: 12).repeatForever(autoreverses: false), value: spin)
                     GrünbuchEmblemMark(color: ALColor.goldHell)
                         .frame(width: 34, height: 34)
                 }
@@ -582,7 +593,10 @@ struct GrünbuchComposerCard: View {
             .shadow(color: .black.opacity(0.35), radius: 14, y: 7)
         }
         .buttonStyle(GrünbuchTastenStyle(radius: 24))
-        .onAppear { spin = true }
+        .onAppear {
+            spin = true
+            breathe = true
+        }
     }
 }
 
