@@ -160,6 +160,9 @@ struct NoteEditorView: View {
     @State private var player: AVAudioPlayer? = nil
     @State private var isPlaying = false
 
+    // Diktat: gesprochene Worte landen als Text in der Notiz (22.07.)
+    @StateObject private var diktat = SpeechTranscriber()
+
     var isEditing: Bool { existingNote != nil }
     var canSave: Bool { !title.trimmingCharacters(in: .whitespaces).isEmpty || !text.trimmingCharacters(in: .whitespaces).isEmpty || audioFilename != nil }
 
@@ -181,10 +184,41 @@ struct NoteEditorView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Notiz").font(.caption.bold()).foregroundStyle(.secondary)
                         TextEditor(text: $text)
+                            .scrollContentBackground(.hidden)
                             .frame(minHeight: 100)
                             .padding(8)
                             .background(ALColor.nachtOben.opacity(0.55))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                        // Diktieren: live verschriftlicht in das Textfeld —
+                        // die Sprachnotiz unten bleibt davon getrennt (Audio).
+                        Button {
+                            if diktat.isRecording {
+                                diktat.stop()
+                            } else {
+                                diktat.start(existing: text) { text = $0 }
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: diktat.isRecording ? "stop.circle.fill" : "waveform.circle.fill")
+                                    .font(.system(size: 20))
+                                Text(diktat.isRecording ? "Diktat stoppen" : "Diktieren")
+                                    .font(.subheadline)
+                            }
+                            .foregroundStyle(diktat.isRecording ? .red : ALColor.goldHell)
+                            .padding(10)
+                            .frame(maxWidth: .infinity)
+                            .background(ALColor.nachtOben.opacity(0.55))
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isRecording)
+
+                        if diktat.permissionDenied {
+                            Text("Bitte erlaube Spracherkennung und Mikrofon in den iOS-Einstellungen.")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
                     }
 
                     // Sprachaufnahme
@@ -209,6 +243,7 @@ struct NoteEditorView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
                             .buttonStyle(.plain)
+                            .disabled(diktat.isRecording)
 
                             // Abspielen Button (wenn Aufnahme vorhanden)
                             if audioFilename != nil {
@@ -296,6 +331,7 @@ struct NoteEditorView: View {
                 .padding(.bottom, 30)
             }
             
+            .onDisappear { diktat.stop() }
             .navigationTitle(isEditing ? "Notiz bearbeiten" : "Neue Notiz")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { loadExisting() }

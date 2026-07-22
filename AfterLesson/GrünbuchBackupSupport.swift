@@ -7,6 +7,20 @@ extension AppStore {
 
     // MARK: - Export / Import (verschlüsseltes Apple-Archiv)
 
+    /// AppleArchive verlangt lange Passwörter — aus dem Nutzer-Passwort
+    /// wird deshalb erst ein 32-Byte-Schlüssel abgeleitet (wie in Arca).
+    /// Ohne diese Ableitung wirft setPassword bei kurzen Passwörtern
+    /// "invalidValue" und der Export scheitert kommentarlos (22.07. gefunden).
+    private func aeaPassword(from userPassword: String) -> String {
+        guard let passwordData = userPassword.data(using: .utf8) else { return userPassword }
+        let key = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: SymmetricKey(data: passwordData),
+            salt: Data("GruenbuchBackupSalt_v1".utf8),
+            info: Data("AEA".utf8),
+            outputByteCount: 32)
+        return key.withUnsafeBytes { Data($0) }.base64EncodedString()
+    }
+
     func exportData(password: String) -> URL? {
         let stage = FileManager.default.temporaryDirectory
             .appendingPathComponent("GrünbuchExport_\(UUID().uuidString)")
@@ -47,7 +61,7 @@ extension AppStore {
         let filename = "GrünbuchBackup_\(Date().formatted(date: .abbreviated, time: .omitted)).gruenbuchbackup"
             .replacingOccurrences(of: " ", with: "_")
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-        guard archiveDirectory(stage, to: url, password: password),
+        guard archiveDirectory(stage, to: url, password: aeaPassword(from: password)),
               let size = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int,
               size > 0 else { return nil }
         return url
@@ -57,7 +71,7 @@ extension AppStore {
         guard url.startAccessingSecurityScopedResource() else { return false }
         defer { url.stopAccessingSecurityScopedResource() }
 
-        guard let extracted = extractArchive(url, password: password) else { return false }
+        guard let extracted = extractArchive(url, password: aeaPassword(from: password)) else { return false }
         defer { try? FileManager.default.removeItem(at: extracted) }
         guard let manifestData = try? Data(contentsOf: extracted.appendingPathComponent("manifest.json")),
               let backup = try? JSONDecoder().decode(GrünbuchBackup.self, from: manifestData) else { return false }
