@@ -184,6 +184,10 @@ enum ALColor {
     static let dark     = Color(red: 0.10, green: 0.12, blue: 0.10)   // Fast Schwarz
     static let fairway  = Color(red: 0.17, green: 0.50, blue: 0.22)   // Fairway-Grün
     static let sand     = Color(red: 0.93, green: 0.87, blue: 0.70)   // Bunker-Sand
+    // Abendgarderobe (22.07.): tiefes Nachtgrün + helles Gold
+    static let nachtOben  = Color(hex: "17301C")                       // Karten oben
+    static let nachtUnten = Color(hex: "0B150D")                       // Karten unten
+    static let goldHell   = Color(hex: "E2C069")                       // Akzente & Schrift
 }
 
 struct ShareSheet: UIViewControllerRepresentable {

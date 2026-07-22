@@ -138,11 +138,30 @@ struct HomeView: View {
     }
 
     // MARK: Header Bar
+
+    /// Frisches der letzten 24 Stunden für die Glocke: beim Pro die
+    /// Schüler-Antworten, beim Schüler der ungelesene Eingang.
+    private var bellCount: Int {
+        if isTeacher {
+            let seit = Date().addingTimeInterval(-86400)
+            return store.students
+                .flatMap(\.feedbackHistory)
+                .filter { $0.date > seit }
+                .count
+        }
+        return store.receivedLessons.filter { $0.openedDate == nil }.count
+            + store.receivedSessions.filter { $0.openedDate == nil }.count
+            + store.proMessages.filter { $0.readDate == nil && $0.archivedDate == nil }.count
+    }
+
     var headerBar: some View {
-        GrünbuchHomeHeader(roleLabel: roleLabel)
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
+        GrünbuchHomeHeader(roleLabel: roleLabel, bellCount: bellCount) {
+            // Antippen springt dorthin, wo das Frische liegt
+            selectedTab = isTeacher ? .students : .home
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
     }
 
     // MARK: Teacher Content
@@ -155,12 +174,14 @@ struct HomeView: View {
 
             Spacer(minLength: 22)
 
-            // Die Drehscheibe: der große grüne Aktions-Orb
-            GrünbuchComposerOrb {
+            // Die Drehscheibe: der Composer als Karte (Abendgarderobe 22.07.),
+            // das Wappen-Medaillon trägt weiter den rotierenden Punktring
+            GrünbuchComposerCard {
                 composerPreselectedStudents = []
                 composerIsSupplemental = false
                 showComposer = true
             }
+            .padding(.horizontal, 20)
             .padding(.bottom, 6)
 
             // Die beiden Werkzeuge als Bild-Kacheln: Bücherregal & Golfer

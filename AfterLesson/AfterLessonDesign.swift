@@ -236,26 +236,26 @@ struct GrünbuchBagIcon: View {
     private var corner: CGFloat { size * 0.28 }
 
     var body: some View {
+        // Abendgarderobe: das goldene Buch auf Nachtgrün (22.07.)
         ZStack {
             RoundedRectangle(cornerRadius: corner, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [Color(hex: "3A8A3E"), Color(hex: "1B4D1F")],
+                        colors: [ALColor.nachtOben, ALColor.nachtUnten],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-            Image(systemName: "bag.fill")
-                .font(.system(size: size * 0.40, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.95))
-                .offset(y: -size * 0.02)
+            Image(systemName: "book.fill")
+                .font(.system(size: size * 0.42, weight: .semibold))
+                .foregroundStyle(ALColor.goldHell)
         }
         .frame(width: size, height: size)
         .overlay(
             RoundedRectangle(cornerRadius: corner, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.45), lineWidth: 0.5)
+                .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
         )
-        .shadow(color: ALColor.green.opacity(0.30), radius: size * 0.10, y: size * 0.04)
+        .shadow(color: .black.opacity(0.35), radius: size * 0.10, y: size * 0.05)
     }
 }
 
@@ -263,6 +263,8 @@ struct GrünbuchBagIcon: View {
 
 struct GrünbuchHomeHeader: View {
     let roleLabel: String
+    var bellCount: Int = 0
+    var onBell: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -274,15 +276,42 @@ struct GrünbuchHomeHeader: View {
                     .foregroundStyle(.white)
                 Text(roleLabel)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(ALColor.goldHell.opacity(0.9))
                     .lineLimit(1)
             }
 
             Spacer(minLength: 0)
+
+            // Die Glocke: Frisches der letzten 24 Stunden, Antippen
+            // springt dorthin, wo es liegt
+            if let onBell {
+                Button(action: onBell) {
+                    ZStack(alignment: .topTrailing) {
+                        Circle()
+                            .fill(Color.white.opacity(0.08))
+                            .overlay(Circle().strokeBorder(Color.white.opacity(0.22), lineWidth: 0.5))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .frame(width: 40, height: 40)
+                        if bellCount > 0 {
+                            Text("\(min(bellCount, 99))")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Color(hex: "0B150D"))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1.5)
+                                .background(ALColor.goldHell, in: Capsule())
+                                .offset(x: 5, y: -4)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
-        .alGlass(tint: ALColor.green.opacity(0.30), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .alGlass(tint: ALColor.nachtOben.opacity(0.55), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
@@ -302,33 +331,32 @@ struct GrünbuchFairwayGraphic: View {
     @State private var ballSichtbar = false
 
     var body: some View {
+        // Abendgarderobe (22.07.): Nachtgrüne Bühne mit Schlagzeile links,
+        // Golfer, gestrichelter Flugbahn und Fahne rechts.
         ZStack {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [
-                            Color(hex: "1A3D1E").opacity(0.55),
-                            Color(hex: "0D160D").opacity(0.35)
-                        ],
+                        colors: [ALColor.nachtOben.opacity(0.92), ALColor.nachtUnten.opacity(0.96)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.5)
                 )
 
-            // Fairway silhouette
             GeometryReader { geo in
                 let w = geo.size.width
                 let h = geo.size.height
 
+                // Sanfte Hügel am Fuß der Bühne
                 Path { path in
-                    path.move(to: CGPoint(x: 0, y: h * 0.72))
+                    path.move(to: CGPoint(x: 0, y: h * 0.82))
                     path.addQuadCurve(
-                        to: CGPoint(x: w, y: h * 0.68),
-                        control: CGPoint(x: w * 0.5, y: h * 0.52)
+                        to: CGPoint(x: w, y: h * 0.78),
+                        control: CGPoint(x: w * 0.5, y: h * 0.64)
                     )
                     path.addLine(to: CGPoint(x: w, y: h))
                     path.addLine(to: CGPoint(x: 0, y: h))
@@ -336,56 +364,80 @@ struct GrünbuchFairwayGraphic: View {
                 }
                 .fill(
                     LinearGradient(
-                        colors: [ALColor.fairway.opacity(0.85), ALColor.green.opacity(0.55)],
-                        startPoint: .top,
-                        endPoint: .bottom
+                        colors: [ALColor.fairway.opacity(0.30), ALColor.nachtUnten.opacity(0.2)],
+                        startPoint: .top, endPoint: .bottom
                     )
                 )
 
-                // Sand bunker accent
-                Ellipse()
-                    .fill(ALColor.sand.opacity(0.22))
-                    .frame(width: w * 0.22, height: h * 0.10)
-                    .offset(x: w * 0.62, y: h * 0.58)
+                // Schlagzeile (links)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Heute geht's los!")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(ALColor.goldHell)
+                    Text("Dein Spiel.\nDein Fortschritt.")
+                        .font(.system(size: 23, weight: .bold, design: .serif))
+                        .foregroundStyle(.white)
+                        .lineSpacing(2)
+                        .fixedSize()
+                    Rectangle()
+                        .fill(ALColor.goldHell)
+                        .frame(width: 42, height: 2)
+                        .padding(.vertical, 3)
+                    Text("Strukturiertes Training.\nMessbare Ergebnisse.")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.70))
+                }
+                .frame(width: w * 0.55, alignment: .leading)
+                .position(x: w * 0.30, y: h * 0.46)
 
-                // Flag on green
+                // Gestrichelte Flugbahn als stilles Versprechen
+                Path { path in
+                    path.move(to: CGPoint(x: w * 0.62, y: h * 0.60))
+                    path.addQuadCurve(
+                        to: CGPoint(x: w * 0.88, y: h * 0.34),
+                        control: CGPoint(x: w * 0.76, y: h * 0.10)
+                    )
+                }
+                .stroke(ALColor.goldHell.opacity(0.55),
+                        style: StrokeStyle(lineWidth: 1.4, dash: [4, 5]))
+
+                // Fahne auf dem Grün
                 VStack(spacing: 0) {
                     Image(systemName: "flag.fill")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(ALColor.gold)
+                        .foregroundStyle(ALColor.goldHell)
                     Rectangle()
-                        .fill(Color.white.opacity(0.75))
-                        .frame(width: 1.5, height: 28)
+                        .fill(Color.white.opacity(0.8))
+                        .frame(width: 1.5, height: 30)
                 }
-                .offset(x: w * 0.78, y: h * 0.28)
+                .position(x: w * 0.885, y: h * 0.475)
 
-                // Golfer line art
+                // Golfer
                 Image(systemName: "figure.golf")
-                    .font(.system(size: 56, weight: .thin))
-                    .foregroundStyle(.white.opacity(0.88))
-                    .shadow(color: ALColor.green.opacity(0.35), radius: 12, y: 6)
-                    .offset(x: w * 0.08, y: h * 0.10)
-                    .rotationEffect(.degrees(sway ? -2 : 2))
+                    .font(.system(size: 52, weight: .thin))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .shadow(color: .black.opacity(0.4), radius: 10, y: 5)
+                    .position(x: w * 0.625, y: h * 0.56)
+                    .rotationEffect(.degrees(sway ? -1.5 : 1.5))
                     .animation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true), value: sway)
 
-                // Der Ball fliegt einmal Richtung Fahne (Golf-Studio-
-                // Briefing): Parabel vom Golfer zum Grün, dann Ruhe.
+                // Der Ball fliegt einmal die Bahn entlang, dann Ruhe.
                 if ballSichtbar {
-                    let startX = w * 0.20, endX = w * 0.795
-                    let startY = h * 0.42, endY = h * 0.52
+                    let startX = w * 0.62, endX = w * 0.88
+                    let startY = h * 0.60, endY = h * 0.34
                     let bx = startX + (endX - startX) * flug
-                    let by = startY + (endY - startY) * flug - sin(.pi * flug) * h * 0.42
+                    let by = startY + (endY - startY) * flug - sin(.pi * flug) * h * 0.30
                     Circle()
-                        .fill(Color.white)
-                        .frame(width: 9, height: 9)
-                        .shadow(color: .white.opacity(0.7), radius: 3)
+                        .fill(ALColor.goldHell)
+                        .frame(width: 8, height: 8)
+                        .shadow(color: ALColor.goldHell.opacity(0.8), radius: 3)
                         .position(x: bx, y: by)
                 }
             }
-            .padding(20)
+            .padding(18)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 200)
+        .frame(height: 210)
         .onAppear {
             sway = true
             ballFliegt()
@@ -458,96 +510,79 @@ struct GrünbuchEmblemMark: View {
 // sanftem Puls — beim Tippen öffnet sich der Composer, der die
 // gesammelten Lerninhalte den Schülern zuweist.
 
-private struct OrbPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
-    }
-}
-
-struct GrünbuchComposerOrb: View {
+// Abendgarderobe (22.07.): Der Composer als breite Karte — das Wappen
+// wohnt in einem Medaillon mit dem rotierenden Punktring (der Ring bleibt!).
+struct GrünbuchComposerCard: View {
     let action: () -> Void
 
     @State private var spin = false
-    @State private var breathe = false
 
     var body: some View {
-        Button {
-            action()
-        } label: {
-            VStack(spacing: 12) {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                // Medaillon: Wappen + Punktring
                 ZStack {
-                    // Weicher Glow-Atem hinter der Scheibe
-                    Circle()
-                        .fill(ALColor.green.opacity(breathe ? 0.45 : 0.20))
-                        .frame(width: 150, height: 150)
-                        .blur(radius: 24)
-
-                    // Glasring außen
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 1)
-                        .frame(width: 138, height: 138)
-                        .background(Circle().fill(Color.white.opacity(0.06)))
-
-                    // Rotierender Drehscheiben-Ring
-                    Circle()
-                        .stroke(
-                            ALColor.gold.opacity(0.75),
-                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, dash: [1, 14])
-                        )
-                        .frame(width: 122, height: 122)
-                        .rotationEffect(.degrees(spin ? 360 : 0))
-                        .animation(.linear(duration: 24).repeatForever(autoreverses: false), value: spin)
-
-                    // Die grüne Scheibe selbst
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [ALColor.fairway, ALColor.green],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                                colors: [ALColor.nachtOben, ALColor.nachtUnten],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 104, height: 104)
-                        .overlay(
-                            // Lichtkante oben — das Liquid-Glass-Gefühl
-                            Circle()
-                                .strokeBorder(
-                                    LinearGradient(
-                                        colors: [Color.white.opacity(0.55), Color.white.opacity(0.05)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    ),
-                                    lineWidth: 1.5
-                                )
+                        .frame(width: 74, height: 74)
+                        .overlay(Circle().strokeBorder(ALColor.goldHell.opacity(0.6), lineWidth: 1))
+                    Circle()
+                        .stroke(
+                            ALColor.goldHell.opacity(0.7),
+                            style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [1, 11])
                         )
-                        .shadow(color: ALColor.green.opacity(0.55), radius: 18, y: 8)
-
-                    // Das ARCA-Wappen: A als Pfeil — der Orb trägt es
-                    VStack(spacing: 5) {
-                        GrünbuchEmblemMark()
-                            .frame(width: 36, height: 44)
-                            .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
-                        Text("Composer")
-                            .font(.system(size: 13, weight: .bold, design: .serif))
-                            .foregroundStyle(.white.opacity(0.95))
-                    }
+                        .frame(width: 62, height: 62)
+                        .rotationEffect(.degrees(spin ? 360 : 0))
+                        .animation(.linear(duration: 24).repeatForever(autoreverses: false), value: spin)
+                    GrünbuchEmblemMark(color: ALColor.goldHell)
+                        .frame(width: 34, height: 34)
                 }
 
-                Text("Lerninhalte zuweisen")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.65))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Composer")
+                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .foregroundStyle(.white)
+                    Text("Neue Inhalte erstellen")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.65))
+                }
+
+                Spacer(minLength: 0)
+
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.08))
+                        .overlay(Circle().strokeBorder(Color.white.opacity(0.22), lineWidth: 0.5))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(ALColor.goldHell)
+                }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [ALColor.nachtOben.opacity(0.95), ALColor.nachtUnten.opacity(0.98)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.35), radius: 14, y: 7)
         }
-        .buttonStyle(OrbPressStyle())
-        .onAppear {
-            spin = true
-            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
-                breathe = true
-            }
-        }
-        .accessibilityLabel("Composer — Lerninhalte zuweisen")
+        .buttonStyle(GrünbuchTastenStyle(radius: 24))
+        .onAppear { spin = true }
     }
 }
 
@@ -655,33 +690,60 @@ struct GrünbuchToolTile<Illustration: View>: View {
     @ViewBuilder var illustration: Illustration
 
     var body: some View {
+        // Abendgarderobe (22.07.): nachtgrüne Karte, Serifentitel mit
+        // Goldstrich, goldener Pfeil-Chip unten rechts
         Button(action: action) {
-            VStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 10) {
                 illustration
                     .frame(height: 68)
                     .frame(maxWidth: .infinity)
 
-                VStack(spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.system(size: 16, weight: .bold, design: .serif))
+                        .font(.system(size: 17, weight: .bold, design: .serif))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
+                    Rectangle()
+                        .fill(ALColor.goldHell.opacity(0.85))
+                        .frame(width: 30, height: 1.5)
                     Text(subtitle)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.6))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.vertical, 16)
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
-            .alGlass(tint: tint.opacity(0.28), interactive: true, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [ALColor.nachtOben.opacity(0.95), ALColor.nachtUnten.opacity(0.98)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5)
+                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
             )
+            .overlay(alignment: .bottomTrailing) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.07))
+                        .overlay(Circle().strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(ALColor.goldHell)
+                }
+                .padding(10)
+            }
+            .shadow(color: .black.opacity(0.30), radius: 12, y: 6)
         }
         .buttonStyle(GrünbuchTastenStyle(radius: 22))
     }
