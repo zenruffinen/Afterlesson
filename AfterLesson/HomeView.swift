@@ -32,6 +32,7 @@ struct HomeView: View {
     @State private var inboxSelectedLessonIDs: Set<UUID> = []
     @State private var inboxSelectedSessionIDs: Set<UUID> = []
     @State private var showMessageArchive = false
+    @State private var showProInbox = false   // Nachrichten-Eingang hinter der Glocke
     @State private var heroFlight = 0     // Ballflug in der Hero-Grafik auslösen
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
@@ -96,6 +97,9 @@ struct HomeView: View {
         .sheet(isPresented: $showMessageArchive) {
             MessageArchiveSheet()
         }
+        .sheet(isPresented: $showProInbox) {
+            ProInboxSheet()
+        }
         .onChange(of: showQuickCapture) { _, isShowing in
             if !isShowing { quickCaptureStudentID = nil }
         }
@@ -159,12 +163,14 @@ struct HomeView: View {
 
     var headerBar: some View {
         GrünbuchHomeHeader(roleLabel: roleLabel, bellCount: bellCount) {
-            // Antippen springt dorthin, wo das Frische liegt — und beim
-            // Pro gilt: gesehen ist gesehen, der Zähler leert sich
+            // Pro: Glocke öffnet den Nachrichten-Eingang (gesehen =
+            // Zähler leert sich). Schüler: bleibt beim Start-Eingang.
             if isTeacher {
                 bellSeenTime = Date().timeIntervalSince1970
+                showProInbox = true
+            } else {
+                selectedTab = .home
             }
-            selectedTab = isTeacher ? .students : .home
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)

@@ -366,6 +366,81 @@ struct StudentMessageSheet: View {
     }
 }
 
+// MARK: - Nachrichten-Eingang des Pros (Glocke)
+
+/// Alle Antworten der Schüler auf einen Blick — neueste zuerst.
+/// Öffnet sich über die Glocke auf dem Startbildschirm.
+struct ProInboxSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+
+    private struct Eintrag: Identifiable {
+        let id: UUID
+        let studentName: String
+        let avatarColor: String
+        let entry: StudentFeedbackEntry
+    }
+
+    private var eintraege: [Eintrag] {
+        store.students
+            .flatMap { student in
+                student.feedbackHistory.map {
+                    Eintrag(id: $0.id, studentName: student.name,
+                            avatarColor: student.avatarColor, entry: $0)
+                }
+            }
+            .sorted { $0.entry.date > $1.entry.date }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if eintraege.isEmpty {
+                    Text("Noch keine Nachrichten — Antworten deiner Schüler landen hier.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(eintraege) { e in
+                        HStack(alignment: .top, spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(hex: e.avatarColor))
+                                    .frame(width: 36, height: 36)
+                                Text(String(e.studentName.prefix(1)).uppercased())
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(.white)
+                            }
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 6) {
+                                    Text(e.studentName)
+                                        .font(.subheadline.bold())
+                                    Text(e.entry.date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Text(e.entry.message)
+                                    .font(.subheadline)
+                            }
+                        }
+                        .padding(.vertical, 3)
+                    }
+                }
+            }
+            .navigationTitle("Nachrichten")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { dismiss() }
+                }
+            }
+            // Beim Öffnen frisch aus der Cloud nachschauen
+            .task {
+                _ = await store.importCloudResponses()
+            }
+        }
+    }
+}
+
 // MARK: - Archiv der Mitteilungen (Schüler)
 
 struct MessageArchiveSheet: View {
