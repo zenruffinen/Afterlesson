@@ -33,7 +33,7 @@ struct NotesView: View {
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemGroupedBackground))
+                    
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 10) {
@@ -54,7 +54,7 @@ struct NotesView: View {
                         .padding(16)
                         .padding(.bottom, 30)
                     }
-                    .background(Color(.systemGroupedBackground))
+                    
                 }
             }
             .gruenbuchSeite()
@@ -135,7 +135,7 @@ struct NoteRowView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(ALColor.nachtOben.opacity(0.55))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
@@ -173,7 +173,7 @@ struct NoteEditorView: View {
                         Text("Titel").font(.caption.bold()).foregroundStyle(.secondary)
                         TextField("Kurze Beschreibung…", text: $title)
                             .padding(12)
-                            .background(Color(.secondarySystemGroupedBackground))
+                            .background(ALColor.nachtOben.opacity(0.55))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
 
@@ -183,7 +183,7 @@ struct NoteEditorView: View {
                         TextEditor(text: $text)
                             .frame(minHeight: 100)
                             .padding(8)
-                            .background(Color(.secondarySystemGroupedBackground))
+                            .background(ALColor.nachtOben.opacity(0.55))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
 
@@ -254,7 +254,7 @@ struct NoteEditorView: View {
                                                     .font(.subheadline)
                                                     .padding(.horizontal, 14)
                                                     .padding(.vertical, 8)
-                                                    .background(selectedStudentID == student.id ? ALColor.green : Color(.secondarySystemGroupedBackground))
+                                                    .background(selectedStudentID == student.id ? ALColor.green : ALColor.nachtOben.opacity(0.55))
                                                     .foregroundStyle(selectedStudentID == student.id ? .white : .primary)
                                                     .clipShape(Capsule())
                                             }
@@ -280,7 +280,7 @@ struct NoteEditorView: View {
                                                     .font(.subheadline)
                                                     .padding(.horizontal, 14)
                                                     .padding(.vertical, 8)
-                                                    .background(selectedGroupID == group.id ? Color(hex: group.colorHex) : Color(.secondarySystemGroupedBackground))
+                                                    .background(selectedGroupID == group.id ? Color(hex: group.colorHex) : ALColor.nachtOben.opacity(0.55))
                                                     .foregroundStyle(selectedGroupID == group.id ? .white : .primary)
                                                     .clipShape(Capsule())
                                             }
@@ -295,7 +295,7 @@ struct NoteEditorView: View {
                 .padding(16)
                 .padding(.bottom, 30)
             }
-            .background(Color(.systemGroupedBackground))
+            
             .navigationTitle(isEditing ? "Notiz bearbeiten" : "Neue Notiz")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { loadExisting() }

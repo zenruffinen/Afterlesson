@@ -314,7 +314,7 @@ struct StudentAfterLessonView: View {
             Spacer()
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(ALColor.nachtOben.opacity(0.55))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
@@ -358,7 +358,7 @@ struct StudentFeedbackSheet: View {
                                         .background(
                                             selectedKind == kind
                                                 ? ALColor.gold.opacity(0.2)
-                                                : Color(.secondarySystemGroupedBackground),
+                                                : ALColor.nachtOben.opacity(0.55),
                                             in: Capsule()
                                         )
                                         .foregroundStyle(selectedKind == kind ? ALColor.gold : .primary)

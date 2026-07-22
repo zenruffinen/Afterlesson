@@ -114,7 +114,7 @@ struct LessonCardView: View {
                 }
                 .padding(10)
             }
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(ALColor.nachtOben.opacity(0.55))
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
         }
@@ -190,7 +190,7 @@ struct LessonDetailView: View {
             }
         }
         .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(ALColor.nachtOben.opacity(0.55))
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
@@ -220,7 +220,7 @@ struct LessonDetailView: View {
                                 .font(.body)
                         }
                         .padding(16)
-                        .background(Color(.secondarySystemGroupedBackground))
+                        .background(ALColor.nachtOben.opacity(0.55))
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
 
@@ -268,7 +268,7 @@ struct LessonDetailView: View {
                 .padding(16)
                 .padding(.bottom, 20)
             }
-            .background(Color(.systemGroupedBackground))
+            
             .navigationTitle(currentLesson.title)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -477,7 +477,7 @@ struct LessonDetailView: View {
             }
         }
         .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(ALColor.nachtOben.opacity(0.55))
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
@@ -554,7 +554,7 @@ struct LessonRowView: View {
             Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
         }
         .padding(12)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(ALColor.nachtOben.opacity(0.55))
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
@@ -639,7 +639,7 @@ struct LessonEditorView: View {
                                     } label: {
                                         ZStack {
                                             RoundedRectangle(cornerRadius: 8)
-                                                .fill(selectedIcon == icon ? ALColor.green : Color(.tertiarySystemFill))
+                                                .fill(selectedIcon == icon ? ALColor.green : ALColor.nachtOben.opacity(0.75))
                                                 .frame(height: 40)
                                             Image(systemName: icon)
                                                 .font(.system(size: 16))
@@ -825,7 +825,7 @@ struct LessonEditorView: View {
                 .padding(16)
                 .padding(.bottom, 30)
             }
-            .background(Color(.systemGroupedBackground))
+            
             .navigationTitle(isEditing ? "Lektion bearbeiten" : "Neue Lektion")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { loadExisting() }
@@ -892,7 +892,7 @@ struct LessonEditorView: View {
         content()
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(ALColor.nachtOben.opacity(0.55))
             .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
@@ -1021,7 +1021,7 @@ struct ContentPoolPickerView: View {
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            
             .navigationTitle("Inhalte auswählen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1066,7 +1066,7 @@ struct ContentPoolPickerView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(isSelected ? color : Color(.secondarySystemGroupedBackground))
+            .background(isSelected ? color : ALColor.nachtOben.opacity(0.55))
             .foregroundStyle(isSelected ? .white : .primary)
             .clipShape(Capsule())
         }

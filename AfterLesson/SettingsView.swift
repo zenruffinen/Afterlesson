@@ -167,7 +167,7 @@ struct HandoffInfoSection: View {
             .padding(.vertical, 4)
         } header: {
             Label("settings.handoff.title", systemImage: "airdrop")
-        }
+        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
     }
 }
 
@@ -227,7 +227,7 @@ struct SettingsView: View {
                     Text("settings.about_header")
                 } footer: {
                     Text("settings.about_footer")
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
                 HandoffInfoSection()
 
@@ -253,7 +253,7 @@ struct SettingsView: View {
                     Text("settings.backup_header")
                 } footer: {
                     Text("settings.backup_footer")
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
                 GrünbuchCloudSection()
 
@@ -290,7 +290,7 @@ struct SettingsView: View {
                     if store.lockEnabled {
                         Text("settings.lock_footer")
                     }
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
                 Section {
                     NavigationLink {
@@ -298,7 +298,7 @@ struct SettingsView: View {
                     } label: {
                         Label("settings.privacy", systemImage: "hand.raised.fill")
                     }
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
                 Section {
                     GrünbuchDidYouKnowCard()
@@ -309,7 +309,7 @@ struct SettingsView: View {
                     Label("settings.privacy_footer", systemImage: "lock.shield.fill")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
             }
             .gruenbuchSeite()
             .navigationTitle("")
@@ -411,7 +411,7 @@ struct SettingsView: View {
                             Text("settings.backup_password_enter_header")
                         } footer: {
                             Text("settings.backup_password_enter_footer")
-                        }
+                        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
                         Section {
                             Toggle(isOn: $importMerge) {
@@ -427,7 +427,7 @@ struct SettingsView: View {
                                  ? NSLocalizedString("settings.backup_merge_safe", comment: "")
                                  : NSLocalizedString("settings.backup_merge_replace", comment: ""))
                                 .foregroundStyle(importMerge ? .green : .orange)
-                        }
+                        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                     }
                     .gruenbuchSeite()
             .navigationTitle("settings.backup_restore_title")
@@ -527,12 +527,12 @@ struct SettingsView: View {
                     Text(header)
                 } footer: {
                     Text(footer)
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                 if !error.isEmpty {
                     Section {
                         Text(error)
                             .foregroundStyle(.red)
-                    }
+                    }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                 }
             }
             .gruenbuchSeite()

@@ -723,7 +723,7 @@ struct ClassContentView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(isSelected ? color : Color(.secondarySystemGroupedBackground))
+            .background(isSelected ? color : ALColor.nachtOben.opacity(0.55))
             .foregroundStyle(isSelected ? .white : .primary)
             .clipShape(Capsule())
         }
@@ -764,7 +764,7 @@ struct ClassContentView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(isSelected ? ALColor.gold : Color(.secondarySystemGroupedBackground))
+            .background(isSelected ? ALColor.gold : ALColor.nachtOben.opacity(0.55))
             .foregroundStyle(isSelected ? .white : .primary)
             .clipShape(Capsule())
         }
@@ -1097,7 +1097,7 @@ struct ContentClassEditorSheet: View {
                                         RoundedRectangle(cornerRadius: 8)
                                             .fill(selectedIcon == icon
                                                   ? Color(hex: selectedColor)
-                                                  : Color(.tertiarySystemFill))
+                                                  : ALColor.nachtOben.opacity(0.75))
                                             .frame(height: 44)
                                         Image(systemName: icon)
                                             .font(.system(size: 17))
@@ -1406,7 +1406,7 @@ struct ContentItemDetailView: View {
                     .onSubmit { saveTitle() }
             }
             .padding(10)
-            .background(Color(.tertiarySystemFill))
+            .background(ALColor.nachtOben.opacity(0.75))
             .clipShape(RoundedRectangle(cornerRadius: 10))
 
             HStack(spacing: 10) {
@@ -1588,7 +1588,7 @@ struct AddToLessonSheet: View {
                             Text("Wähle eine oder mehrere Lektionen — „\(item.title)“ wird dort als weiterer Inhalt aus der Bibliothek ergänzt, auch wenn die Lektion bereits einem Schüler zugewiesen ist.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                        }
+                        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                         ForEach(store.folders.sorted(by: { $0.sortIndex < $1.sortIndex })) { folder in
                             let folderLessons = store.lessonsIn(folder)
                             if !folderLessons.isEmpty {
@@ -1615,7 +1615,7 @@ struct AddToLessonSheet: View {
                                         .buttonStyle(.plain)
                                         .disabled(alreadyIn)
                                     }
-                                }
+                                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                             }
                         }
                     }
@@ -1668,7 +1668,7 @@ struct TagEditorSheet: View {
                     }
                 } footer: {
                     Text("Inhalte mit demselben Thema lassen sich in der Bibliothek gemeinsam anzeigen und beim Zusammenstellen einer Lektion leichter wiederfinden.")
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
                 if !themes.isEmpty {
                     Section("Zugeordnet") {
@@ -1682,7 +1682,7 @@ struct TagEditorSheet: View {
                         .onDelete { offsets in
                             themes.remove(atOffsets: offsets)
                         }
-                    }
+                    }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                 }
 
                 if !availableSuggestions.isEmpty {
@@ -1699,7 +1699,7 @@ struct TagEditorSheet: View {
                                 }
                             }
                         }
-                    }
+                    }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                 }
             }
             .navigationTitle("Themen")

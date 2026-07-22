@@ -165,7 +165,7 @@ struct VoiceInputField: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(.secondarySystemGroupedBackground))
+                    .fill(ALColor.nachtOben.opacity(0.55))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
                             .strokeBorder(isActive ? color.opacity(0.6) : Color.clear, lineWidth: 1.5)
@@ -284,7 +284,7 @@ struct QuickCaptureSheet: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .foregroundStyle(highlighted ? .white : .primary)
-                .background(highlighted ? ALColor.green : Color(.tertiarySystemFill))
+                .background(highlighted ? ALColor.green : ALColor.nachtOben.opacity(0.75))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10)
@@ -319,7 +319,7 @@ struct QuickCaptureSheet: View {
                                 Circle()
                                     .fill(selectedStudent != nil
                                           ? Color(hex: selectedStudent!.avatarColor)
-                                          : Color(.tertiarySystemFill))
+                                          : ALColor.nachtOben.opacity(0.75))
                                     .frame(width: 42, height: 42)
                                 if let s = selectedStudent {
                                     Text(String(s.name.prefix(1)).uppercased())
@@ -345,7 +345,7 @@ struct QuickCaptureSheet: View {
                                 .foregroundStyle(.secondary)
                         }
                         .padding(14)
-                        .background(Color(.secondarySystemGroupedBackground))
+                        .background(ALColor.nachtOben.opacity(0.55))
                         .cornerRadius(14)
                     }
                     .buttonStyle(.plain)
@@ -370,7 +370,7 @@ struct QuickCaptureSheet: View {
                             .lineLimit(2...4)
                             .focused($quickNoteFocused)
                             .padding(12)
-                            .background(Color(.secondarySystemGroupedBackground))
+                            .background(ALColor.nachtOben.opacity(0.55))
                             .cornerRadius(10)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
@@ -488,7 +488,7 @@ struct QuickCaptureSheet: View {
                 .padding(16)
                 .padding(.bottom, 20)
             }
-            .background(Color(.systemGroupedBackground))
+            
             .navigationTitle("Stunde erfassen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -634,7 +634,7 @@ struct QuickCaptureSheet: View {
                         }
                     }
                     .buttonStyle(.plain)
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                 Section("Schüler") {
                     ForEach(store.students) { student in
                         Button {
@@ -660,7 +660,7 @@ struct QuickCaptureSheet: View {
                         }
                         .buttonStyle(.plain)
                     }
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
             }
             .listStyle(.insetGrouped)
             .gruenbuchSeite()
@@ -793,7 +793,7 @@ struct SessionDetailSheet: View {
                 .padding(16)
                 .padding(.bottom, 20)
             }
-            .background(Color(.systemGroupedBackground))
+            
             .navigationTitle("Trainingsprotokoll")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -843,7 +843,7 @@ struct SessionDetailSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(ALColor.nachtOben.opacity(0.55))
         .cornerRadius(12)
     }
 }

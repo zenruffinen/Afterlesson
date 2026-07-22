@@ -1128,7 +1128,7 @@ struct ComposerSheet: View {
                                     .foregroundStyle(ALColor.green)
                                     .frame(maxWidth: .infinity)
                             }
-                        }
+                        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                     }
                 }
 
@@ -1139,7 +1139,7 @@ struct ComposerSheet: View {
                         Label("Wähle zuerst den Schüler — dann öffnen sich die Lerninhalte.", systemImage: "arrow.up")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                    }
+                    }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                 } else if studentsCollapsed {
                     stepHeader(step: 2, title: "Inhalte aus der Bibliothek", icon: "books.vertical.fill")
                     accordionSections
@@ -1232,7 +1232,7 @@ struct ComposerSheet: View {
                 Image(systemName: "tray.and.arrow.down.fill")
                     .foregroundStyle(ALColor.gold)
             }
-        }
+        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
     }
 
     private func stepHeader(step: Int, title: LocalizedStringKey, icon: String) -> some View {
@@ -1250,7 +1250,7 @@ struct ComposerSheet: View {
                     .foregroundStyle(ALColor.green)
             }
             .textCase(nil)
-        }
+        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
     }
 
     /// Die gewählten Schüler als Chips — antippen entfernt,
@@ -1296,7 +1296,7 @@ struct ComposerSheet: View {
                 .font(.subheadline.bold())
                 .foregroundStyle(ALColor.green)
                 .textCase(nil)
-        }
+        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
     }
 
     private var studentsSection: some View {
@@ -1353,13 +1353,13 @@ struct ComposerSheet: View {
             if !store.students.isEmpty && !isSupplemental {
                 Text("Wähle einen oder mehrere Schüler für die Zuweisung.")
             }
-        }
+        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
     }
 
     private var dateSection: some View {
         Section {
             DatePicker("Datum", selection: $assignmentDate, displayedComponents: .date)
-        }
+        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
     }
 
     private var noteSection: some View {
@@ -1373,7 +1373,7 @@ struct ComposerSheet: View {
         } footer: {
             Text("Optional — wird als Textdatei mit dem Paket geteilt.")
                 .font(.caption2)
-        }
+        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
     }
 
     // MARK: Akkordeon — die Bibliothek als aufklappbare Gruppen (Hans, 21.07.)
@@ -1432,7 +1432,7 @@ struct ComposerSheet: View {
                 Text("Importiere wiederverwendbaren Lernstoff im Bibliothek-Tab (Film, Bild, Text, PDF, Audio).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
+            }.listRowBackground(ALColor.nachtOben.opacity(0.55))
         } else {
             ForEach(composerGroups) { group in
                 accordionSection(group)
@@ -1445,7 +1445,7 @@ struct ComposerSheet: View {
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
             }
         }
     }
@@ -1497,7 +1497,7 @@ struct ComposerSheet: View {
                     ForEach(sub.items) { poolItemRow($0) }
                 }
             }
-        }
+        }.listRowBackground(ALColor.nachtOben.opacity(0.55))
     }
 
     /// "Alle wählen"-Zeile für eine geöffnete Gruppe.
@@ -1652,7 +1652,7 @@ struct SessionRowView: View {
                     .foregroundStyle(.tertiary)
             }
             .padding(12)
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(ALColor.nachtOben.opacity(0.55))
             .cornerRadius(12)
         }
         .buttonStyle(.plain)

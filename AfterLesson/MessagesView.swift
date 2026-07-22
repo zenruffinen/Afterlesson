@@ -409,8 +409,10 @@ struct NachrichtenEingangSheet: View {
             List {
                 if isTeacher {
                     proEingang
+                        .listRowBackground(ALColor.nachtOben.opacity(0.55))
                 } else {
                     schuelerEingang
+                        .listRowBackground(ALColor.nachtOben.opacity(0.55))
                 }
             }
             .gruenbuchSeite()
@@ -534,6 +536,7 @@ struct MessageArchiveSheet: View {
                     Text("Das Archiv ist leer.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .listRowBackground(ALColor.nachtOben.opacity(0.55))
                 } else {
                     ForEach(archived) { message in
                         VStack(alignment: .leading, spacing: 4) {
@@ -563,6 +566,7 @@ struct MessageArchiveSheet: View {
                         }
                         .padding(.vertical, 4)
                     }
+                    .listRowBackground(ALColor.nachtOben.opacity(0.55))
                 }
             }
             .gruenbuchSeite()

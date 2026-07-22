@@ -218,7 +218,7 @@ struct StudentEditorSheet: View {
                             Text("Name").font(.caption.bold()).foregroundStyle(.secondary).padding(.horizontal, 4)
                             TextField("Vorname Nachname", text: $name)
                                 .padding(12)
-                                .background(Color(.secondarySystemGroupedBackground))
+                                .background(ALColor.nachtOben.opacity(0.55))
                                 .cornerRadius(10)
                         }
 
@@ -228,7 +228,7 @@ struct StudentEditorSheet: View {
                             TextField("+41 79 000 00 00", text: $phone)
                                 .keyboardType(.phonePad)
                                 .padding(12)
-                                .background(Color(.secondarySystemGroupedBackground))
+                                .background(ALColor.nachtOben.opacity(0.55))
                                 .cornerRadius(10)
                         }
 
@@ -238,7 +238,7 @@ struct StudentEditorSheet: View {
                             TextField("z.B. 18.4", text: $handicap)
                                 .keyboardType(.decimalPad)
                                 .padding(12)
-                                .background(Color(.secondarySystemGroupedBackground))
+                                .background(ALColor.nachtOben.opacity(0.55))
                                 .cornerRadius(10)
                         }
 
@@ -247,14 +247,14 @@ struct StudentEditorSheet: View {
                             Text("Geburtstag").font(.caption.bold()).foregroundStyle(.secondary).padding(.horizontal, 4)
                             Toggle("Geburtstag angeben", isOn: $hasBirthday)
                                 .padding(12)
-                                .background(Color(.secondarySystemGroupedBackground))
+                                .background(ALColor.nachtOben.opacity(0.55))
                                 .cornerRadius(10)
                             if hasBirthday {
                                 DatePicker("", selection: $birthday, displayedComponents: .date)
                                     .datePickerStyle(.wheel)
                                     .labelsHidden()
                                     .frame(maxWidth: .infinity)
-                                    .background(Color(.secondarySystemGroupedBackground))
+                                    .background(ALColor.nachtOben.opacity(0.55))
                                     .cornerRadius(10)
                             }
                         }
@@ -283,7 +283,7 @@ struct StudentEditorSheet: View {
                 .padding(16)
                 .padding(.bottom, 30)
             }
-            .background(Color(.systemGroupedBackground))
+            
             .navigationTitle(isEditing ? "Schüler bearbeiten" : "Neuer Schüler")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { loadExisting() }
@@ -390,7 +390,7 @@ struct StudentDetailView: View {
                     else { verlaufTab }
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 // Stift für beide: Der Pro pflegt seine Schüler,
@@ -570,7 +570,7 @@ struct StudentDetailView: View {
                 } header: {
                     Label("Wichtige Nachrichten vom Pro", systemImage: "megaphone.fill")
                         .foregroundStyle(ALColor.gold)
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
             }
 
             // Rückkanal: Der Schüler antwortet seinem Pro über die Cloud
@@ -613,7 +613,7 @@ struct StudentDetailView: View {
                 } header: {
                     Label("cloud.response_header", systemImage: "arrowshape.turn.up.left.fill")
                         .foregroundStyle(ALColor.green)
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
             }
 
             // Kontakt — Telefonnummer braucht nur der Pro
@@ -662,7 +662,7 @@ struct StudentDetailView: View {
                 }
             } header: {
                 Label("Kontakt", systemImage: "person.text.rectangle")
-            }
+            }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
             // Grünbuch Cloud: Einladungscode (nur Lehrer)
             if isTeacher {
@@ -747,7 +747,7 @@ struct StudentDetailView: View {
                         .foregroundStyle(ALColor.green)
                 } footer: {
                     Text("cloud.invite_footer")
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
             }
 
             // Pro-Notizen (nur Lehrer)
@@ -762,7 +762,7 @@ struct StudentDetailView: View {
                 } header: {
                     Label("Pro-Notizen (nur für dich)", systemImage: "lock.fill")
                         .foregroundStyle(ALColor.green)
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
             }
 
             // Letzte Schüler-Rückmeldung (wird per Import aktualisiert)
@@ -779,7 +779,7 @@ struct StudentDetailView: View {
                 }
             } header: {
                 Label("Letzte Rückmeldung", systemImage: "text.bubble")
-            }
+            }.listRowBackground(ALColor.nachtOben.opacity(0.55))
         }
         .listStyle(.insetGrouped)
             .gruenbuchSeite()
@@ -834,7 +834,7 @@ struct StudentDetailView: View {
             } header: {
                 Label(String(format: String(localized: "Nachbesprechungen (%d)"), currentStudent.sentHistory.count), systemImage: "paperplane.fill")
                     .foregroundStyle(Color(hex: "1565C0"))
-            }
+            }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
             // Gesendete Mitteilungen ("Zettel vom Pro") mit Gelesen-Häkchen
             if isTeacher {
@@ -867,7 +867,7 @@ struct StudentDetailView: View {
                     } header: {
                         Label("Mitteilungen", systemImage: "envelope.fill")
                             .foregroundStyle(ALColor.gold)
-                    }
+                    }.listRowBackground(ALColor.nachtOben.opacity(0.55))
                 }
             }
 
@@ -892,7 +892,7 @@ struct StudentDetailView: View {
                 } header: {
                     Label("Zugewiesene Lektionen (\(assignedLessons.count))", systemImage: "rectangle.stack.fill")
                         .foregroundStyle(ALColor.green)
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
             }
 
             Section {
@@ -908,7 +908,7 @@ struct StudentDetailView: View {
             } header: {
                 Label("Live-Aufnahmen (\(liveCaptures.count))", systemImage: "camera.fill")
                     .foregroundStyle(ALColor.gold)
-            }
+            }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
             Section {
                 if trainingSessions.isEmpty {
@@ -964,7 +964,7 @@ struct StudentDetailView: View {
             } header: {
                 Label("Stundenprotokolle (\(trainingSessions.count))", systemImage: "figure.golf")
                     .foregroundStyle(ALColor.green)
-            }
+            }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
             if !currentStudent.feedbackHistory.isEmpty {
                 Section {
@@ -990,7 +990,7 @@ struct StudentDetailView: View {
                 } header: {
                     Label("Rückmeldungen", systemImage: "text.bubble.fill")
                         .foregroundStyle(ALColor.gold)
-                }
+                }.listRowBackground(ALColor.nachtOben.opacity(0.55))
             }
         }
         .listStyle(.insetGrouped)
