@@ -329,45 +329,53 @@ struct GrünbuchFairwayGraphic: View {
     @State private var sway = false
     @State private var flug: CGFloat = 0        // 0…1 entlang der Flugbahn
     @State private var ballSichtbar = false
+    @State private var kenBurns = false         // langsame Kamerafahrt im Foto
 
     var body: some View {
         // Abendgarderobe (22.07.): Nachtgrüne Bühne mit Schlagzeile links,
         // Golfer, gestrichelter Flugbahn und Fahne rechts.
         ZStack {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [ALColor.nachtOben.opacity(0.92), ALColor.nachtUnten.opacity(0.96)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+            // Das Bühnenbild: der Platz im Abendlicht (Hans' Foto, 22.07.)
+            // mit langsamer Ken-Burns-Kamerafahrt und dunklem Schleier
+            // links + unten, damit die Schlagzeile strahlen kann.
+            Image("HeroPlatz")
+                .resizable()
+                .scaledToFill()
+                .scaleEffect(kenBurns ? 1.10 : 1.02)
+                .animation(.easeInOut(duration: 19).repeatForever(autoreverses: true), value: kenBurns)
+                .frame(maxWidth: .infinity)
+                .frame(height: 210)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    ALColor.nachtUnten.opacity(0.88),
+                                    ALColor.nachtUnten.opacity(0.45),
+                                    ALColor.nachtUnten.opacity(0.05)
+                                ],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.5)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.clear, ALColor.nachtUnten.opacity(0.55)],
+                                startPoint: .center, endPoint: .bottom
+                            )
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5)
                 )
 
             GeometryReader { geo in
                 let w = geo.size.width
                 let h = geo.size.height
-
-                // Sanfte Hügel am Fuß der Bühne
-                Path { path in
-                    path.move(to: CGPoint(x: 0, y: h * 0.82))
-                    path.addQuadCurve(
-                        to: CGPoint(x: w, y: h * 0.78),
-                        control: CGPoint(x: w * 0.5, y: h * 0.64)
-                    )
-                    path.addLine(to: CGPoint(x: w, y: h))
-                    path.addLine(to: CGPoint(x: 0, y: h))
-                    path.closeSubpath()
-                }
-                .fill(
-                    LinearGradient(
-                        colors: [ALColor.fairway.opacity(0.30), ALColor.nachtUnten.opacity(0.2)],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                )
 
                 // Schlagzeile (links)
                 VStack(alignment: .leading, spacing: 6) {
@@ -396,7 +404,7 @@ struct GrünbuchFairwayGraphic: View {
                     let phase = -CGFloat(ctx.date.timeIntervalSinceReferenceDate * 10)
                         .truncatingRemainder(dividingBy: 9)
                     Path { path in
-                        path.move(to: CGPoint(x: w * 0.62, y: h * 0.60))
+                        path.move(to: CGPoint(x: w * 0.66, y: h * 0.64))
                         path.addQuadCurve(
                             to: CGPoint(x: w * 0.88, y: h * 0.34),
                             control: CGPoint(x: w * 0.76, y: h * 0.10)
@@ -422,14 +430,14 @@ struct GrünbuchFairwayGraphic: View {
                     .font(.system(size: 52, weight: .thin))
                     .foregroundStyle(.white.opacity(0.92))
                     .shadow(color: .black.opacity(0.4), radius: 10, y: 5)
-                    .position(x: w * 0.625, y: h * 0.56)
+                    .position(x: w * 0.665, y: h * 0.60)
                     .rotationEffect(.degrees(sway ? -1.5 : 1.5))
                     .animation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true), value: sway)
 
                 // Der Ball fliegt einmal die Bahn entlang, dann Ruhe.
                 if ballSichtbar {
-                    let startX = w * 0.62, endX = w * 0.88
-                    let startY = h * 0.60, endY = h * 0.34
+                    let startX = w * 0.66, endX = w * 0.88
+                    let startY = h * 0.64, endY = h * 0.34
                     let bx = startX + (endX - startX) * flug
                     let by = startY + (endY - startY) * flug - sin(.pi * flug) * h * 0.30
                     Circle()
@@ -445,6 +453,7 @@ struct GrünbuchFairwayGraphic: View {
         .frame(height: 210)
         .onAppear {
             sway = true
+            kenBurns = true
             ballFliegt()
         }
         .onChange(of: flightTrigger) { _, _ in ballFliegt() }
