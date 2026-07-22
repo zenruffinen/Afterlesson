@@ -1273,8 +1273,14 @@ struct ComposerSheet: View {
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .background(Capsule().fill(ALColor.green))
-                        .foregroundStyle(.white)
+                        .background(
+                            Capsule().fill(
+                                LinearGradient(colors: [ALColor.nachtOben, ALColor.nachtUnten],
+                                               startPoint: .top, endPoint: .bottom)
+                            )
+                        )
+                        .overlay(Capsule().strokeBorder(ALColor.goldHell.opacity(0.8), lineWidth: 1.2))
+                        .foregroundStyle(ALColor.goldHell)
                     }
                     .buttonStyle(.plain)
                 }

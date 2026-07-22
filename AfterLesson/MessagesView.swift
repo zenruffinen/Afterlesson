@@ -234,9 +234,18 @@ struct MessageComposeSheet: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(
-                Capsule().fill(isOn ? ALColor.green : ALColor.nachtOben.opacity(0.55))
+                Capsule().fill(
+                    isOn
+                        ? AnyShapeStyle(LinearGradient(colors: [ALColor.nachtOben, ALColor.nachtUnten],
+                                                       startPoint: .top, endPoint: .bottom))
+                        : AnyShapeStyle(ALColor.nachtOben.opacity(0.55))
+                )
             )
-            .foregroundStyle(isOn ? .white : .primary)
+            .overlay(
+                Capsule().strokeBorder(isOn ? ALColor.goldHell.opacity(0.8) : Color.white.opacity(0.14),
+                                       lineWidth: isOn ? 1.2 : 0.5)
+            )
+            .foregroundStyle(isOn ? ALColor.goldHell : .primary)
         }
         .buttonStyle(.plain)
     }
