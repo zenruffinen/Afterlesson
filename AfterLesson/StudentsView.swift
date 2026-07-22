@@ -102,6 +102,7 @@ struct StudentsView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+            .gruenbuchSeite()
                 }
             }
             .navigationTitle(isTeacher ? "Schüler" : String(localized: "Mein Profil"))
@@ -781,6 +782,7 @@ struct StudentDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
+            .gruenbuchSeite()
     }
 
     // MARK: Tab 1 — Verlauf (alles Gesendete, Stunden, Aufnahmen, Rückmeldungen)
@@ -992,6 +994,7 @@ struct StudentDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
+            .gruenbuchSeite()
     }
 
     @ViewBuilder

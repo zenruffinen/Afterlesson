@@ -116,7 +116,7 @@ struct MessageComposeSheet: View {
                                 .padding(.vertical, 10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(.secondarySystemBackground))
+                                        .fill(ALColor.nachtOben.opacity(0.55))
                                 )
                             }
                             .buttonStyle(.plain)
@@ -133,7 +133,7 @@ struct MessageComposeSheet: View {
                             .padding(12)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.secondarySystemBackground))
+                                    .fill(ALColor.nachtOben.opacity(0.55))
                             )
                     }
                 }
@@ -163,6 +163,7 @@ struct MessageComposeSheet: View {
                 .padding(.vertical, 10)
                 .background(.ultraThinMaterial)
             }
+            .gruenbuchSeite()
             .navigationTitle("Mitteilung")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -233,7 +234,7 @@ struct MessageComposeSheet: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(
-                Capsule().fill(isOn ? ALColor.green : Color(.secondarySystemBackground))
+                Capsule().fill(isOn ? ALColor.green : ALColor.nachtOben.opacity(0.55))
             )
             .foregroundStyle(isOn ? .white : .primary)
         }
@@ -333,7 +334,7 @@ struct StudentMessageSheet: View {
                                 .padding(.vertical, 12)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(.secondarySystemBackground))
+                                        .fill(ALColor.nachtOben.opacity(0.55))
                                 )
                             }
                             .buttonStyle(.plain)
@@ -343,6 +344,7 @@ struct StudentMessageSheet: View {
                 }
             }
             .padding(20)
+            .gruenbuchSeite()
             .navigationTitle("Mitteilung")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -411,6 +413,7 @@ struct NachrichtenEingangSheet: View {
                     schuelerEingang
                 }
             }
+            .gruenbuchSeite()
             .navigationTitle("Nachrichten")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -562,6 +565,7 @@ struct MessageArchiveSheet: View {
                     }
                 }
             }
+            .gruenbuchSeite()
             .navigationTitle("Archiv")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

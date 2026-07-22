@@ -1149,6 +1149,7 @@ struct ComposerSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .gruenbuchSeite()
             .navigationTitle(isSupplemental ? "Nachreichung" : "Composer")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {

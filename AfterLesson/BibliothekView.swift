@@ -68,7 +68,7 @@ struct DatenpoolView: View {
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .gruenbuchSeite()
             .navigationTitle("Bibliothek")
             .navigationSubtitle("Lernstoff & Tipps — wiederverwendbar")
             .searchable(text: $searchText, prompt: "Inhalte suchen")
@@ -229,8 +229,7 @@ struct DatenpoolView: View {
                     .foregroundStyle(ALColor.gold)
             }
             .padding(14)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .nachtKarte(radius: 16)
         }
         .buttonStyle(.plain)
     }
@@ -259,8 +258,7 @@ struct DatenpoolView: View {
                     .foregroundStyle(ALColor.green)
             }
             .padding(14)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .nachtKarte(radius: 16)
         }
         .buttonStyle(.plain)
     }
@@ -341,7 +339,7 @@ struct DatenpoolView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+        .gruenbuchSeite()
     }
 }
 
@@ -391,8 +389,7 @@ struct ContentClassTile: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .nachtKarte(radius: 12)
     }
 }
 
@@ -489,7 +486,7 @@ struct ClassContentView: View {
                 }
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .gruenbuchSeite()
         .navigationTitle(contentClass?.title ?? "Eingang")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -638,7 +635,7 @@ struct ClassContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+        .gruenbuchSeite()
     }
 
     // MARK: Untergruppen-Grid (Obergruppe zeigt ihre Untergruppen)
@@ -696,8 +693,7 @@ struct ClassContentView: View {
             Spacer()
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .nachtKarte(radius: 16)
     }
 
     // MARK: Filter-Leiste
@@ -1026,8 +1022,7 @@ struct ContentClassEditorSheet: View {
                             .padding(.horizontal, 4)
                         TextField("z.B. Abschlag, Putten, Theorie", text: $title)
                             .padding(12)
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(10)
+                            .nachtKarte(radius: 10)
                     }
 
                     // Obergruppe (z.B. Kurzes Spiel → Putten) — genau eine Ebene
@@ -1052,8 +1047,7 @@ struct ContentClassEditorSheet: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 .padding(12)
-                                .background(Color(.secondarySystemGroupedBackground))
-                                .cornerRadius(10)
+                                .nachtKarte(radius: 10)
                             }
                         }
                     } else if hasSubgroups {
@@ -1141,7 +1135,7 @@ struct ContentClassEditorSheet: View {
                 .padding(16)
                 .padding(.bottom, 30)
             }
-            .background(Color(.systemGroupedBackground))
+            .gruenbuchSeite()
             .navigationTitle(isEditing ? "Lektionsgruppe bearbeiten" : "Neue Lektionsgruppe")
             .navigationBarTitleDisplayMode(.inline)
             // Glaslupe: das angetippte Icon erscheint kurz groß in der Mitte —
@@ -1626,6 +1620,7 @@ struct AddToLessonSheet: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+            .gruenbuchSeite()
                 }
             }
             .navigationTitle("Zu Lektion hinzufügen")
@@ -1779,7 +1774,7 @@ struct AudioPlayerView: View {
             .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+        .gruenbuchSeite()
         .onDisappear { stop() }
     }
 

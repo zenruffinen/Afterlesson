@@ -57,6 +57,7 @@ struct NotesView: View {
                     .background(Color(.systemGroupedBackground))
                 }
             }
+            .gruenbuchSeite()
             .navigationTitle("Notizen")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {

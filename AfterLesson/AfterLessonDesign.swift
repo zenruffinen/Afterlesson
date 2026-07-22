@@ -47,6 +47,24 @@ extension View {
             .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    /// Grüner Seiten-Anstrich (22.07.): nachtgrüner Verlauf hinter
+    /// Listen und Rastern — „die anderen Seiten sollen auch grün wie
+    /// Grünbuch sein". Für Listen ersetzt er den grauen Systemgrund.
+    func gruenbuchSeite() -> some View {
+        scrollContentBackground(.hidden)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(hex: "0C150D"),
+                        Color(hex: "122415"),
+                        Color(hex: "17301C")
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            )
+    }
+
     /// Abendgarderobe-Karte (22.07.): Nachtgrün-Verlauf mit feiner
     /// Lichtkante — der gemeinsame Look aller Zeilen und Kacheln.
     func nachtKarte(radius: CGFloat = 14, hervorgehoben: Bool = false) -> some View {

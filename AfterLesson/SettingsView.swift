@@ -311,6 +311,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .gruenbuchSeite()
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -428,7 +429,8 @@ struct SettingsView: View {
                                 .foregroundStyle(importMerge ? .green : .orange)
                         }
                     }
-                    .navigationTitle("settings.backup_restore_title")
+                    .gruenbuchSeite()
+            .navigationTitle("settings.backup_restore_title")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
@@ -533,6 +535,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .gruenbuchSeite()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

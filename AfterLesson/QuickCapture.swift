@@ -663,6 +663,7 @@ struct QuickCaptureSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .gruenbuchSeite()
             .navigationTitle("Schüler auswählen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
