@@ -1285,7 +1285,7 @@ struct ComposerSheet: View {
                         .font(.system(size: 13, weight: .bold))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(Capsule().fill(Color(.secondarySystemFill)))
+                        .background(Capsule().fill(ALColor.nachtOben.opacity(0.75)))
                         .foregroundStyle(.primary)
                 }
                 .buttonStyle(.plain)

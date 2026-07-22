@@ -368,7 +368,7 @@ struct StudentDetailView: View {
 
                 // ── Kartei Header ──
                 karteiBanner
-                    .background(Color(.systemBackground))
+                    .background(ALColor.nachtUnten)
 
                 Divider()
 
@@ -380,7 +380,7 @@ struct StudentDetailView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(Color(.systemBackground))
+                .background(ALColor.nachtUnten)
 
                 Divider()
 
