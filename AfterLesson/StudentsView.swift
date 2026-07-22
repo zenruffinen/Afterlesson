@@ -100,6 +100,7 @@ struct StudentsView: View {
                         .onDelete { idx in
                             idx.forEach { store.deleteStudent(store.students[$0]) }
                         }
+                        .listRowBackground(ALColor.nachtOben.opacity(0.55))
                     }
                     .listStyle(.insetGrouped)
             .gruenbuchSeite()
