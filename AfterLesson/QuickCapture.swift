@@ -28,13 +28,17 @@ class SpeechTranscriber: ObservableObject {
             ?? SFSpeechRecognizer(locale: Locale(identifier: "de-DE"))
     }
 
-    func start(existing: String, onChange: @escaping (String) -> Void) {
+    /// Nimmt parallel zur Erkennung auch die Stimme auf (Notizen:
+    /// ein Diktat liefert Text UND Sprachnotiz in einem Rutsch).
+    private var audioFile: AVAudioFile?
+
+    func start(existing: String, recordingURL: URL? = nil, onChange: @escaping (String) -> Void) {
         SFSpeechRecognizer.requestAuthorization { [weak self] auth in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 switch auth {
                 case .authorized:
-                    self.startEngine(existing: existing, onChange: onChange)
+                    self.startEngine(existing: existing, recordingURL: recordingURL, onChange: onChange)
                 default:
                     self.permissionDenied = true
                 }
@@ -42,7 +46,7 @@ class SpeechTranscriber: ObservableObject {
         }
     }
 
-    private func startEngine(existing: String, onChange: @escaping (String) -> Void) {
+    private func startEngine(existing: String, recordingURL: URL? = nil, onChange: @escaping (String) -> Void) {
         stopEngine()
         guard let recognizer, recognizer.isAvailable else { return }
 
@@ -65,8 +69,12 @@ class SpeechTranscriber: ObservableObject {
 
         let node = engine.inputNode
         let format = node.outputFormat(forBus: 0)
+        if let recordingURL {
+            audioFile = try? AVAudioFile(forWriting: recordingURL, settings: format.settings)
+        }
         node.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buf, _ in
             self?.request?.append(buf)
+            try? self?.audioFile?.write(from: buf)
         }
 
         do {
@@ -92,6 +100,7 @@ class SpeechTranscriber: ObservableObject {
         task?.finish()
         task = nil
         request = nil
+        audioFile = nil          // schließt die parallel laufende Aufnahme
         isRecording = false
         try? AVAudioSession.sharedInstance().setActive(false)
     }

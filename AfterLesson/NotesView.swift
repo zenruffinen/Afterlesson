@@ -166,10 +166,9 @@ struct NoteEditorView: View {
     @State private var selectedGroupID: UUID? = nil
     @State private var assignmentMode: Int = 0   // 0=keine, 1=Schüler, 2=Gruppe
 
-    // Audio Recording
-    @State private var isRecording = false
+    // Sprachnotiz (entsteht beim Diktieren gleich mit)
     @State private var audioFilename: String? = nil
-    @State private var recorder: AVAudioRecorder? = nil
+    @State private var pendingAudioFilename: String? = nil
     @State private var player: AVAudioPlayer? = nil
     @State private var isPlaying = false
 
@@ -203,60 +202,45 @@ struct NoteEditorView: View {
                             .background(ALColor.nachtOben.opacity(0.55))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                        // Diktieren: live verschriftlicht in das Textfeld —
-                        // die Sprachnotiz unten bleibt davon getrennt (Audio).
-                        Button {
-                            if diktat.isRecording {
-                                diktat.stop()
-                            } else {
-                                diktat.start(existing: text) { text = $0 }
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: diktat.isRecording ? "stop.circle.fill" : "waveform.circle.fill")
-                                    .font(.system(size: 20))
-                                Text(diktat.isRecording ? "Diktat stoppen" : "Diktieren")
-                                    .font(.subheadline)
-                            }
-                            .foregroundStyle(diktat.isRecording ? .red : ALColor.goldHell)
-                            .padding(10)
-                            .frame(maxWidth: .infinity)
-                            .background(ALColor.nachtOben.opacity(0.55))
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isRecording)
-
-                        if diktat.permissionDenied {
-                            Text("Bitte erlaube Spracherkennung und Mikrofon in den iOS-Einstellungen.")
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        }
                     }
 
-                    // Sprachaufnahme
+                    // EIN Knopf, doppelte Ernte (Hans, 22.07. abends):
+                    // Diktieren verschriftlicht live in das Textfeld UND
+                    // konserviert gleichzeitig die Stimme als Sprachnotiz.
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Sprachnotiz").font(.caption.bold()).foregroundStyle(.secondary)
+                        Text("Diktieren").font(.caption.bold()).foregroundStyle(.secondary)
                         HStack(spacing: 12) {
-                            // Aufnahme Button
                             Button {
-                                isRecording ? stopRecording() : startRecording()
+                                if diktat.isRecording {
+                                    diktat.stop()
+                                    audioFilename = pendingAudioFilename
+                                    pendingAudioFilename = nil
+                                } else {
+                                    // Alte Aufnahme weicht der neuen
+                                    if let old = audioFilename {
+                                        try? FileManager.default.removeItem(at: store.imageURL(for: old))
+                                        audioFilename = nil
+                                    }
+                                    let fname = "note_diktat_\(UUID().uuidString).caf"
+                                    pendingAudioFilename = fname
+                                    diktat.start(existing: text,
+                                                 recordingURL: store.imageURL(for: fname)) { text = $0 }
+                                }
                             } label: {
                                 HStack(spacing: 8) {
-                                    Image(systemName: isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                                    Image(systemName: diktat.isRecording ? "stop.circle.fill" : "waveform.circle.fill")
                                         .font(.system(size: 22))
-                                        .foregroundStyle(isRecording ? .red : ALColor.green)
-                                    Text(isRecording ? "Aufnahme stoppen" : (audioFilename != nil ? "Neu aufnehmen" : "Aufnehmen"))
+                                        .foregroundStyle(diktat.isRecording ? .red : ALColor.goldHell)
+                                    Text(diktat.isRecording ? "Diktat stoppen" : "Diktieren")
                                         .font(.subheadline)
-                                        .foregroundStyle(isRecording ? .red : ALColor.green)
+                                        .foregroundStyle(diktat.isRecording ? .red : ALColor.goldHell)
                                 }
                                 .padding(12)
                                 .frame(maxWidth: .infinity)
-                                .background(ALColor.green.opacity(0.12))
+                                .background(ALColor.nachtOben.opacity(0.55))
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
                             .buttonStyle(.plain)
-                            .disabled(diktat.isRecording)
 
                             // Abspielen Button (wenn Aufnahme vorhanden)
                             if audioFilename != nil {
@@ -274,6 +258,11 @@ struct NoteEditorView: View {
                             Label("Sprachnotiz vorhanden", systemImage: "checkmark.circle.fill")
                                 .font(.caption)
                                 .foregroundStyle(ALColor.green)
+                        }
+                        if diktat.permissionDenied {
+                            Text("Bitte erlaube Spracherkennung und Mikrofon in den iOS-Einstellungen.")
+                                .font(.caption)
+                                .foregroundStyle(.red)
                         }
                     }
 
@@ -392,36 +381,7 @@ struct NoteEditorView: View {
         }
     }
 
-    private func startRecording() {
-        let filename = "note_\(UUID().uuidString).m4a"
-        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(filename)
-        let settings: [String: Any] = [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 44100,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-        ]
-        AVAudioApplication.requestRecordPermission { granted in
-            guard granted else { return }
-            DispatchQueue.main.async {
-                try? AVAudioSession.sharedInstance().setCategory(.record, mode: .default)
-                try? AVAudioSession.sharedInstance().setActive(true)
-                if let rec = try? AVAudioRecorder(url: url, settings: settings) {
-                    self.recorder = rec
-                    rec.record()
-                    self.isRecording = true
-                    self.audioFilename = filename
-                }
-            }
-        }
-    }
 
-    private func stopRecording() {
-        recorder?.stop()
-        try? AVAudioSession.sharedInstance().setActive(false)
-        isRecording = false
-    }
 
     private func startPlayback() {
         guard let filename = audioFilename else { return }
