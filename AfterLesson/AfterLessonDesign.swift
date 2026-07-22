@@ -46,6 +46,25 @@ extension View {
         frame(width: size, height: size)
             .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
+
+    /// Abendgarderobe-Karte (22.07.): Nachtgrün-Verlauf mit feiner
+    /// Lichtkante — der gemeinsame Look aller Zeilen und Kacheln.
+    func nachtKarte(radius: CGFloat = 14, hervorgehoben: Bool = false) -> some View {
+        background(
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [ALColor.nachtOben.opacity(0.92), ALColor.nachtUnten.opacity(0.95)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .strokeBorder(hervorgehoben ? ALColor.goldHell.opacity(0.7) : Color.white.opacity(0.14),
+                              lineWidth: hervorgehoben ? 1.2 : 0.5)
+        )
+    }
 }
 
 // MARK: - Gruppen-Icons (SF-Symbol ODER eigenes Golf-Bild)
@@ -325,6 +344,8 @@ struct GrünbuchFairwayGraphic: View {
     /// Von außen hochzählen (z.B. bei "Stunde erfassen") → der Ball
     /// fliegt erneut Richtung Fahne.
     var flightTrigger: Int = 0
+    /// Kompakte Bühne für den Schüler-Start (kleiner, ohne Untertitel).
+    var kompakt: Bool = false
 
     @State private var sway = false
     @State private var flug: CGFloat = 0        // 0…1 entlang der Flugbahn
@@ -344,7 +365,7 @@ struct GrünbuchFairwayGraphic: View {
                 .scaleEffect(kenBurns ? 1.10 : 1.02)
                 .animation(.easeInOut(duration: 19).repeatForever(autoreverses: true), value: kenBurns)
                 .frame(maxWidth: .infinity)
-                .frame(height: 210)
+                .frame(height: kompakt ? 148 : 210)
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -383,7 +404,7 @@ struct GrünbuchFairwayGraphic: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(ALColor.goldHell)
                     Text("Dein Spiel.\nDein Fortschritt.")
-                        .font(.system(size: 23, weight: .bold, design: .serif))
+                        .font(.system(size: kompakt ? 19 : 23, weight: .bold, design: .serif))
                         .foregroundStyle(.white)
                         .lineSpacing(2)
                         .fixedSize()
@@ -391,9 +412,11 @@ struct GrünbuchFairwayGraphic: View {
                         .fill(ALColor.goldHell)
                         .frame(width: 42, height: 2)
                         .padding(.vertical, 3)
-                    Text("Strukturiertes Training.\nMessbare Ergebnisse.")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.70))
+                    if !kompakt {
+                        Text("Strukturiertes Training.\nMessbare Ergebnisse.")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.70))
+                    }
                 }
                 .frame(width: w * 0.55, alignment: .leading)
                 .position(x: w * 0.30, y: h * 0.46)
@@ -450,7 +473,7 @@ struct GrünbuchFairwayGraphic: View {
             .padding(18)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 210)
+        .frame(height: kompakt ? 148 : 210)
         .onAppear {
             sway = true
             kenBurns = true

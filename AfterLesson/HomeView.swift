@@ -280,6 +280,9 @@ struct HomeView: View {
             Spacer(minLength: 12)
 
             if store.receivedSessions.isEmpty && store.receivedLessons.isEmpty && store.proMessages.isEmpty {
+                GrünbuchFairwayGraphic(kompakt: true)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 2)
                 StudentEmptyPlaceholder()
                     .padding(.horizontal, 20)
                 Spacer(minLength: 16)
@@ -296,6 +299,11 @@ struct HomeView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 10) {
+                        // Auch der Schüler bekommt die Bühne (kompakt, 22.07.)
+                        GrünbuchFairwayGraphic(kompakt: true)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 2)
+
                         // Aufräum-Schalter: Auswählen → ankreuzen → unten löschen
                         HStack {
                             Spacer()
@@ -442,8 +450,7 @@ struct HomeView: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white.opacity(selected ? 0.12 : 0.06),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .nachtKarte(radius: 12, hervorgehoben: selected)
         }
         .buttonStyle(.plain)
     }
@@ -481,8 +488,7 @@ struct HomeView: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white.opacity(selected ? 0.12 : 0.06),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .nachtKarte(radius: 12, hervorgehoben: selected)
         }
         .buttonStyle(.plain)
     }
@@ -540,19 +546,29 @@ struct HomeView: View {
     }
 
     private func studentSectionHeader(_ title: LocalizedStringKey, icon: String) -> some View {
-        Label(title, systemImage: icon)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.65))
-            .padding(.horizontal, 20)
+        HStack(spacing: 7) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(ALColor.goldHell)
+            Text(title)
+                .font(.system(size: 15, weight: .semibold, design: .serif))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+        .padding(.horizontal, 20)
     }
 
     /// Wie studentSectionHeader, aber für zur Laufzeit gebaute Titel
     /// (z.B. "Nachrichten von Hans").
     private func studentSectionHeaderText(_ title: String, icon: String) -> some View {
-        Label(title, systemImage: icon)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.65))
-            .padding(.horizontal, 20)
+        HStack(spacing: 7) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(ALColor.goldHell)
+            Text(title)
+                .font(.system(size: 15, weight: .semibold, design: .serif))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+        .padding(.horizontal, 20)
     }
 
     /// Eine Cloud-Mitteilung des Pros — Antippen öffnet das Lese-Blatt
@@ -589,7 +605,7 @@ struct HomeView: View {
                     .padding(.top, 12)
             }
             .padding(10)
-            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .nachtKarte(radius: 14)
         }
         .buttonStyle(.plain)
     }
@@ -628,7 +644,7 @@ struct HomeView: View {
                     .padding(.top, 12)
             }
             .padding(10)
-            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .nachtKarte(radius: 14)
         }
         .buttonStyle(.plain)
     }
