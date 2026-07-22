@@ -104,32 +104,127 @@ enum GruppenIcons {
 
 // MARK: - Home Background (LockView-Gradient)
 
+// Lebendiger Hintergrund (Hans' Golf-Studio-Briefing, 21.07.):
+// ziehende Wolken, wandernde Lichtstrahlen und eine kaum merkliche
+// Ken-Burns-Atmung — permanent, aber nie aufdringlich.
 struct GrünbuchHomeBackground: View {
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(hex: "0D160D"),
-                    Color(hex: "1B3D1F"),
-                    Color(hex: "2D6A30").opacity(0.85)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        TimelineView(.animation(minimumInterval: 1.0 / 24.0)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(hex: "0D160D"),
+                        Color(hex: "1B3D1F"),
+                        Color(hex: "2D6A30").opacity(0.85)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
 
-            Circle()
-                .fill(ALColor.gold.opacity(0.10))
-                .frame(width: 300, height: 300)
-                .blur(radius: 55)
-                .offset(x: -90, y: -180)
+                // Atmende Schicht: Glühen, Wolken, Licht — ganz langsame
+                // "Kamerafahrt" per Skalierung (Ken-Burns)
+                ZStack {
+                    Circle()
+                        .fill(ALColor.gold.opacity(0.10))
+                        .frame(width: 300, height: 300)
+                        .blur(radius: 55)
+                        .offset(x: -90 + 10 * sin(t / 23), y: -180 + 7 * sin(t / 17))
 
-            Circle()
-                .fill(ALColor.green.opacity(0.16))
-                .frame(width: 260, height: 260)
-                .blur(radius: 48)
-                .offset(x: 110, y: 240)
+                    Circle()
+                        .fill(ALColor.green.opacity(0.16))
+                        .frame(width: 260, height: 260)
+                        .blur(radius: 48)
+                        .offset(x: 110 + 8 * sin(t / 29 + 2), y: 240 + 6 * sin(t / 21 + 1))
+
+                    GrünbuchWolken(t: t)
+                    GrünbuchLichtstrahlen(t: t)
+                }
+                .scaleEffect(1.05 + 0.03 * sin(t / 41))
+            }
+            .ignoresSafeArea()
         }
-        .ignoresSafeArea()
+    }
+}
+
+/// Drei weiche Wolkenbänke, die in unterschiedlichem Tempo über den
+/// Himmel ziehen (Rundlauf: links raus, rechts wieder rein).
+private struct GrünbuchWolken: View {
+    let t: TimeInterval
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            wolke(w: w, period: 140, phase: 0.10, y: h * 0.10, breite: w * 0.75, hoehe: 54, alpha: 0.050)
+            wolke(w: w, period: 95,  phase: 0.55, y: h * 0.20, breite: w * 0.55, hoehe: 40, alpha: 0.040)
+            wolke(w: w, period: 180, phase: 0.80, y: h * 0.05, breite: w * 0.90, hoehe: 68, alpha: 0.035)
+        }
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private func wolke(w: CGFloat, period: Double, phase: Double,
+                       y: CGFloat, breite: CGFloat, hoehe: CGFloat, alpha: Double) -> some View {
+        let p = ((t / period) + phase).truncatingRemainder(dividingBy: 1)
+        Capsule()
+            .fill(Color.white.opacity(alpha))
+            .frame(width: breite, height: hoehe)
+            .blur(radius: 26)
+            .position(x: (-0.4 + 1.8 * p) * w, y: y)
+    }
+}
+
+/// Zwei schräge Lichtbahnen, die langsam über den Platz wandern —
+/// wie Sonne durch Wolkenlücken.
+private struct GrünbuchLichtstrahlen: View {
+    let t: TimeInterval
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            strahl(w: w, h: h, x: w * (0.30 + 0.22 * sin(t / 31)), breite: w * 0.34, alpha: 0.055)
+            strahl(w: w, h: h, x: w * (0.72 + 0.18 * sin(t / 47 + 3)), breite: w * 0.22, alpha: 0.040)
+        }
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private func strahl(w: CGFloat, h: CGFloat, x: CGFloat, breite: CGFloat, alpha: Double) -> some View {
+        LinearGradient(
+            colors: [Color.white.opacity(alpha), Color.white.opacity(0)],
+            startPoint: .top, endPoint: .bottom
+        )
+        .frame(width: breite, height: h * 0.85)
+        .rotationEffect(.degrees(16))
+        .blur(radius: 18)
+        .position(x: x, y: h * 0.38)
+    }
+}
+
+// MARK: - Fühlbare Tasten (Golf-Studio-Briefing: 1.03×, Glanz, Haptik, Feder)
+
+struct GrünbuchTastenStyle: ButtonStyle {
+    var radius: CGFloat = 22
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .overlay {
+                // Kurzer Glanz beim Drücken
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.26), Color.white.opacity(0.02)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                    .opacity(configuration.isPressed ? 1 : 0)
+                    .allowsHitTesting(false)
+            }
+            .scaleEffect(configuration.isPressed ? 1.03 : 1.0)
+            .animation(.spring(response: 0.28, dampingFraction: 0.55), value: configuration.isPressed)
+            .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { _, pressed in pressed }
     }
 }
 
@@ -198,7 +293,13 @@ struct GrünbuchHomeHeader: View {
 // MARK: - Fairway Graphic (Home)
 
 struct GrünbuchFairwayGraphic: View {
+    /// Von außen hochzählen (z.B. bei "Stunde erfassen") → der Ball
+    /// fliegt erneut Richtung Fahne.
+    var flightTrigger: Int = 0
+
     @State private var sway = false
+    @State private var flug: CGFloat = 0        // 0…1 entlang der Flugbahn
+    @State private var ballSichtbar = false
 
     var body: some View {
         ZStack {
@@ -266,13 +367,41 @@ struct GrünbuchFairwayGraphic: View {
                     .offset(x: w * 0.08, y: h * 0.10)
                     .rotationEffect(.degrees(sway ? -2 : 2))
                     .animation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true), value: sway)
+
+                // Der Ball fliegt einmal Richtung Fahne (Golf-Studio-
+                // Briefing): Parabel vom Golfer zum Grün, dann Ruhe.
+                if ballSichtbar {
+                    let startX = w * 0.20, endX = w * 0.795
+                    let startY = h * 0.42, endY = h * 0.52
+                    let bx = startX + (endX - startX) * flug
+                    let by = startY + (endY - startY) * flug - sin(.pi * flug) * h * 0.42
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 9, height: 9)
+                        .shadow(color: .white.opacity(0.7), radius: 3)
+                        .position(x: bx, y: by)
+                }
             }
             .padding(20)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 200)
-        .onAppear { sway = true }
+        .onAppear {
+            sway = true
+            ballFliegt()
+        }
+        .onChange(of: flightTrigger) { _, _ in ballFliegt() }
         .accessibilityHidden(true)
+    }
+
+    private func ballFliegt() {
+        flug = 0
+        ballSichtbar = true
+        withAnimation(.easeOut(duration: 1.7)) { flug = 1 }
+        Task {
+            try? await Task.sleep(for: .seconds(2.1))
+            withAnimation(.easeOut(duration: 0.6)) { ballSichtbar = false }
+        }
     }
 }
 
@@ -554,7 +683,7 @@ struct GrünbuchToolTile<Illustration: View>: View {
                     .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(GrünbuchTastenStyle(radius: 22))
     }
 }
 

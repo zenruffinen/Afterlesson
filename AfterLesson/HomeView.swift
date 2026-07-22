@@ -32,6 +32,7 @@ struct HomeView: View {
     @State private var inboxSelectedLessonIDs: Set<UUID> = []
     @State private var inboxSelectedSessionIDs: Set<UUID> = []
     @State private var showMessageArchive = false
+    @State private var heroFlight = 0     // Ballflug in der Hero-Grafik auslösen
 
     var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
@@ -149,7 +150,7 @@ struct HomeView: View {
         VStack(spacing: 0) {
             Spacer(minLength: 12)
 
-            GrünbuchFairwayGraphic()
+            GrünbuchFairwayGraphic(flightTrigger: heroFlight)
                 .padding(.horizontal, 20)
 
             Spacer(minLength: 22)
@@ -178,6 +179,7 @@ struct HomeView: View {
                     subtitle: "Direkt am Schüler",
                     tint: Color(hex: "1565C0"),
                     action: {
+                        heroFlight += 1        // der Ball fliegt zur Fahne
                         quickCaptureStudentID = nil
                         showQuickCapture = true
                     }
@@ -211,9 +213,10 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .alGlass(tint: ALColor.gold.opacity(0.22), interactive: true,
+                         in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GrünbuchTastenStyle(radius: 16))
             .padding(.horizontal, 20)
             .padding(.top, 12)
 
