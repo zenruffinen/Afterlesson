@@ -1228,6 +1228,17 @@ struct ContentItemTile: View {
                 .padding(4)
                 .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
             }
+            .overlay(alignment: .topLeading) {
+                // Herkunfts-Siegel (Schüler-Seite): Gold = vom Pro,
+                // Grün = selbst gesammelt
+                if store.appMode == AppMode.student.rawValue {
+                    Circle()
+                        .fill(item.vomPro == true ? Color(hex: "E2C069") : ALColor.fairway)
+                        .frame(width: 9, height: 9)
+                        .overlay(Circle().strokeBorder(.white.opacity(0.8), lineWidth: 1))
+                        .padding(6)
+                }
+            }
 
             // Briefmarke: nur der Titel — Datum und Themen zeigt die Großansicht.
             Text(item.title)

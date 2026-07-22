@@ -51,6 +51,11 @@ struct AfterLessonApp: App {
                         .zIndex(100)
                 }
             }
+            // Abendgarderobe überall (Test 22.07.): Grünbuch erscheint
+            // immer dunkel, Gold als Akzentfarbe — eine Zeile, jederzeit
+            // rückgängig zu machen.
+            .preferredColorScheme(.dark)
+            .tint(ALColor.goldHell)
             .animation(.easeOut(duration: 0.25), value: isUnlocked)
             .onAppear {
                 if store.lockEnabled {

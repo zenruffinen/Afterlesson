@@ -430,8 +430,10 @@ extension AppStore {
         }
 
         // 3. Neue Inhalte: Original-Gruppe (lokal übersetzt) wenn bekannt,
-        //    sonst Auffang-Gruppe
+        //    sonst Auffang-Gruppe. Alles aus einem Paket trägt das
+        //    Pro-Siegel (goldener Punkt in der Bibliothek).
         for i in newPoolItems.indices {
+            newPoolItems[i].vomPro = true
             if let local = localClassID(for: newPoolItems[i].classID) {
                 newPoolItems[i].classID = local
             } else {
@@ -443,6 +445,7 @@ extension AppStore {
         }
         for id in existingIDs {
             if let idx = contentPool.firstIndex(where: { $0.id == id }) {
+                contentPool[idx].vomPro = true
                 if let local = localClassID(for: sentClassOf[id]) {
                     contentPool[idx].classID = local
                 } else if contentPool[idx].classID == nil {

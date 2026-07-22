@@ -260,6 +260,8 @@ struct ContentItem: Identifiable, Codable, Hashable {
                                             // Optional, daher decodiert Swift fehlende Schlüssel
                                             // in alten Daten/Paketen automatisch als nil.
     var tileColorHex: String? = nil         // Eigene Kachel-Farbe — nil = Standardfarbe des Typs.
+    var vomPro: Bool? = nil                 // Schüler-Seite: true = vom Pro empfangen,
+                                            // nil/false = selbst gesammelt (optional → migrationssicher)
 }
 
 // MARK: - Student Progress
