@@ -67,10 +67,40 @@
 				<string>com.hansruffin.afterlesson.backup</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Grünbuch Notiz</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.hansruffin.afterlesson.notiz</string>
+			</array>
+		</dict>
 	</array>
 	<!-- Eigene Dateitypen (UTIs) für die Grünbuch-Pakete deklarieren -->
 	<key>UTExportedTypeDeclarations</key>
 	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.hansruffin.afterlesson.notiz</string>
+			<key>UTTypeDescription</key>
+			<string>Grünbuch Notiz</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>gruenbuchnotiz</string>
+				</array>
+			</dict>
+		</dict>
 		<dict>
 			<key>UTTypeIdentifier</key>
 			<string>com.hansruffin.afterlesson.lesson</string>

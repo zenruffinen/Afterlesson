@@ -420,6 +420,16 @@ struct StudentFeedbackEntry: Identifiable, Codable, Hashable {
     var viewedLessonTitles: [String] = []
 }
 
+// MARK: - Notiz-Sicherung (einzelne Notiz als Datei, nach Arca-Vorbild)
+
+/// Eine Notiz reist als eigene Datei (.gruenbuchnotiz) — samt
+/// Sprachaufnahme, damit nichts verloren geht.
+struct GrünbuchNotizShare: Codable {
+    var note: ProNote
+    var audioData: Data? = nil
+    var exportDate: Date
+}
+
 // MARK: - Mitteilung („Zettel vom Pro")
 
 /// Kurze Botschaft des Pros ("Das hat gut geklappt!", "Stunde fällt aus").

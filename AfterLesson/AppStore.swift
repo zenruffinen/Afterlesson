@@ -945,6 +945,47 @@ final class AppStore: ObservableObject {
         }
     }
 
+    // MARK: - Notiz teilen/sichern (jede für sich, nach Arca-Vorbild)
+
+    /// Exportiert eine Notiz als .gruenbuchnotiz-Datei (samt Audio).
+    func exportNote(_ note: ProNote) -> URL? {
+        var share = GrünbuchNotizShare(note: note, exportDate: Date())
+        if let audio = note.audioFilename {
+            share.audioData = try? Data(contentsOf: imageURL(for: audio))
+        }
+        guard let data = try? JSONEncoder().encode(share) else { return nil }
+        let safeName = note.title.isEmpty
+            ? "Notiz"
+            : note.title.replacingOccurrences(of: " ", with: "_")
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Grünbuch_\(safeName).gruenbuchnotiz")
+        try? FileManager.default.removeItem(at: url)
+        do { try data.write(to: url) } catch { return nil }
+        return url
+    }
+
+    /// Liest eine .gruenbuchnotiz-Datei ein (neue ID, Audio wird
+    /// als eigene Datei wiederhergestellt).
+    func importNote(from url: URL) -> Bool {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url),
+              let share = try? JSONDecoder().decode(GrünbuchNotizShare.self, from: data) else { return false }
+        var newNote = share.note
+        newNote.id = UUID()
+        if let audio = share.audioData {
+            let filename = "note_\(newNote.id.uuidString).m4a"
+            try? audio.write(to: imageURL(for: filename))
+            newNote.audioFilename = filename
+        } else {
+            newNote.audioFilename = nil
+        }
+        proNotes.insert(newNote, at: 0)
+        importConfirmation = String(format: NSLocalizedString("Notiz „%@“ wiederhergestellt", comment: ""),
+                                    newNote.title.isEmpty ? "Ohne Titel" : newNote.title)
+        return true
+    }
+
     private func saveProNotes() {
         if let data = try? JSONEncoder().encode(proNotes) {
             UserDefaults.standard.set(data, forKey: "al_pronotes")

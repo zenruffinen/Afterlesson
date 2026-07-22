@@ -16,6 +16,8 @@ struct NotesView: View {
     @EnvironmentObject var store: AppStore
     @State private var showAddNote = false
     @State private var selectedNote: ProNote? = nil
+    @State private var shareItems: [Any] = []
+    @State private var showShare = false
 
     var body: some View {
         NavigationStack {
@@ -43,6 +45,14 @@ struct NotesView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .contextMenu {
+                                    Button {
+                                        if let url = store.exportNote(note) {
+                                            shareItems = [url]
+                                            showShare = true
+                                        }
+                                    } label: {
+                                        Label("Notiz sichern/teilen", systemImage: "square.and.arrow.up")
+                                    }
                                     Button(role: .destructive) {
                                         store.deleteNote(note)
                                     } label: {
@@ -72,6 +82,9 @@ struct NotesView: View {
             }
             .sheet(item: $selectedNote) { note in
                 NoteEditorView(existingNote: note)
+            }
+            .sheet(isPresented: $showShare) {
+                ShareSheet(items: shareItems)
             }
         }
     }
