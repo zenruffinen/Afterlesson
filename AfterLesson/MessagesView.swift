@@ -366,13 +366,17 @@ struct StudentMessageSheet: View {
     }
 }
 
-// MARK: - Nachrichten-Eingang des Pros (Glocke)
+// MARK: - Nachrichten-Eingang (Glocke, beide Rollen)
 
-/// Alle Antworten der Schüler auf einen Blick — neueste zuerst.
-/// Öffnet sich über die Glocke auf dem Startbildschirm.
-struct ProInboxSheet: View {
+/// Der Eingang hinter der Glocke: Beim Pro alle Schüler-Antworten,
+/// beim Schüler alle Mitteilungen des Pros (Antippen öffnet das
+/// Lese-Blatt mit den Schnellantworten). Neueste zuerst.
+struct NachrichtenEingangSheet: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedMessage: ProMessage? = nil
+
+    private var isTeacher: Bool { store.appMode == AppMode.teacher.rawValue }
 
     private struct Eintrag: Identifiable {
         let id: UUID
@@ -392,38 +396,19 @@ struct ProInboxSheet: View {
             .sorted { $0.entry.date > $1.entry.date }
     }
 
+    private var schuelerNachrichten: [ProMessage] {
+        store.proMessages
+            .filter { $0.archivedDate == nil }
+            .sorted { $0.date > $1.date }
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                if eintraege.isEmpty {
-                    Text("Noch keine Nachrichten — Antworten deiner Schüler landen hier.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                if isTeacher {
+                    proEingang
                 } else {
-                    ForEach(eintraege) { e in
-                        HStack(alignment: .top, spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color(hex: e.avatarColor))
-                                    .frame(width: 36, height: 36)
-                                Text(String(e.studentName.prefix(1)).uppercased())
-                                    .font(.subheadline.bold())
-                                    .foregroundStyle(.white)
-                            }
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack(spacing: 6) {
-                                    Text(e.studentName)
-                                        .font(.subheadline.bold())
-                                    Text(e.entry.date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Text(e.entry.message)
-                                    .font(.subheadline)
-                            }
-                        }
-                        .padding(.vertical, 3)
-                    }
+                    schuelerEingang
                 }
             }
             .navigationTitle("Nachrichten")
@@ -433,9 +418,97 @@ struct ProInboxSheet: View {
                     Button("Fertig") { dismiss() }
                 }
             }
+            .sheet(item: $selectedMessage) { message in
+                StudentMessageSheet(message: message)
+            }
             // Beim Öffnen frisch aus der Cloud nachschauen
             .task {
-                _ = await store.importCloudResponses()
+                if isTeacher {
+                    _ = await store.importCloudResponses()
+                } else {
+                    _ = await store.importCloudMessages()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var proEingang: some View {
+        if eintraege.isEmpty {
+            Text("Noch keine Nachrichten — Antworten deiner Schüler landen hier.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        } else {
+            ForEach(eintraege) { e in
+                HStack(alignment: .top, spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: e.avatarColor))
+                            .frame(width: 36, height: 36)
+                        Text(String(e.studentName.prefix(1)).uppercased())
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.white)
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(e.studentName)
+                                .font(.subheadline.bold())
+                            Text(e.entry.date.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(e.entry.message)
+                            .font(.subheadline)
+                    }
+                }
+                .padding(.vertical, 3)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var schuelerEingang: some View {
+        if schuelerNachrichten.isEmpty {
+            Text("Noch keine Mitteilungen — was dein Pro dir schreibt, landet hier.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        } else {
+            ForEach(schuelerNachrichten) { message in
+                Button {
+                    selectedMessage = message
+                } label: {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: message.readDate == nil ? "envelope.badge.fill" : "envelope.open.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(ALColor.gold)
+                            .alIconTile(tint: ALColor.gold, size: 36)
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                if message.readDate == nil {
+                                    Circle()
+                                        .fill(ALColor.gold)
+                                        .frame(width: 7, height: 7)
+                                }
+                                Text(store.proName.isEmpty ? "Dein Pro" : store.proName)
+                                    .font(.subheadline.bold())
+                                Text(message.date.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text(message.body)
+                                .font(.subheadline.weight(message.readDate == nil ? .semibold : .regular))
+                                .foregroundStyle(.primary)
+                                .lineLimit(2)
+                        }
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.bold())
+                            .foregroundStyle(.tertiary)
+                            .padding(.top, 10)
+                    }
+                    .padding(.vertical, 3)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

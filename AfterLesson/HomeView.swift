@@ -98,7 +98,7 @@ struct HomeView: View {
             MessageArchiveSheet()
         }
         .sheet(isPresented: $showProInbox) {
-            ProInboxSheet()
+            NachrichtenEingangSheet()
         }
         .onChange(of: showQuickCapture) { _, isShowing in
             if !isShowing { quickCaptureStudentID = nil }
@@ -167,10 +167,8 @@ struct HomeView: View {
             // Zähler leert sich). Schüler: bleibt beim Start-Eingang.
             if isTeacher {
                 bellSeenTime = Date().timeIntervalSince1970
-                showProInbox = true
-            } else {
-                selectedTab = .home
             }
+            showProInbox = true
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
