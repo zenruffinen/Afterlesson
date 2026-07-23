@@ -52,6 +52,7 @@ enum GrünbuchWissen {
             untertitel: "Die Ballposition bestimmt Deinen Treffpunkt.",
             symbol: "circle.dotted.and.circle",
             bausteine: [
+                .bild("gw002"),
                 .tabelle(spalten: ["Schläger", "Ballposition"], zeilen: [
                     ["Driver", "Innenseite linke Ferse"],
                     ["Fairwayholz", "Etwas hinter der Ferse"],
@@ -87,6 +88,7 @@ enum GrünbuchWissen {
             untertitel: "Je länger der Schläger, desto höher darf der Ball stehen.",
             symbol: "arrow.up.to.line",
             bausteine: [
+                .bild("gw004"),
                 .tabelle(spalten: ["Schläger", "Teehöhe"], zeilen: [
                     ["Driver", "Ball 50 % über dem Schlägerkopf"],
                     ["Fairwayholz", "Ball knapp über Gras"],
@@ -118,6 +120,7 @@ enum GrünbuchWissen {
             untertitel: "Die richtige Loft-Abstufung schafft konstante Distanzen.",
             symbol: "chart.bar.fill",
             bausteine: [
+                .bild("gw005"),
                 .tabelle(spalten: ["Wedge", "Loft", "Einsatz"], zeilen: [
                     ["Pitching Wedge", "44–46°", "Volle Schläge, lange Annäherungen"],
                     ["Gap Wedge", "50–52°", "Distanz schließen"],
@@ -148,6 +151,7 @@ enum GrünbuchWissen {
             untertitel: "Erkenne die Ursache. Korrigiere gezielt.",
             symbol: "exclamationmark.triangle.fill",
             bausteine: [
+                .bild("gw008"),
                 .schritte([
                     ("Over the Top", "Schläger kommt von außen"),
                     ("Early Release", "Handgelenke lösen zu früh"),
