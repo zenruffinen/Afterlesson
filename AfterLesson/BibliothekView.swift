@@ -61,6 +61,7 @@ struct DatenpoolView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             inboxRow
                             newClassRow
+                            wissenRow
                             classGrid
                         }
                         .padding(16)
@@ -256,6 +257,44 @@ struct DatenpoolView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.title3)
                     .foregroundStyle(ALColor.green)
+            }
+            .padding(14)
+            .nachtKarte(radius: 16)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Grünbuch-Wissen (festverdrahtete Wissenskarten, 22.07.)
+
+    var wissenRow: some View {
+        NavigationLink {
+            WissensListeView()
+        } label: {
+            HStack(spacing: 14) {
+                Image("gb_wissen")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Grünbuch-Wissen")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("Golfwissen zum Nachschlagen — fest eingebaut")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("\(GrünbuchWissen.karten.count)")
+                    .font(.caption.bold())
+                    .foregroundStyle(Color(hex: "0B150D"))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(ALColor.goldHell.opacity(0.85))
+                    .clipShape(Capsule())
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(.tertiary)
             }
             .padding(14)
             .nachtKarte(radius: 16)
