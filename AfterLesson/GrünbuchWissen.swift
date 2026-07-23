@@ -15,6 +15,7 @@ struct WissensKarte: Identifiable {
     let bausteine: [Baustein]
 
     enum Baustein {
+        case bild(String)                                      // Grafik aus Hans' Kartenbogen
         case wert(gross: String, beschriftung: String)         // z.B. "3 : 1"
         case tabelle(spalten: [String], zeilen: [[String]])
         case checkliste(titel: String, punkte: [String])
@@ -37,6 +38,7 @@ enum GrünbuchWissen {
             untertitel: "Ein konstanter Rhythmus sorgt für wiederholbare Schläge.",
             symbol: "metronome.fill",
             bausteine: [
+                .bild("gw001"),
                 .wert(gross: "3 : 1", beschriftung: "Rückschwung 1–2–3 · Durchschwung: Schlag"),
                 .tipp("Geschwindigkeit entsteht durch Rhythmus — nicht durch Kraft."),
                 .fehler(punkte: ["Hektischer Rückschwung", "Zu schneller Übergang", "Mit den Armen schlagen"]),
@@ -68,6 +70,7 @@ enum GrünbuchWissen {
             untertitel: "Ein sauberer Abschlag beginnt vor dem Schwung.",
             symbol: "figure.golf",
             bausteine: [
+                .bild("gw003"),
                 .checkliste(titel: "Checkliste", punkte: [
                     "Ball gegenüber linker Ferse",
                     "Ball halb über der Schlagfläche",
@@ -100,6 +103,7 @@ enum GrünbuchWissen {
             untertitel: "Bounce verhindert, dass sich das Wedge in den Boden eingräbt.",
             symbol: "angle",
             bausteine: [
+                .bild("gw005"),
                 .tabelle(spalten: ["Bounce", "Einsatz"], zeilen: [
                     ["4–6°", "Harte Fairways, kurzes Gras"],
                     ["7–10°", "Für die meisten Bedingungen"],
@@ -129,6 +133,7 @@ enum GrünbuchWissen {
             untertitel: "Stabilere Ausrichtung. Konstantere Putts.",
             symbol: "scope",
             bausteine: [
+                .bild("gw007"),
                 .checkliste(titel: "Vorteile", punkte: [
                     "Ball startet leichter auf der Ziellinie",
                     "Konstantere Richtung",
@@ -157,6 +162,7 @@ enum GrünbuchWissen {
             untertitel: "Der richtige Druck für mehr Kontrolle und Weite.",
             symbol: "hand.raised.fill",
             bausteine: [
+                .bild("gw009"),
                 .wert(gross: "4 / 10", beschriftung: "Idealer Druck: mittel — sicher, aber entspannt"),
                 .merksatz("Halte Deinen Schläger sicher — nicht krampfhaft.")
             ]
@@ -167,6 +173,7 @@ enum GrünbuchWissen {
             untertitel: "Ein stabiles Finish zeigt einen ausgewogenen Schwung.",
             symbol: "figure.golf",
             bausteine: [
+                .bild("gw010"),
                 .checkliste(titel: "Checkliste", punkte: [
                     "Gleichgewicht auf dem linken Fuß",
                     "Brust zeigt zum Ziel",
@@ -271,6 +278,18 @@ struct WissensKarteView: View {
     @ViewBuilder
     private func bausteinView(_ baustein: WissensKarte.Baustein) -> some View {
         switch baustein {
+        case .bild(let name):
+            Image(name)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: 230)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.5)
+                )
+
         case .wert(let gross, let beschriftung):
             VStack(spacing: 6) {
                 Text(gross)
