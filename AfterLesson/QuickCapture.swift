@@ -184,6 +184,11 @@ struct VoiceInputField: View {
     }
 }
 
+private struct MedienURL: Identifiable {
+    let url: URL
+    var id: String { url.path }
+}
+
 // MARK: - Quick Capture Sheet
 
 enum QuickCaptureMediaKind: String, CaseIterable, Identifiable {
@@ -234,6 +239,7 @@ struct QuickCaptureSheet: View {
     @State private var showStudentPicker = false
     @State private var shareItems: [Any] = []
     @State private var showShareSheet = false
+    @State private var sendeErgebnis: String? = nil
     @State private var quickTextNote: String = ""
     @State private var photoPickerItems: [PhotosPickerItem] = []
     @State private var showPhotosPicker = false
@@ -249,10 +255,12 @@ struct QuickCaptureSheet: View {
 
     var autoTitle: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM.yyyy"
+        formatter.dateFormat = "dd.MM."
         let dateStr = formatter.string(from: Date())
-        if let s = selectedStudent { return "Training \(dateStr) · \(s.name)" }
-        return "Training \(dateStr)"
+        let lehrer = store.teacherName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return lehrer.isEmpty
+            ? "Unterricht vom \(dateStr)"
+            : "Unterricht vom \(dateStr) – Lehrer \(lehrer)"
     }
 
     var canSave: Bool {
@@ -522,8 +530,8 @@ struct QuickCaptureSheet: View {
                         saveSession(thenSend: true)
                     } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: "paperplane.fill")
-                            Text("Speichern & Nachbesprechung")
+                            Image(systemName: "icloud.and.arrow.up.fill")
+                            Text("Abschließen & an Schüler senden")
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -564,6 +572,14 @@ struct QuickCaptureSheet: View {
                     pendingVideoURLs.append(url)
                 }
                 .ignoresSafeArea()
+            }
+            .alert("Stunde", isPresented: Binding(
+                get: { sendeErgebnis != nil },
+                set: { if !$0 { sendeErgebnis = nil; dismiss() } }
+            )) {
+                Button("OK") { sendeErgebnis = nil; dismiss() }
+            } message: {
+                Text(sendeErgebnis ?? "")
             }
             .alert("Spracherkennung nicht verfügbar",
                    isPresented: $transcriber.permissionDenied) {
@@ -612,11 +628,36 @@ struct QuickCaptureSheet: View {
                 pendingPhotoData = []
                 pendingVideoURLs = []
                 selectedMediaKind = nil
-                if thenSend, let url = store.exportSession(session) {
-                    shareItems = [AppStore.sessionShareHint, url]
-                    showShareSheet = true
-                } else {
-                    dismiss()
+            }
+            guard thenSend else {
+                await MainActor.run { dismiss() }
+                return
+            }
+            // Abschluss: die komplette Stunde (Protokoll + alle Aufnahmen)
+            // über die Cloud an den Schüler — Datei-Notweg nur ohne Cloud.
+            let hatCloud = await MainActor.run {
+                store.students.first(where: { $0.id == studentID })?.cloudUserID != nil
+                    && CloudService.shared.isSignedIn
+            }
+            if hatCloud {
+                let ergebnis = await store.sendeStundeViaCloud(session, anLocalStudentID: studentID)
+                await MainActor.run {
+                    if ergebnis.wartend {
+                        sendeErgebnis = "Kein Netz — die Stunde liegt im Postausgang und geht automatisch raus."
+                    } else if ergebnis.ok {
+                        sendeErgebnis = "Stunde mit allen Aufnahmen an den Schüler gesendet. 🔔"
+                    } else {
+                        sendeErgebnis = CloudService.shared.lastErrorMessage ?? "Senden hat nicht geklappt."
+                    }
+                }
+            } else {
+                await MainActor.run {
+                    if let url = store.exportSession(session) {
+                        shareItems = [AppStore.sessionShareHint, url]
+                        showShareSheet = true
+                    } else {
+                        dismiss()
+                    }
                 }
             }
         }
@@ -695,9 +736,12 @@ struct SessionDetailSheet: View {
 
     @State private var shareItems: [Any] = []
     @State private var showShareSheet = false
+    @State private var sendeErgebnis: String? = nil
     @State private var showFeedbackSheet = false
     @State private var feedbackShareItems: [Any] = []
     @State private var showFeedbackShareSheet = false
+    @State private var videoURL: URL? = nil
+    @State private var fotoURL: URL? = nil
 
     var studentName: String? {
         guard let id = session.studentID else { return nil }
@@ -753,6 +797,9 @@ struct SessionDetailSheet: View {
                             icon: "house.and.flag.fill", color: ALColor.gold,
                             label: "Hausaufgaben", text: session.homework)
                     }
+
+                    // Aufnahmen der Stunde: Fotos, Videos, Notizen (23.07.)
+                    aufnahmenGalerie
 
                     // Senden-Button (nur für Pros)
                     if session.source == .created {
@@ -833,6 +880,98 @@ struct SessionDetailSheet: View {
             }
         }
         .presentationDetents([.large])
+    }
+
+    @ViewBuilder
+    var aufnahmenGalerie: some View {
+        let aufnahmen = store.capturesFor(session: session)
+        if !aufnahmen.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "photo.stack.fill")
+                        .font(.caption.bold())
+                        .foregroundStyle(ALColor.goldHell)
+                    Text("Aufnahmen aus der Stunde")
+                        .font(.caption.bold())
+                        .foregroundStyle(ALColor.goldHell)
+                }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
+                    ForEach(aufnahmen) { aufnahme in
+                        aufnahmeKachel(aufnahme)
+                    }
+                }
+                ForEach(aufnahmen.filter { $0.type == .text && !$0.textNote.isEmpty }) { notiz in
+                    Text(notiz.textNote)
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .background(ALColor.nachtOben.opacity(0.4))
+                        .cornerRadius(10)
+                }
+            }
+            .padding(14)
+            .background(ALColor.nachtOben.opacity(0.55))
+            .cornerRadius(12)
+            .sheet(item: Binding(
+                get: { videoURL.map { MedienURL(url: $0) } },
+                set: { if $0 == nil { videoURL = nil } }
+            )) { medienURL in
+                VideoPlayer(player: AVPlayer(url: medienURL.url))
+                    .ignoresSafeArea()
+            }
+            .sheet(item: Binding(
+                get: { fotoURL.map { MedienURL(url: $0) } },
+                set: { if $0 == nil { fotoURL = nil } }
+            )) { medienURL in
+                if let img = UIImage(contentsOfFile: medienURL.url.path) {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black)
+                        .ignoresSafeArea()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func aufnahmeKachel(_ aufnahme: StudentCapture) -> some View {
+        if aufnahme.type == .image, let f = aufnahme.filename,
+           let img = UIImage(contentsOfFile: store.imageURL(for: f).path) {
+            Button { fotoURL = store.imageURL(for: f) } label: {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 100)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        } else if aufnahme.type == .video, let f = aufnahme.filename {
+            Button { videoURL = store.imageURL(for: f) } label: {
+                ZStack {
+                    if let t = aufnahme.thumbnailFilename,
+                       let img = UIImage(contentsOfFile: store.imageURL(for: t).path) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 100)
+                            .frame(maxWidth: .infinity)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    } else {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(ALColor.nachtUnten)
+                            .frame(height: 100)
+                    }
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .shadow(radius: 4)
+                }
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     @ViewBuilder

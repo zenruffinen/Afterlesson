@@ -234,11 +234,11 @@ final class CloudService: ObservableObject {
     }
 
     /// Legt ein Lernpaket für einen verbundenen Schüler in die Drehscheibe.
-    func insertPackage(title: String, payload: CloudLessonShare, to studentCloudID: UUID) async throws {
+    func insertPackage(title: String, payload: CloudLessonShare, to studentCloudID: UUID, kind: String = "lesson") async throws {
         guard let client, let proID = userID else { throw CloudError.notReady }
         let row = PackageInsertRow(
             pro_id: proID, student_id: studentCloudID,
-            kind: "lesson", title: title, payload: payload
+            kind: kind, title: title, payload: payload
         )
         try await client.from("packages").insert(row).execute()
     }

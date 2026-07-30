@@ -428,6 +428,7 @@ enum AusgangsArt: String, Codable {
     case lernpaket      // Composer-Sendung (eine Lektion an einen Schüler)
     case mitteilung     // Zettel vom Pro
     case antwort        // Schnellantwort des Schülers
+    case stunde         // komplette Trainingsstunde mit Aufnahmen
 }
 
 struct AusgangsSendung: Identifiable, Codable {
@@ -436,6 +437,7 @@ struct AusgangsSendung: Identifiable, Codable {
     var erstellt: Date = Date()
     var studentIDs: [UUID] = []     // lokale Karteikarten (lernpaket: genau eine)
     var lessonID: UUID? = nil       // lernpaket: die zu liefernde Lektion
+    var sessionID: UUID? = nil      // stunde: das zu liefernde Protokoll
     var text: String = ""           // mitteilung/antwort
 }
 

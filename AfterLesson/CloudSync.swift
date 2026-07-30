@@ -15,11 +15,15 @@ import AVFoundation
 // MARK: - Paket-Format (reist als JSON in packages.payload)
 
 struct CloudLessonShare: Codable {
-    var lesson: Lesson
+    // Entweder eine Lektion ODER eine Stunde (23.07.) — beide optional,
+    // damit alte Pakete weiterhin sauber laden (Decodable-Regel!).
+    var lesson: Lesson? = nil
     var contentItems: [ContentItem]
     var mediaFilenames: [String]
     var teacherName: String
     var note: String
+    var session: TrainingSession? = nil
+    var captures: [StudentCapture]? = nil
     // Die Lektionsgruppen des Pros reisen mit, damit "Putten" beim
     // Schüler auch "Putten" heißt. Optional → ältere Pakete ohne
     // dieses Feld laden weiterhin sauber (Decodable-Regel!).
@@ -154,6 +158,61 @@ extension AppStore {
         return (sent, wartend, withoutCloud)
     }
 
+    /// Stunden-Lieferkern: Protokoll + alle Aufnahmen der Stunde an
+    /// EINEN Schüler (Medien hochladen, Paket als kind=session einstellen).
+    @MainActor
+    func liefereStunde(_ session: TrainingSession, an cloudID: UUID) async throws {
+        let cloud = CloudService.shared
+        let aufnahmen = capturesFor(session: session)
+        var media = Set(session.imageFilenames)
+        for aufnahme in aufnahmen {
+            if let f = aufnahme.filename { media.insert(f) }
+            if let t = aufnahme.thumbnailFilename { media.insert(t) }
+        }
+        for filename in media {
+            let url = imageURL(for: filename)
+            if Self.isVideoFile(filename),
+               let compressed = await Self.compressedVideoData(at: url) {
+                try await cloud.uploadMedia(compressed, filename: filename)
+            } else if let data = try? Data(contentsOf: url) {
+                try await cloud.uploadMedia(data, filename: filename)
+            }
+        }
+        let payload = CloudLessonShare(
+            contentItems: [],
+            mediaFilenames: Array(media),
+            teacherName: teacherName,
+            note: "",
+            session: session,
+            captures: aufnahmen
+        )
+        try await cloud.insertPackage(title: session.title, payload: payload,
+                                      to: cloudID, kind: "session")
+    }
+
+    /// Pro: komplette Stunde an den Schüler senden — im Funkloch
+    /// wandert sie in den Postausgang ("Senden gelingt immer").
+    @MainActor
+    func sendeStundeViaCloud(_ session: TrainingSession, anLocalStudentID id: UUID) async -> (ok: Bool, wartend: Bool) {
+        guard let student = students.first(where: { $0.id == id }),
+              let cloudID = student.cloudUserID else { return (false, false) }
+        if !netzVerbunden {
+            ausgang.append(AusgangsSendung(art: .stunde, studentIDs: [id], sessionID: session.id))
+            return (false, true)
+        }
+        do {
+            try await liefereStunde(session, an: cloudID)
+            return (true, false)
+        } catch {
+            if Self.istNetzFehler(error) {
+                ausgang.append(AusgangsSendung(art: .stunde, studentIDs: [id], sessionID: session.id))
+                return (false, true)
+            }
+            CloudService.shared.lastErrorMessage = error.localizedDescription
+            return (false, false)
+        }
+    }
+
     /// Der Postausgang wird geleert, sobald Netz da ist — vom
     /// Netzwächter, beim App-Öffnen und im Minutentakt aufgerufen.
     @MainActor
@@ -175,6 +234,18 @@ extension AppStore {
                 } catch {
                     if !Self.istNetzFehler(error) { erledigt = true }  // echter Fehler: nicht ewig hängen
                 }
+            case .stunde:
+                guard let studentID = sendung.studentIDs.first,
+                      let student = students.first(where: { $0.id == studentID }),
+                      let cloudID = student.cloudUserID,
+                      let session = sessions.first(where: { $0.id == sendung.sessionID })
+                else { erledigt = true; break }
+                do {
+                    try await liefereStunde(session, an: cloudID)
+                    erledigt = true
+                } catch {
+                    if !Self.istNetzFehler(error) { erledigt = true }
+                }
             case .mitteilung:
                 let ergebnis = await sendeMitteilungJetzt(sendung.text, an: sendung.studentIDs)
                 erledigt = !ergebnis.netzProblem
@@ -186,6 +257,28 @@ extension AppStore {
                 ausgang.removeAll { $0.id == sendung.id }
             }
         }
+    }
+
+    /// Schüler: eine über die Cloud empfangene Stunde registrieren —
+    /// Protokoll in die Stundenliste, Aufnahmen in die eigene Akte.
+    @MainActor
+    private func registerCloudSession(from package: IncomingCloudPackage) {
+        guard var session = package.payload.session else { return }
+        guard !sessions.contains(where: { $0.id == session.id }) else { return }
+        session.source = .received
+        session.teacherName = package.payload.teacherName
+        session.studentID = students.first?.id       // die eigene Karteikarte
+        sessions.insert(session, at: 0)
+
+        let meineID = students.first?.id
+        for var aufnahme in package.payload.captures ?? [] {
+            guard !studentCaptures.contains(where: { $0.id == aufnahme.id }) else { continue }
+            if let meineID { aufnahme.studentID = meineID }
+            studentCaptures.append(aufnahme)
+        }
+
+        let senderName = package.payload.teacherName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !senderName.isEmpty { proName = senderName }
     }
 
     // MARK: Rückkanal — Pro holt Schüler-Antworten ab
@@ -470,6 +563,11 @@ extension AppStore {
     /// Lektion als "vom Pro empfangen" einreihen.
     @MainActor
     private func registerCloudLesson(from package: IncomingCloudPackage) {
+        // Stunden-Paket? Eigener Weg (Protokoll + Aufnahmen, keine Bibliothek).
+        guard let paketLektion = package.payload.lesson else {
+            registerCloudSession(from: package)
+            return
+        }
         // 1. Mitgesendete Lektionsgruppen des Pros einpassen:
         //    gleiche ID → schon da; gleicher NAME → verschmelzen (die
         //    frische Schüler-App bringt vorgefertigte Golf-Gruppen mit
@@ -570,7 +668,7 @@ extension AppStore {
             }
         }
 
-        var newLesson = package.payload.lesson
+        var newLesson = paketLektion
         newLesson.id = UUID()
         newLesson.origin = .receivedFromPro
         newLesson.receivedFromPro = package.payload.teacherName
