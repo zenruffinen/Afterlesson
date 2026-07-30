@@ -38,7 +38,10 @@ struct StudentsView: View {
                     .padding()
                 } else {
                     List {
-                        ForEach(store.students) { student in
+                        let sortierte = store.students.sorted {
+                            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                        }
+                        ForEach(sortierte) { student in
                             Button {
                                 selectedStudent = student
                             } label: {
@@ -98,7 +101,10 @@ struct StudentsView: View {
                             }
                         }
                         .onDelete { idx in
-                            idx.forEach { store.deleteStudent(store.students[$0]) }
+                            let sortierte = store.students.sorted {
+                                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                            }
+                            idx.forEach { store.deleteStudent(sortierte[$0]) }
                         }
                         .listRowBackground(ALColor.nachtOben.opacity(0.55))
                     }

@@ -1364,7 +1364,9 @@ struct ComposerSheet: View {
                         .font(.subheadline.bold())
                 }
             } else {
-                ForEach(store.students) { student in
+                ForEach(store.students.sorted(by: {
+                    $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                })) { student in
                     let selected = selectedStudentIDs.contains(student.id)
                     Button {
                         if selected {
