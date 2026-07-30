@@ -336,23 +336,24 @@ final class CloudService: ObservableObject {
         let created_at: Date
     }
 
+    enum CloudFehler: LocalizedError {
+        case keinPro
+        var errorDescription: String? { String(localized: "cloud.response_no_pro") }
+    }
+
     /// Schüler: kurze Antwort an den eigenen Pro senden.
-    func sendResponseToPro(_ message: String) async -> Bool {
-        guard let client, let uid = userID else { return false }
-        guard let proID = await linkedProID() else {
-            lastErrorMessage = String(localized: "cloud.response_no_pro")
-            return false
-        }
-        do {
-            try await client.from("responses")
-                .insert(ResponseInsertRow(student_id: uid, pro_id: proID, message: message))
-                .execute()
-            lastErrorMessage = nil
-            return true
-        } catch {
-            lastErrorMessage = error.localizedDescription
-            return false
-        }
+    /// Wirft bei Fehlern — Netzfehler wandern in den Postausgang.
+    func sendeAntwortKern(_ message: String) async throws {
+        guard let client, let uid = userID else { throw CloudFehler.keinPro }
+        let rows: [ProLinkRow] = try await client.from("pro_students")
+            .select("pro_id")
+            .eq("student_id", value: uid)
+            .execute().value
+        guard let proID = rows.first?.pro_id else { throw CloudFehler.keinPro }
+        try await client.from("responses")
+            .insert(ResponseInsertRow(student_id: uid, pro_id: proID, message: message))
+            .execute()
+        lastErrorMessage = nil
     }
 
     /// Pro: alle Antworten seiner Schüler (RLS filtert serverseitig).
@@ -387,23 +388,18 @@ final class CloudService: ObservableObject {
 
     /// Pro: eine Mitteilung an einen oder mehrere Schüler senden.
     /// Eine Rundmitteilung ist einfach eine Zeile pro Empfänger.
-    /// Liefert die angelegten Zeilen (mit Cloud-IDs für das Gelesen-Häkchen).
-    func sendMessage(_ body: String, to studentCloudIDs: [UUID]) async -> [CloudMessage] {
+    /// Wirft bei Fehlern — der Postausgang unterscheidet Netz von Rest.
+    func sendMessage(_ body: String, to studentCloudIDs: [UUID]) async throws -> [CloudMessage] {
         guard let client, let uid = userID, !studentCloudIDs.isEmpty else { return [] }
         let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return [] }
         let rows = studentCloudIDs.map { MessageInsertRow(pro_id: uid, student_id: $0, body: text) }
-        do {
-            let inserted: [CloudMessage] = try await client.from("messages")
-                .insert(rows)
-                .select("id, pro_id, student_id, body, created_at, read_at")
-                .execute().value
-            lastErrorMessage = nil
-            return inserted
-        } catch {
-            lastErrorMessage = error.localizedDescription
-            return []
-        }
+        let inserted: [CloudMessage] = try await client.from("messages")
+            .insert(rows)
+            .select("id, pro_id, student_id, body, created_at, read_at")
+            .execute().value
+        lastErrorMessage = nil
+        return inserted
     }
 
     /// Alle Mitteilungen, die mich betreffen — RLS filtert serverseitig:

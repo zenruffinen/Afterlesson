@@ -52,8 +52,57 @@ extension AppStore {
         }
     }
 
+    /// Netzfehler erkennen: nur die wandern in den Postausgang —
+    /// echte Fehler (z.B. Berechtigungen) sollen sichtbar bleiben.
+    static func istNetzFehler(_ error: Error) -> Bool {
+        if error is URLError { return true }
+        return (error as NSError).domain == NSURLErrorDomain
+    }
+
+    /// Der Lieferkern: EINE Lektion an EINEN Schüler (Medien hochladen,
+    /// Paket einstellen). Wird vom Composer und vom Postausgang genutzt.
+    @MainActor
+    func liefereLektion(_ lesson: Lesson, an cloudID: UUID, note: String) async throws {
+        let cloud = CloudService.shared
+        let items = contentItems(for: lesson)
+        var media = Set(lesson.imageFilenames)
+        if let video = lesson.videoFilename { media.insert(video) }
+        for item in items {
+            media.insert(item.filename)
+            if let thumb = item.thumbnailFilename { media.insert(thumb) }
+        }
+        for filename in media {
+            let url = imageURL(for: filename)
+            // Videos vor dem Upload auf 720p verdichten — schont
+            // Speicher und das Datenvolumen des Schülers am Platz.
+            if Self.isVideoFile(filename),
+               let compressed = await Self.compressedVideoData(at: url) {
+                try await cloud.uploadMedia(compressed, filename: filename)
+            } else if let data = try? Data(contentsOf: url) {
+                try await cloud.uploadMedia(data, filename: filename)
+            }
+        }
+        // Obergruppen reisen mit: Wer "Putten" (in "Kurzes Spiel")
+        // sendet, schickt auch "Kurzes Spiel" mit — sonst hinge die
+        // Untergruppe beim Schüler in der Luft.
+        var usedClassIDs = Set(items.compactMap(\.classID))
+        for c in contentClasses where usedClassIDs.contains(c.id) {
+            if let parent = c.parentID { usedClassIDs.insert(parent) }
+        }
+        let payload = CloudLessonShare(
+            lesson: lesson,
+            contentItems: items,
+            mediaFilenames: Array(media),
+            teacherName: teacherName,
+            note: note,
+            contentClasses: contentClasses.filter { usedClassIDs.contains($0.id) }
+        )
+        try await cloud.insertPackage(title: lesson.title, payload: payload, to: cloudID)
+    }
+
     /// Pro: Composer-Paket über die Cloud an verbundene Schüler senden.
-    /// Zuweisung und Verlauf laufen über denselben Kern wie AirDrop.
+    /// Im Funkloch wandert die Sendung in den Postausgang und wird
+    /// automatisch nachgeliefert: Senden gelingt immer (23.07.).
     @MainActor
     func sendComposerPackageViaCloud(
         to studentIDs: Set<UUID>,
@@ -61,13 +110,14 @@ extension AppStore {
         contentItemIDs: Set<UUID>,
         note: String,
         date: Date
-    ) async -> (sent: Int, withoutCloud: [String]) {
+    ) async -> (sent: Int, wartend: Int, withoutCloud: [String]) {
         let cloud = CloudService.shared
         let delivery = prepareComposerDelivery(
             to: studentIDs, lessonIDs: lessonIDs,
             contentItemIDs: contentItemIDs, note: note, date: date
         )
         var sent = 0
+        var wartend = 0
         var withoutCloud: [String] = []
 
         for student in delivery.targets {
@@ -76,48 +126,66 @@ extension AppStore {
                 continue
             }
             for lesson in delivery.lessons {
-                let items = contentItems(for: lesson)
-                var media = Set(lesson.imageFilenames)
-                if let video = lesson.videoFilename { media.insert(video) }
-                for item in items {
-                    media.insert(item.filename)
-                    if let thumb = item.thumbnailFilename { media.insert(thumb) }
+                // Funkloch? Gar nicht erst versuchen — direkt einreihen.
+                if !netzVerbunden {
+                    ausgang.append(AusgangsSendung(art: .lernpaket,
+                                                   studentIDs: [student.id],
+                                                   lessonID: lesson.id,
+                                                   text: delivery.note))
+                    wartend += 1
+                    continue
                 }
                 do {
-                    for filename in media {
-                        let url = imageURL(for: filename)
-                        // Videos vor dem Upload auf 720p verdichten — schont
-                        // Speicher und das Datenvolumen des Schülers am Platz.
-                        if Self.isVideoFile(filename),
-                           let compressed = await Self.compressedVideoData(at: url) {
-                            try await cloud.uploadMedia(compressed, filename: filename)
-                        } else if let data = try? Data(contentsOf: url) {
-                            try await cloud.uploadMedia(data, filename: filename)
-                        }
-                    }
-                    // Obergruppen reisen mit: Wer "Putten" (in "Kurzes Spiel")
-                    // sendet, schickt auch "Kurzes Spiel" mit — sonst hinge die
-                    // Untergruppe beim Schüler in der Luft.
-                    var usedClassIDs = Set(items.compactMap(\.classID))
-                    for c in contentClasses where usedClassIDs.contains(c.id) {
-                        if let parent = c.parentID { usedClassIDs.insert(parent) }
-                    }
-                    let payload = CloudLessonShare(
-                        lesson: lesson,
-                        contentItems: items,
-                        mediaFilenames: Array(media),
-                        teacherName: teacherName,
-                        note: delivery.note,
-                        contentClasses: contentClasses.filter { usedClassIDs.contains($0.id) }
-                    )
-                    try await cloud.insertPackage(title: lesson.title, payload: payload, to: cloudID)
+                    try await liefereLektion(lesson, an: cloudID, note: delivery.note)
                     sent += 1
                 } catch {
-                    cloud.lastErrorMessage = error.localizedDescription
+                    if Self.istNetzFehler(error) {
+                        ausgang.append(AusgangsSendung(art: .lernpaket,
+                                                       studentIDs: [student.id],
+                                                       lessonID: lesson.id,
+                                                       text: delivery.note))
+                        wartend += 1
+                    } else {
+                        cloud.lastErrorMessage = error.localizedDescription
+                    }
                 }
             }
         }
-        return (sent, withoutCloud)
+        return (sent, wartend, withoutCloud)
+    }
+
+    /// Der Postausgang wird geleert, sobald Netz da ist — vom
+    /// Netzwächter, beim App-Öffnen und im Minutentakt aufgerufen.
+    @MainActor
+    func flushAusgang() async {
+        guard !ausgang.isEmpty, netzVerbunden, CloudService.shared.isSignedIn else { return }
+        let sendungen = ausgang
+        for sendung in sendungen {
+            var erledigt = false
+            switch sendung.art {
+            case .lernpaket:
+                guard let studentID = sendung.studentIDs.first,
+                      let student = students.first(where: { $0.id == studentID }),
+                      let cloudID = student.cloudUserID,
+                      let lesson = lessons.first(where: { $0.id == sendung.lessonID })
+                else { erledigt = true; break }   // Ziel existiert nicht mehr → verwerfen
+                do {
+                    try await liefereLektion(lesson, an: cloudID, note: sendung.text)
+                    erledigt = true
+                } catch {
+                    if !Self.istNetzFehler(error) { erledigt = true }  // echter Fehler: nicht ewig hängen
+                }
+            case .mitteilung:
+                let ergebnis = await sendeMitteilungJetzt(sendung.text, an: sendung.studentIDs)
+                erledigt = !ergebnis.netzProblem
+            case .antwort:
+                let ergebnis = await sendeAntwortJetzt(sendung.text)
+                erledigt = !ergebnis.netzProblem
+            }
+            if erledigt {
+                ausgang.removeAll { $0.id == sendung.id }
+            }
+        }
     }
 
     // MARK: Rückkanal — Pro holt Schüler-Antworten ab
@@ -164,10 +232,9 @@ extension AppStore {
 
     // MARK: Mitteilungen („Zettel vom Pro")
 
-    /// Pro: Mitteilung an gewählte Karteien senden.
-    /// Liefert (Anzahl gesendet, Namen ohne Cloud-Verbindung).
+    /// Mitteilungs-Kern ohne Warteschlange (nutzt Composer & Postausgang).
     @MainActor
-    func sendProMessage(_ body: String, toLocalStudentIDs ids: [UUID]) async -> (sent: Int, withoutCloud: [String]) {
+    func sendeMitteilungJetzt(_ body: String, an ids: [UUID]) async -> (sent: Int, withoutCloud: [String], netzProblem: Bool) {
         let cloud = CloudService.shared
         var withoutCloud: [String] = []
         var targets: [(local: UUID, cloud: UUID)] = []
@@ -179,17 +246,66 @@ extension AppStore {
                 withoutCloud.append(student.name)
             }
         }
-        guard !targets.isEmpty else { return (0, withoutCloud) }
+        guard !targets.isEmpty else { return (0, withoutCloud, false) }
 
-        let inserted = await cloud.sendMessage(body, to: targets.map(\.cloud))
-        for row in inserted {
-            let localID = targets.first(where: { $0.cloud == row.student_id })?.local
-            proMessages.insert(
-                ProMessage(id: row.id, localStudentID: localID, body: row.body, date: row.created_at),
-                at: 0
-            )
+        do {
+            let inserted = try await cloud.sendMessage(body, to: targets.map(\.cloud))
+            for row in inserted {
+                let localID = targets.first(where: { $0.cloud == row.student_id })?.local
+                proMessages.insert(
+                    ProMessage(id: row.id, localStudentID: localID, body: row.body, date: row.created_at),
+                    at: 0
+                )
+            }
+            return (inserted.count, withoutCloud, false)
+        } catch {
+            if Self.istNetzFehler(error) { return (0, withoutCloud, true) }
+            cloud.lastErrorMessage = error.localizedDescription
+            return (0, withoutCloud, false)
         }
-        return (inserted.count, withoutCloud)
+    }
+
+    /// Pro: Mitteilung senden — im Funkloch wandert sie in den Postausgang.
+    @MainActor
+    func sendProMessage(_ body: String, toLocalStudentIDs ids: [UUID]) async -> (sent: Int, wartend: Bool, withoutCloud: [String]) {
+        if !netzVerbunden {
+            ausgang.append(AusgangsSendung(art: .mitteilung, studentIDs: ids, text: body))
+            return (0, true, [])
+        }
+        let ergebnis = await sendeMitteilungJetzt(body, an: ids)
+        if ergebnis.netzProblem {
+            ausgang.append(AusgangsSendung(art: .mitteilung, studentIDs: ids, text: body))
+            return (0, true, ergebnis.withoutCloud)
+        }
+        return (ergebnis.sent, false, ergebnis.withoutCloud)
+    }
+
+    /// Antwort-Kern ohne Warteschlange.
+    @MainActor
+    func sendeAntwortJetzt(_ text: String) async -> (ok: Bool, netzProblem: Bool) {
+        do {
+            try await CloudService.shared.sendeAntwortKern(text)
+            return (true, false)
+        } catch {
+            if Self.istNetzFehler(error) { return (false, true) }
+            CloudService.shared.lastErrorMessage = error.localizedDescription
+            return (false, false)
+        }
+    }
+
+    /// Schüler: Schnellantwort senden — im Funkloch in den Postausgang.
+    @MainActor
+    func sendeAntwort(_ text: String) async -> (ok: Bool, wartend: Bool) {
+        if !netzVerbunden {
+            ausgang.append(AusgangsSendung(art: .antwort, text: text))
+            return (false, true)
+        }
+        let ergebnis = await sendeAntwortJetzt(text)
+        if ergebnis.netzProblem {
+            ausgang.append(AusgangsSendung(art: .antwort, text: text))
+            return (false, true)
+        }
+        return (ergebnis.ok, false)
     }
 
     /// Pro: Gelesen-Häkchen aus der Cloud nachführen (und Mitteilungen

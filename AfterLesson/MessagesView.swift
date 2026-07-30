@@ -206,7 +206,9 @@ struct MessageComposeSheet: View {
         Task {
             let result = await store.sendProMessage(text, toLocalStudentIDs: Array(selectedIDs))
             isSending = false
-            if result.sent > 0 {
+            if result.wartend {
+                resultMessage = "Kein Netz — die Mitteilung liegt im Postausgang und geht automatisch raus, sobald Empfang da ist."
+            } else if result.sent > 0 {
                 resultMessage = result.sent == 1
                     ? "Mitteilung gesendet."
                     : "Mitteilung an \(result.sent) Schüler gesendet."
@@ -370,9 +372,9 @@ struct StudentMessageSheet: View {
     private func sendReply(_ text: String) {
         isReplying = true
         Task {
-            let ok = await CloudService.shared.sendResponseToPro(text)
+            let ergebnis = await store.sendeAntwort(text)
             isReplying = false
-            if ok { replySent = true }
+            if ergebnis.ok || ergebnis.wartend { replySent = true }
         }
     }
 }

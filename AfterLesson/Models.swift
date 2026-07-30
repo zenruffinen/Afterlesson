@@ -420,6 +420,25 @@ struct StudentFeedbackEntry: Identifiable, Codable, Hashable {
     var viewedLessonTitles: [String] = []
 }
 
+// MARK: - Postausgang (Funkloch-Warteschlange, 23.07.)
+
+/// Was im Funkloch nicht rausging, wartet hier — und wird automatisch
+/// nachgeliefert, sobald wieder Netz da ist. "Senden gelingt immer."
+enum AusgangsArt: String, Codable {
+    case lernpaket      // Composer-Sendung (eine Lektion an einen Schüler)
+    case mitteilung     // Zettel vom Pro
+    case antwort        // Schnellantwort des Schülers
+}
+
+struct AusgangsSendung: Identifiable, Codable {
+    var id = UUID()
+    var art: AusgangsArt
+    var erstellt: Date = Date()
+    var studentIDs: [UUID] = []     // lokale Karteikarten (lernpaket: genau eine)
+    var lessonID: UUID? = nil       // lernpaket: die zu liefernde Lektion
+    var text: String = ""           // mitteilung/antwort
+}
+
 // MARK: - Notiz-Sicherung (einzelne Notiz als Datei, nach Arca-Vorbild)
 
 /// Eine Notiz reist als eigene Datei (.gruenbuchnotiz) — samt

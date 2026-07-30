@@ -425,10 +425,14 @@ struct StudentFeedbackSheet: View {
             }
             dismiss()
             Task { @MainActor in
-                let ok = await CloudService.shared.sendResponseToPro(full)
-                store.importConfirmation = ok
-                    ? String(localized: "cloud.response_sent")
-                    : (CloudService.shared.lastErrorMessage ?? String(localized: "cloud.response_no_pro"))
+                let ergebnis = await store.sendeAntwort(full)
+                if ergebnis.wartend {
+                    store.importConfirmation = "Kein Netz — die Antwort liegt im Postausgang und geht automatisch raus."
+                } else {
+                    store.importConfirmation = ergebnis.ok
+                        ? String(localized: "cloud.response_sent")
+                        : (CloudService.shared.lastErrorMessage ?? String(localized: "cloud.response_no_pro"))
+                }
             }
             return
         }

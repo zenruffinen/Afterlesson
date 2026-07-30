@@ -583,10 +583,10 @@ struct StudentDetailView: View {
                         isSendingResponse = true
                         responseSent = false
                         Task {
-                            let ok = await CloudService.shared.sendResponseToPro(
+                            let ergebnis = await store.sendeAntwort(
                                 responseText.trimmingCharacters(in: .whitespacesAndNewlines)
                             )
-                            if ok {
+                            if ergebnis.ok || ergebnis.wartend {
                                 responseText = ""
                                 responseSent = true
                             }

@@ -111,18 +111,22 @@ struct HomeView: View {
             if isTeacher {
                 _ = await store.importCloudResponses()
                 await store.refreshProMessages()
+                await store.flushAusgang()
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(60))
                     _ = await store.importCloudResponses()
                     await store.refreshProMessages()
+                    await store.flushAusgang()
                 }
             } else {
                 _ = await store.importCloudPackages()
                 _ = await store.importCloudMessages()
+                await store.flushAusgang()
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(60))
                     _ = await store.importCloudPackages()
                     _ = await store.importCloudMessages()
+                    await store.flushAusgang()
                 }
             }
         }
@@ -137,6 +141,7 @@ struct HomeView: View {
                     _ = await store.importCloudPackages()
                     _ = await store.importCloudMessages()
                 }
+                await store.flushAusgang()
             }
         }
     }
@@ -173,6 +178,26 @@ struct HomeView: View {
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 12)
+    }
+
+
+    /// Dezenter Hinweis: Was im Funkloch hängen blieb, wartet hier.
+    private var postausgangHinweis: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(ALColor.goldHell)
+            Text(store.ausgang.count == 1
+                 ? "1 Sendung wartet auf Netz — geht automatisch raus."
+                 : "\(store.ausgang.count) Sendungen warten auf Netz — gehen automatisch raus.")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.85))
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .nachtKarte(radius: 14)
+        .padding(.horizontal, 20)
     }
 
     // MARK: Teacher Content
@@ -252,6 +277,11 @@ struct HomeView: View {
             .padding(.horizontal, 20)
             .padding(.top, 12)
 
+            if !store.ausgang.isEmpty {
+                postausgangHinweis
+                    .padding(.top, 10)
+            }
+
             Spacer(minLength: 16)
         }
     }
@@ -303,6 +333,10 @@ struct HomeView: View {
                         GrünbuchFairwayGraphic(kompakt: true)
                             .padding(.horizontal, 20)
                             .padding(.top, 2)
+
+                        if !store.ausgang.isEmpty {
+                            postausgangHinweis
+                        }
 
                         // Aufräum-Schalter: Auswählen → ankreuzen → unten löschen
                         HStack {
@@ -1071,7 +1105,11 @@ struct ComposerSheet: View {
                 date: assignmentDate
             )
             isSendingCloud = false
-            if result.sent > 0 && result.withoutCloud.isEmpty {
+            if result.wartend > 0 {
+                cloudResultMessage = result.sent > 0
+                    ? "\(result.sent) gesendet — \(result.wartend) im Postausgang (kein Netz), wird automatisch nachgeliefert."
+                    : "Kein Netz — die Sendung liegt im Postausgang und geht automatisch raus, sobald Empfang da ist."
+            } else if result.sent > 0 && result.withoutCloud.isEmpty {
                 cloudResultMessage = String(format: String(localized: "cloud.composer_sent"), result.sent)
             } else if result.sent > 0 {
                 cloudResultMessage = String(

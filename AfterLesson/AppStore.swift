@@ -3,6 +3,7 @@ import Combine
 import PhotosUI
 import AVFoundation
 import UniformTypeIdentifiers
+import Network
 
 final class AppStore: ObservableObject {
 
@@ -38,6 +39,12 @@ final class AppStore: ObservableObject {
     @Published var proMessages: [ProMessage] = [] {
         didSet { saveProMessages() }
     }
+    /// Postausgang: Sendungen, die im Funkloch hängen blieben.
+    @Published var ausgang: [AusgangsSendung] = [] {
+        didSet { saveAusgang() }
+    }
+    /// Ist gerade Netz da? (NWPathMonitor)
+    @Published var netzVerbunden = true
     @Published var studentCaptures: [StudentCapture] = [] {
         didSet { saveStudentCaptures() }
     }
@@ -61,8 +68,24 @@ final class AppStore: ObservableObject {
 
     // MARK: - Init
 
+    /// Der Netzwächter: meldet Verbindungswechsel und liefert den
+    /// Postausgang automatisch nach, sobald das Netz zurück ist.
+    private let netzMonitor = NWPathMonitor()
+
     init() {
         load()
+        netzMonitor.pathUpdateHandler = { [weak self] pfad in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let verbunden = pfad.status == .satisfied
+                let warOffline = !self.netzVerbunden
+                self.netzVerbunden = verbunden
+                if verbunden && warOffline {
+                    await self.flushAusgang()
+                }
+            }
+        }
+        netzMonitor.start(queue: DispatchQueue(label: "gruenbuch.netz"))
         if folders.isEmpty {
             createDefaultFolders()
         }
@@ -936,7 +959,17 @@ final class AppStore: ObservableObject {
            let decoded = try? JSONDecoder().decode([ProMessage].self, from: data) {
             proMessages = decoded
         }
+        if let data = UserDefaults.standard.data(forKey: "al_ausgang"),
+           let decoded = try? JSONDecoder().decode([AusgangsSendung].self, from: data) {
+            ausgang = decoded
+        }
         mergeDuplicateContentClasses()
+    }
+
+    private func saveAusgang() {
+        if let data = try? JSONEncoder().encode(ausgang) {
+            UserDefaults.standard.set(data, forKey: "al_ausgang")
+        }
     }
 
     private func saveProMessages() {
