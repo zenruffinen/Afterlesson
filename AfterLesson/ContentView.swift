@@ -190,6 +190,25 @@ enum ALColor {
     static let goldHell   = Color(hex: "E2C069")                       // Akzente & Schrift
 }
 
+/// Präsentiert das System-Teilen direkt über UIKit — die SwiftUI-
+/// Sheet-Hülle renderte auf manchen Geräten nur ein schwarzes Blatt.
+enum TeilenHelfer {
+    static func praesentiere(_ items: [Any]) {
+        guard let scene = UIApplication.shared.connectedScenes
+                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+              let root = scene.keyWindow?.rootViewController else { return }
+        var oberstes = root
+        while let p = oberstes.presentedViewController { oberstes = p }
+        let av = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        // iPad: als Popover in der Mitte verankern
+        av.popoverPresentationController?.sourceView = oberstes.view
+        av.popoverPresentationController?.sourceRect = CGRect(
+            x: oberstes.view.bounds.midX, y: oberstes.view.bounds.midY, width: 0, height: 0)
+        av.popoverPresentationController?.permittedArrowDirections = []
+        oberstes.present(av, animated: true)
+    }
+}
+
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {

@@ -182,7 +182,6 @@ struct SettingsView: View {
     @State private var exportPasswordConfirm = ""
     @State private var exportPasswordError = ""
     @State private var showExportPassword = false
-    @State private var showExportShare = false
     @State private var exportURL: URL? = nil
 
     @State private var showImportPicker = false
@@ -331,7 +330,13 @@ struct SettingsView: View {
                 ))
             }
             .sheet(isPresented: $showExportPasswordSheet, onDismiss: {
-                if exportURL != nil { showExportShare = true }
+                if let url = exportURL {
+                    // Direkt übers System teilen — kein schwarzes Blatt mehr
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        TeilenHelfer.praesentiere([url])
+                        exportURL = nil
+                    }
+                }
             }) {
                 backupPasswordSheet(
                     title: "settings.backup_export",
@@ -363,14 +368,6 @@ struct SettingsView: View {
                         }
                     }
                 )
-            }
-            .sheet(isPresented: $showExportShare, onDismiss: { exportURL = nil }) {
-                if let url = exportURL {
-                    // Halbhoch statt schwarzes Vollblatt: sieht aus wie das
-                    // vertraute iOS-Teilen (22.07., Hans' Beobachtung)
-                    ShareSheet(items: [url])
-                        .presentationDetents([.medium, .large])
-                }
             }
             .fileImporter(isPresented: $showImportPicker, allowedContentTypes: [.data]) { result in
                 if case .success(let url) = result {
