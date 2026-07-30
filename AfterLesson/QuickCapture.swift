@@ -240,6 +240,7 @@ struct QuickCaptureSheet: View {
     @State private var shareItems: [Any] = []
     @State private var showShareSheet = false
     @State private var sendeErgebnis: String? = nil
+    @State private var sackOffen = false   // Golfsack angeklickt → Abschluss & Senden
     @State private var quickTextNote: String = ""
     @State private var photoPickerItems: [PhotosPickerItem] = []
     @State private var showPhotosPicker = false
@@ -270,6 +271,60 @@ struct QuickCaptureSheet: View {
             || !pendingPhotoData.isEmpty
             || !pendingVideoURLs.isEmpty
         )
+    }
+
+    /// Wie viele Dinge liegen im Sack? (Fotos + Videos + Kurznotiz)
+    private var sackAnzahl: Int {
+        pendingPhotoData.count + pendingVideoURLs.count
+            + (quickTextNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
+    }
+
+    private var golfsackKarte: some View {
+        Button {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                sackOffen.toggle()
+            }
+        } label: {
+            HStack(spacing: 14) {
+                ZStack(alignment: .topTrailing) {
+                    Image("gb_golfbag")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .scaleEffect(sackAnzahl > 0 ? 1.0 : 0.94)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.45), value: sackAnzahl)
+                    if sackAnzahl > 0 {
+                        Text("\(sackAnzahl)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color(hex: "0B150D"))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(ALColor.goldHell, in: Capsule())
+                            .offset(x: 8, y: -6)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Der Golfsack")
+                        .font(.system(size: 17, weight: .bold, design: .serif))
+                        .foregroundStyle(.white)
+                    Text(sackAnzahl == 0
+                         ? "Noch leer — Fotos, Videos und Notizen landen hier."
+                         : (sackOffen
+                            ? "Bereit zum Schicken — unten wartet der Knopf."
+                            : "\(sackAnzahl) gesammelt — antippen, wenn die Stunde fertig ist."))
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.65))
+                }
+                Spacer()
+                Image(systemName: sackOffen ? "chevron.up.circle.fill" : "paperplane.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(ALColor.goldHell)
+            }
+            .padding(14)
+            .nachtKarte(radius: 16, hervorgehoben: sackOffen)
+        }
+        .buttonStyle(GrünbuchTastenStyle(radius: 16))
     }
 
     private func isMediaKindSelected(_ kind: QuickCaptureMediaKind) -> Bool {
@@ -461,6 +516,21 @@ struct QuickCaptureSheet: View {
                         }
                     }
 
+                    // DER GOLFSACK (Hans, 23.07.): Alles Gesammelte liegt
+                    // im Sack — antippen schnürt ihn zu (Abschluss & Senden).
+                    golfsackKarte
+
+                    if sackOffen {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Abschlussbesprechung")
+                                .font(.system(size: 15, weight: .semibold, design: .serif))
+                                .foregroundStyle(ALColor.goldHell)
+                            Text("Kurz festhalten — dann den Sack abschicken.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     // Protokoll-Felder
                     VoiceInputField(
                         label: "Was geübt",
@@ -501,6 +571,7 @@ struct QuickCaptureSheet: View {
                         activeField: "homework",
                         currentActiveField: $activeField
                     )
+                    }
                 }
                 .padding(16)
                 .padding(.bottom, 20)
@@ -525,13 +596,17 @@ struct QuickCaptureSheet: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if canSave && selectedStudentID != nil {
+                if sackOffen && canSave && selectedStudentID != nil {
                     Button {
                         saveSession(thenSend: true)
                     } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: "icloud.and.arrow.up.fill")
-                            Text("Abschließen & an Schüler senden")
+                            Image("gb_golfbag")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 26, height: 26)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                            Text("Golfsack an \(selectedStudent?.name ?? "Schüler") schicken")
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -737,6 +812,7 @@ struct SessionDetailSheet: View {
     @State private var shareItems: [Any] = []
     @State private var showShareSheet = false
     @State private var sendeErgebnis: String? = nil
+    @State private var sackOffen = false   // Golfsack angeklickt → Abschluss & Senden
     @State private var showFeedbackSheet = false
     @State private var feedbackShareItems: [Any] = []
     @State private var showFeedbackShareSheet = false
