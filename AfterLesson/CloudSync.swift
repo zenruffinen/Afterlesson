@@ -60,6 +60,7 @@ extension AppStore {
     /// echte Fehler (z.B. Berechtigungen) sollen sichtbar bleiben.
     static func istNetzFehler(_ error: Error) -> Bool {
         if error is URLError { return true }
+        if error is CancellationError { return true }   // Abbruch → später erneut
         return (error as NSError).domain == NSURLErrorDomain
     }
 
@@ -150,7 +151,7 @@ extension AppStore {
                                                        text: delivery.note))
                         wartend += 1
                     } else {
-                        cloud.lastErrorMessage = error.localizedDescription
+                        cloud.meldeFehler(error)
                     }
                 }
             }
@@ -208,7 +209,7 @@ extension AppStore {
                 ausgang.append(AusgangsSendung(art: .stunde, studentIDs: [id], sessionID: session.id))
                 return (false, true)
             }
-            CloudService.shared.lastErrorMessage = error.localizedDescription
+            CloudService.shared.meldeFehler(error)
             return (false, false)
         }
     }
@@ -353,7 +354,7 @@ extension AppStore {
             return (inserted.count, withoutCloud, false)
         } catch {
             if Self.istNetzFehler(error) { return (0, withoutCloud, true) }
-            cloud.lastErrorMessage = error.localizedDescription
+            cloud.meldeFehler(error)
             return (0, withoutCloud, false)
         }
     }
@@ -381,7 +382,7 @@ extension AppStore {
             return (true, false)
         } catch {
             if Self.istNetzFehler(error) { return (false, true) }
-            CloudService.shared.lastErrorMessage = error.localizedDescription
+            CloudService.shared.meldeFehler(error)
             return (false, false)
         }
     }

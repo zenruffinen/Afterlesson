@@ -32,6 +32,14 @@ final class CloudService: ObservableObject {
     var isConfigured: Bool { client != nil }
     var isSignedIn: Bool { userID != nil }
 
+    /// Fehler festhalten — aber Task-Abbrüche (CancellationError, z.B.
+    /// wenn ein Blatt mitten im Abruf geschlossen wird) sind KEIN Fehler
+    /// und werden verschluckt (30.07.: geisterhafte "Cloud-Fehler"-Alerts).
+    func meldeFehler(_ error: Error) {
+        guard !(error is CancellationError) else { return }
+        meldeFehler(error)
+    }
+
     private init() {
         if CloudConfig.isConfigured, let url = URL(string: CloudConfig.supabaseURL) {
             client = SupabaseClient(supabaseURL: url, supabaseKey: CloudConfig.supabaseAnonKey)
@@ -79,7 +87,7 @@ final class CloudService: ObservableObject {
             try await upsertProfile(displayName: displayName, role: role)
             lastErrorMessage = nil
         } catch {
-            lastErrorMessage = error.localizedDescription
+            meldeFehler(error)
         }
     }
 
@@ -98,7 +106,7 @@ final class CloudService: ObservableObject {
             try await upsertProfile(displayName: displayName, role: role)
             lastErrorMessage = nil
         } catch {
-            lastErrorMessage = error.localizedDescription
+            meldeFehler(error)
         }
     }
 
@@ -109,7 +117,7 @@ final class CloudService: ObservableObject {
             try await upsertProfile(displayName: displayName, role: role)
             lastErrorMessage = nil
         } catch {
-            lastErrorMessage = error.localizedDescription
+            meldeFehler(error)
         }
     }
 
@@ -154,7 +162,7 @@ final class CloudService: ObservableObject {
             lastErrorMessage = nil
             return code
         } catch {
-            lastErrorMessage = error.localizedDescription
+            meldeFehler(error)
             return nil
         }
     }
@@ -199,7 +207,7 @@ final class CloudService: ObservableObject {
                 return false
             }
         } catch {
-            lastErrorMessage = error.localizedDescription
+            meldeFehler(error)
             return false
         }
     }
@@ -255,7 +263,7 @@ final class CloudService: ObservableObject {
                 .order("created_at", ascending: false)
                 .execute().value
         } catch {
-            lastErrorMessage = error.localizedDescription
+            meldeFehler(error)
             return []
         }
     }
