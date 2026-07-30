@@ -220,7 +220,6 @@ struct QuickCaptureSheet: View {
 
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
-    @FocusState private var quickNoteFocused: Bool
 
     @StateObject private var transcriber = SpeechTranscriber()
 
@@ -348,7 +347,8 @@ struct QuickCaptureSheet: View {
             case .video:
                 showCamera = true
             case .note:
-                quickNoteFocused = true
+                activeField = "quicknote"
+                transcriber.start(existing: quickTextNote) { quickTextNote = $0 }
             }
         } label: {
             Label(kind.label, systemImage: kind.icon)
@@ -438,24 +438,20 @@ struct QuickCaptureSheet: View {
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
 
-                        TextField("Kurznotiz zur Stunde…", text: $quickTextNote, axis: .vertical)
-                            .lineLimit(2...4)
-                            .focused($quickNoteFocused)
-                            .padding(12)
-                            .background(ALColor.nachtOben.opacity(0.55))
-                            .cornerRadius(10)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .strokeBorder(
-                                        isMediaKindSelected(.note) ? ALColor.green.opacity(0.55) : Color.clear,
-                                        lineWidth: 1.5
-                                    )
-                            )
-                            .onChange(of: quickTextNote) { _, text in
-                                if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    selectedMediaKind = .note
-                                }
+                        VoiceInputField(
+                            label: "Mitteilung zur Stunde",
+                            icon: "envelope.fill",
+                            color: ALColor.gold,
+                            text: $quickTextNote,
+                            transcriber: transcriber,
+                            activeField: "quicknote",
+                            currentActiveField: $activeField
+                        )
+                        .onChange(of: quickTextNote) { _, text in
+                            if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                selectedMediaKind = .note
                             }
+                        }
 
                         HStack(spacing: 10) {
                             captureMediaChip(.photo)
