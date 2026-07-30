@@ -55,6 +55,9 @@ final class CloudService: ObservableObject {
             // dem NEUESTEN gehören, sonst klingelt das alte).
             if let uid = userID, uid != previousID {
                 enablePushIfPossible()
+                if let token = letzterTokenHex {
+                    Task { await self.registerDeviceToken(token) }
+                }
             }
         }
     }
@@ -288,7 +291,13 @@ final class CloudService: ObservableObject {
 
     /// Hinterlegt das Apple-Gerätetoken in der Drehscheibe, damit die
     /// Server-Funktion dieses Gerät erreichen kann.
+    /// Das zuletzt gemeldete Gerätetoken — bei Kontowechsel wird es
+    /// direkt neu registriert (30.07.: Token hing am verwaisten
+    /// Erstversuch-Konto, weil didRegister nicht erneut feuerte).
+    private(set) var letzterTokenHex: String? = nil
+
     func registerDeviceToken(_ tokenHex: String) async {
+        letzterTokenHex = tokenHex
         guard let client, let uid = userID else { return }
         _ = try? await client.from("device_tokens")
             .upsert(DeviceTokenRow(token: tokenHex, user_id: uid))
