@@ -366,7 +366,10 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showExportShare, onDismiss: { exportURL = nil }) {
                 if let url = exportURL {
+                    // Halbhoch statt schwarzes Vollblatt: sieht aus wie das
+                    // vertraute iOS-Teilen (22.07., Hans' Beobachtung)
                     ShareSheet(items: [url])
+                        .presentationDetents([.medium, .large])
                 }
             }
             .fileImporter(isPresented: $showImportPicker, allowedContentTypes: [.data]) { result in
