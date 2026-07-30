@@ -42,7 +42,8 @@ extension AppStore {
                 settings: GrünbuchBackupSettings(
                     teacherName: teacherName,
                     teacherTitle: teacherTitle,
-                    pinnedNoteID: pinnedNoteID
+                    pinnedNoteID: pinnedNoteID,
+                    rolle: appMode
                 ),
                 exportDate: Date()
             )
@@ -58,7 +59,10 @@ extension AppStore {
             }
         } catch { return nil }
 
-        let filename = "GrünbuchBackup_\(Date().formatted(date: .abbreviated, time: .omitted)).gruenbuchbackup"
+        let rollenWort = appMode == AppMode.teacher.rawValue ? "Pro" : "Schüler"
+        let wer = teacherName.trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: " ").first ?? ""
+        let filename = "Grünbuch_\(rollenWort)\(wer.isEmpty ? "" : "_" + wer)_\(Date().formatted(date: .abbreviated, time: .omitted)).gruenbuchbackup"
             .replacingOccurrences(of: " ", with: "_")
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard archiveDirectory(stage, to: url, password: aeaPassword(from: password)),
@@ -126,6 +130,11 @@ extension AppStore {
             teacherName = backup.settings.teacherName
             teacherTitle = backup.settings.teacherTitle
             pinnedNoteID = backup.settings.pinnedNoteID
+            // Die Rolle reist mit: Ein Pro-Backup macht das Gerät zum Pro,
+            // ein Schüler-Backup zum Schüler (Geräteumzug in einem Schritt).
+            if let rolle = backup.settings.rolle {
+                appMode = rolle
+            }
         }
     }
 

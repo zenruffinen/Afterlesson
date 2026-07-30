@@ -519,6 +519,7 @@ struct GrünbuchBackupSettings: Codable {
     var teacherName: String = ""
     var teacherTitle: String = "PGA Teaching Professional"
     var pinnedNoteID: String = ""
+    var rolle: String? = nil        // "Lehrer"/"Schüler" — optional, alte Backups laden sauber
 }
 
 struct GrünbuchBackup: Codable {
