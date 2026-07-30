@@ -334,7 +334,7 @@ final class AppStore: ObservableObject {
             var composerLesson = Lesson(
                 folderID: folderID,
                 title: "\(dateStr) Uhr",
-                description: "Zusammengestellt im Composer",
+                description: "Zusammengestellt im Caddy",
                 icon: "square.and.pencil",
                 contentItemIDs: Array(contentItemIDs)
             )
@@ -376,7 +376,7 @@ final class AppStore: ObservableObject {
         if !delivery.note.isEmpty {
             let dateStr = date.formatted(date: .long, time: .omitted)
             let names = delivery.targets.map(\.name).joined(separator: ", ")
-            shareItems.append("Grünbuch · Composer · \(names) · \(dateStr)\n\n\(delivery.note)")
+            shareItems.append("Grünbuch · Caddy · \(names) · \(dateStr)\n\n\(delivery.note)")
         }
 
         for lesson in delivery.lessons {

@@ -605,10 +605,10 @@ struct GrünbuchComposerCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Composer")
+                    Text("Caddy")
                         .font(.system(size: 22, weight: .bold, design: .serif))
                         .foregroundStyle(.white)
-                    Text("Neue Inhalte erstellen")
+                    Text("Lerninhalte zusammenstellen")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.white.opacity(0.65))
                 }

@@ -19,7 +19,9 @@
 "Importiere zuerst Inhalte im Bibliothek-Tab — danach kannst du sie hier für Lektionen auswählen." = "First import content in the Library tab — then you can select it here for lessons.";
 
 /* Home */
-"Composer" = "Composer";
+"Composer" = "Caddy";
+"Caddy" = "Caddy";
+"Lerninhalte zusammenstellen" = "Assemble learning content";
 "Zuweisen an Schüler" = "Assign to student";
 "Lernstoff" = "Learning material";
 "Zugewiesen" = "Assigned";
@@ -46,7 +48,7 @@
 "Lege zuerst Lektionen in der Bibliothek an." = "Create lessons in the Library first.";
 "Importiere Inhalte im Bibliothek-Tab." = "Import content in the Library tab.";
 "Weitere Inhalte in der Bibliothek verfügbar." = "More content available in the Library.";
-"Dein Pro sendet dir Lernpakete per Composer — sie erscheinen hier." = "Your Pro sends learning packages via Composer — they appear here.";
+"Dein Pro sendet dir Lernpakete per Composer — sie erscheinen hier." = "Your Pro assembles learning packages in the Caddy — they appear here.";
 "Dein Pro schickt dir Lektionen per AirDrop, wenn ihr zusammen seid. Tippe auf die Datei, dann öffnet sich Grünbuch." = "At the end of your lesson, your Pro hands you your debrief — about 5 minutes, in person on the course. Tap the AirDrop file and Grünbuch will open.";
 "Dein Pro überreicht dir am Ende der Lektion deine Nachbesprechung — ca. 5 Minuten, persönlich auf dem Platz. Tippe die AirDrop-Datei an, dann öffnet sich Grünbuch." = "At the end of your lesson, your Pro hands you your debrief — about 5 minutes, in person on the course. Tap the AirDrop file and Grünbuch will open.";
 "Empfangene Lektionen und Protokolle erscheinen hier unter „Zugewiesen“." = "Lessons and session notes from your debrief appear here under Assigned.";
@@ -66,7 +68,7 @@
 "In der Nachbesprechung: Lektionen persönlich per AirDrop übergeben — ca. 5 Minuten am Platz, direkt nach der Lektion." = "During the debrief: hand off lessons in person via AirDrop — about 5 minutes on the course, right after the lesson.";
 "So funktioniert die Übergabe" = "How the debrief works";
 "So funktioniert die Nachbesprechung" = "How the debrief works";
-"Paket im Composer zusammenstellen und Schüler zuweisen." = "Assemble the package in Composer — preparation for the debrief.";
+"Paket im Composer zusammenstellen und Schüler zuweisen." = "Assemble the package in the Caddy — preparation for the debrief.";
 "Persönlich per AirDrop übergeben — am besten direkt nach der Lektion auf dem Platz." = "About 5 minutes on the course: hand off the package in person via AirDrop and talk it through.";
 "Nachreichungen jederzeit möglich, wenn ihr wieder zusammen seid." = "Supplemental deliveries anytime during the debrief when you're together again.";
 "Dein Pro sendet Lektionen per AirDrop, wenn ihr zusammen seid." = "At the end of the lesson, your Pro hands you your debrief.";
@@ -123,7 +125,7 @@
 "Avatar-Farbe" = "Avatar Color";
 "Verlauf" = "History";
 "Noch nichts gesendet" = "No debrief yet";
-"Noch keine Nachbesprechung — Composer erstellt Pakete aus der Bibliothek." = "No debrief yet — Composer builds packages from the library.";
+"Noch keine Nachbesprechung — Composer erstellt Pakete aus der Bibliothek." = "No debrief yet — the Caddy builds packages from the library.";
 "Senden" = "Send";
 "Speichern & an Schüler senden" = "Save & debrief";
 "Speichern & Nachbesprechung" = "Save & debrief";
@@ -179,7 +181,7 @@
 "settings.email_copied_message" = "No mail app is configured on this device. Feel free to write to %@ — the address has been copied to the clipboard.";
 "settings.handoff.title" = "How the Debrief Works";
 "settings.handoff.bullet1" = "The debrief takes about 5 minutes — the professional close of every lesson, in person on the course.";
-"settings.handoff.bullet2" = "Send the package via the cloud from the Composer — it lands in the student inbox instantly, with a chime.";
+"settings.handoff.bullet2" = "Send the package via the cloud from the Caddy — it lands in the student inbox instantly, with a chime.";
 "settings.handoff.bullet3" = "Encrypted via the Gruenbuch cloud — every package is visible to its recipient only.";
 "settings.backup_header" = "Backup & Restore";
 "settings.backup_export" = "Back Up Data";
@@ -214,7 +216,7 @@
 "settings.privacy" = "Privacy";
 "settings.privacy_footer" = "Grünbuch is free, ad-free, and collects no data about you.";
 "settings.did_you_know" = "Did you know?";
-"settings.tip.composer" = "In Composer you assemble learning packages — lessons, media, and a personal message.";
+"settings.tip.composer" = "In the Caddy you assemble learning packages — lessons, media, and a personal message.";
 "settings.tip.library" = "The library is your central media pool — images, videos, and PDFs for all lessons.";
 "settings.tip.airdrop" = "The debrief is the professional close of the lesson — send the package via the cloud and the student has it instantly.";
 "settings.tip.session" = "With Record Session you document training, corrections, and homework.";
@@ -393,7 +395,7 @@
 "cloud.code_sign_in" = "Sign in with code";
 "cloud.code_invalid" = "Code unknown or already used — ask your pro for a new one.";
 "cloud.composer_send" = "Send via cloud";
-"cloud.composer_result_title" = "Composer";
+"cloud.composer_result_title" = "Caddy";
 "cloud.composer_sent" = "On its way! Sent %d package(s) to your connected students.";
 "cloud.composer_sent_partial" = "Sent %d package(s). Without cloud connection (use AirDrop or an invite code): %@";
 "cloud.composer_sent_none" = "Nothing sent — none of the selected students is connected to the cloud.";

@@ -1188,7 +1188,7 @@ struct ComposerSheet: View {
             }
             .listStyle(.insetGrouped)
             .gruenbuchSeite()
-            .navigationTitle(isSupplemental ? "Nachreichung" : "Composer")
+            .navigationTitle(isSupplemental ? "Nachreichung" : "Caddy")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 if !preselectedStudentIDs.isEmpty {
