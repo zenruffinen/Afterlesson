@@ -3,27 +3,23 @@ import LocalAuthentication
 import CryptoKit
 
 private let pinKey = "al_pin_hash"
-private let teacherPinKey = "al_teacher_pin_hash"
 
 // MARK: - Lock Screen (Glass, Arca-inspiriert)
 
 struct LockView: View {
     @Binding var isUnlocked: Bool
-    var forTeacherMode: Bool = false
-
-    private var pinStorageKey: String { forTeacherMode ? teacherPinKey : pinKey }
 
     private var hasPIN: Bool {
-        KeychainManager.shared.load(key: pinStorageKey) != nil
+        KeychainManager.shared.load(key: pinKey) != nil
     }
 
     var body: some View {
         ZStack {
             lockBackground
             if hasPIN {
-                AfterLessonPINEntryView(isUnlocked: $isUnlocked, pinKey: pinStorageKey)
+                AfterLessonPINEntryView(isUnlocked: $isUnlocked, pinKey: pinKey)
             } else {
-                AfterLessonPINSetupView(isUnlocked: $isUnlocked, pinKey: pinStorageKey)
+                AfterLessonPINSetupView(isUnlocked: $isUnlocked, pinKey: pinKey)
             }
         }
     }
@@ -329,78 +325,6 @@ struct AfterLessonPINPad: View {
                     }
                 }
             }
-        }
-    }
-}
-
-// MARK: - Teacher Mode PIN Gate
-
-struct TeacherModePINGate: View {
-    @Binding var isGranted: Bool
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var pin = ""
-    @State private var errorMessage = ""
-    @State private var shake = false
-
-    private var hasTeacherPIN: Bool {
-        KeychainManager.shared.load(key: teacherPinKey) != nil
-    }
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(hex: "F0EDE6").ignoresSafeArea()
-                if hasTeacherPIN {
-                    VStack(spacing: 24) {
-                        AfterLessonGlassMark(size: 72)
-                        Text("Lehrer-Modus")
-                            .font(.title2.bold())
-                        Text("PIN eingeben")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        pinDots(count: pin.count)
-                        if !errorMessage.isEmpty {
-                            Text(errorMessage).font(.caption).foregroundStyle(.red)
-                        }
-                        AfterLessonPINPad { digit in
-                            guard pin.count < 4 else { return }
-                            pin += digit
-                            if pin.count == 4 { checkPIN() }
-                        } onDelete: {
-                            if !pin.isEmpty { pin.removeLast() }
-                        }
-                        .padding(.top, 8)
-                    }
-                    .padding()
-                    .offset(x: shake ? -8 : 0)
-                } else {
-                    AfterLessonPINSetupView(isUnlocked: $isGranted, pinKey: teacherPinKey)
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
-                }
-            }
-            .onChange(of: isGranted) { _, granted in
-                if granted { dismiss() }
-            }
-        }
-    }
-
-    func checkPIN() {
-        let hash = SHA256.hash(data: Data(pin.utf8))
-        let hashString = hash.compactMap { String(format: "%02x", $0) }.joined()
-        if hashString == KeychainManager.shared.load(key: teacherPinKey) {
-            isGranted = true
-            dismiss()
-        } else {
-            pin = ""
-            shake = true
-            errorMessage = String(localized: "Falscher PIN")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { shake = false }
         }
     }
 }

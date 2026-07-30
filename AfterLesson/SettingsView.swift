@@ -175,7 +175,6 @@ struct HandoffInfoSection: View {
 
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
-    @State private var showTeacherPIN = false
 
     @State private var showExportPasswordSheet = false
     @State private var exportPassword = ""
@@ -256,20 +255,13 @@ struct SettingsView: View {
                 GrünbuchCloudSection()
 
                 Section {
+                    // Die Rolle wird bei der Ersteinrichtung festgelegt und ist
+                    // danach fix — kein Wechsel-Knopf (Beschluss Hans, 30.07.26):
+                    // Beförderung zum Pro = App neu einrichten.
                     HStack {
                         Image(systemName: isTeacher ? "person.badge.key.fill" : "graduationcap.fill")
                             .foregroundStyle(isTeacher ? ALColor.gold : ALColor.green)
                         Text(isTeacher ? "settings.mode_teacher" : "settings.mode_student")
-                        Spacer()
-                        Button("Wechseln") {
-                            if isTeacher {
-                                store.appMode = AppMode.student.rawValue
-                            } else {
-                                showTeacherPIN = true
-                            }
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(.blue)
                     }
 
                     Toggle(isOn: Binding(
@@ -285,8 +277,11 @@ struct SettingsView: View {
                 } header: {
                     Text("settings.mode_security_header")
                 } footer: {
-                    if store.lockEnabled {
-                        Text("settings.lock_footer")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("settings.mode_fixed_footer")
+                        if store.lockEnabled {
+                            Text("settings.lock_footer")
+                        }
                     }
                 }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
@@ -322,12 +317,6 @@ struct SettingsView: View {
                     Text("Einstellungen")
                         .font(.headline)
                 }
-            }
-            .sheet(isPresented: $showTeacherPIN) {
-                TeacherModePINGate(isGranted: Binding(
-                    get: { store.appMode == AppMode.teacher.rawValue },
-                    set: { granted in if granted { store.appMode = AppMode.teacher.rawValue } }
-                ))
             }
             .sheet(isPresented: $showExportPasswordSheet, onDismiss: {
                 if let url = exportURL {

@@ -210,6 +210,7 @@
 "settings.mode_teacher" = "Teacher Mode";
 "settings.mode_student" = "Student Mode";
 "settings.lock_footer" = "Face ID / PIN when opening the app and after leaving it.";
+"settings.mode_fixed_footer" = "The role was set during setup and cannot be changed. To switch roles, reinstall the app and set it up again.";
 "settings.privacy" = "Privacy";
 "settings.privacy_footer" = "Grünbuch is free, ad-free, and collects no data about you.";
 "settings.did_you_know" = "Did you know?";

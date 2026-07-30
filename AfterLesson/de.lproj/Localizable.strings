@@ -197,6 +197,7 @@
 "settings.mode_teacher" = "Lehrer-Modus";
 "settings.mode_student" = "Schüler-Modus";
 "settings.lock_footer" = "Face ID / PIN beim Öffnen und nach dem Verlassen der App.";
+"settings.mode_fixed_footer" = "Die Rolle wurde bei der Einrichtung festgelegt und lässt sich nicht wechseln. Für eine andere Rolle: App neu installieren und frisch einrichten.";
 "settings.privacy" = "Datenschutz";
 "settings.privacy_footer" = "Grünbuch ist kostenlos, werbefrei und sammelt keine Daten über dich.";
 "settings.did_you_know" = "Wusstest du?";
