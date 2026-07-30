@@ -304,7 +304,7 @@ struct QuickCaptureSheet: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Der Golfsack")
+                    Text("Golfsack")
                         .font(.system(size: 17, weight: .bold, design: .serif))
                         .foregroundStyle(.white)
                     Text(sackAnzahl == 0

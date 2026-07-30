@@ -229,7 +229,6 @@ struct SettingsView: View {
                     Text("settings.about_footer")
                 }.listRowBackground(ALColor.nachtOben.opacity(0.55))
 
-                HandoffInfoSection()
 
                 Section {
                     Button {
