@@ -166,8 +166,8 @@
 "settings.email_copied_message" = "Auf diesem Gerät ist keine Mail-App eingerichtet. Schreib uns gern an %@ — die Adresse wurde in die Zwischenablage kopiert.";
 "settings.handoff.title" = "So funktioniert die Nachbesprechung";
 "settings.handoff.bullet1" = "Die Nachbesprechung dauert ca. 5 Minuten — der professionelle Abschluss jeder Lektion, persönlich auf dem Platz.";
-"settings.handoff.bullet2" = "Paket per AirDrop übergeben, kurz besprechen — jedes Paket ist nur für den Empfänger bestimmt.";
-"settings.handoff.bullet3" = "Keine Cloud, keine Server — von Angesicht zu Angesicht, sicher und seriös.";
+"settings.handoff.bullet2" = "Paket im Composer über die Cloud senden — es erscheint sofort im Eingang des Schülers und klingelt.";
+"settings.handoff.bullet3" = "Verschlüsselt über die Grünbuch-Cloud — jedes Paket ist nur für seinen Empfänger sichtbar.";
 "settings.backup_header" = "Sichern und wiederherstellen";
 "settings.backup_export" = "Daten sichern";
 "settings.backup_import" = "Daten wiederherstellen";
@@ -202,7 +202,7 @@
 "settings.did_you_know" = "Wusstest du?";
 "settings.tip.composer" = "Im Composer stellst du Lernpakete zusammen — Lektionen, Medien und eine persönliche Nachricht.";
 "settings.tip.library" = "Die Bibliothek ist dein zentraler Medienpool — Bilder, Videos und PDFs für alle Lektionen.";
-"settings.tip.airdrop" = "Die Nachbesprechung ist der professionelle Abschluss der Lektion — ca. 5 Minuten, Paket persönlich per AirDrop am Platz.";
+"settings.tip.airdrop" = "Die Nachbesprechung ist der professionelle Abschluss der Lektion — Paket über die Cloud senden, der Schüler hat es sofort auf seinem Gerät.";
 "settings.tip.session" = "Mit „Stunde erfassen“ dokumentierst du Training, Korrekturen und Hausaufgaben.";
 "settings.tip.students" = "Im Schüler-Tab verwaltest du Kartei, Verlauf und Rückmeldungen.";
 "settings.tip.feedback" = "Schüler senden Rückmeldungen als Grünbuch-Datei — du importierst sie in der Kartei.";

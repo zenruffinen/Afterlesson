@@ -179,8 +179,8 @@
 "settings.email_copied_message" = "No mail app is configured on this device. Feel free to write to %@ — the address has been copied to the clipboard.";
 "settings.handoff.title" = "How the Debrief Works";
 "settings.handoff.bullet1" = "The debrief takes about 5 minutes — the professional close of every lesson, in person on the course.";
-"settings.handoff.bullet2" = "Hand off the package via AirDrop and talk it through — each package is meant for the recipient only.";
-"settings.handoff.bullet3" = "No cloud, no servers — face to face, secure and professional.";
+"settings.handoff.bullet2" = "Send the package via the cloud from the Composer — it lands in the student inbox instantly, with a chime.";
+"settings.handoff.bullet3" = "Encrypted via the Gruenbuch cloud — every package is visible to its recipient only.";
 "settings.backup_header" = "Backup & Restore";
 "settings.backup_export" = "Back Up Data";
 "settings.backup_import" = "Restore Data";
@@ -215,7 +215,7 @@
 "settings.did_you_know" = "Did you know?";
 "settings.tip.composer" = "In Composer you assemble learning packages — lessons, media, and a personal message.";
 "settings.tip.library" = "The library is your central media pool — images, videos, and PDFs for all lessons.";
-"settings.tip.airdrop" = "The debrief is the professional close of the lesson — about 5 minutes, package handed off in person via AirDrop on the course.";
+"settings.tip.airdrop" = "The debrief is the professional close of the lesson — send the package via the cloud and the student has it instantly.";
 "settings.tip.session" = "With Record Session you document training, corrections, and homework.";
 "settings.tip.students" = "In the Students tab you manage records, history, and feedback.";
 "settings.tip.feedback" = "Students send feedback as a Grünbuch file — you import it in their record.";

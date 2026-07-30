@@ -1262,7 +1262,7 @@ struct ComposerSheet: View {
                     Text("Ergänze einzelne Lektionen oder Medien — kein vollständiges Paket nötig.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text("Nachreichungen in der Nachbesprechung — persönlich per AirDrop, wenn ihr zusammen seid.")
+                    Text("Nachreichungen gehen über die Cloud — der Schüler hat sie sofort im Eingang.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -1828,7 +1828,7 @@ struct StudentEmptyPlaceholder: View {
                     .foregroundStyle(Color(hex: "1A1A1A"))
                     .multilineTextAlignment(.center)
 
-                Text("Dein Pro überreicht dir am Ende der Lektion deine Nachbesprechung — ca. 5 Minuten, persönlich auf dem Platz. Tippe die AirDrop-Datei an, dann öffnet sich Grünbuch.")
+                Text("Dein Pro sendet dir Lernpakete und Nachbesprechungen über die Cloud — sie erscheinen hier im Eingang und dein Gerät klingelt.")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(hex: "888888"))
                     .multilineTextAlignment(.center)

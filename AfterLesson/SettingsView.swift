@@ -14,7 +14,7 @@ struct GrünbuchDidYouKnowCard: View {
     private static let tips: [GrünbuchTip] = [
         GrünbuchTip(icon: "square.stack.3d.up.fill", textKey: "settings.tip.composer", tint: ALColor.green),
         GrünbuchTip(icon: "books.vertical.fill", textKey: "settings.tip.library", tint: .blue),
-        GrünbuchTip(icon: "airdrop", textKey: "settings.tip.airdrop", tint: .cyan),
+        GrünbuchTip(icon: "icloud.and.arrow.up.fill", textKey: "settings.tip.airdrop", tint: .cyan),
         GrünbuchTip(icon: "figure.golf", textKey: "settings.tip.session", tint: ALColor.gold),
         GrünbuchTip(icon: "person.2.fill", textKey: "settings.tip.students", tint: .orange),
         GrünbuchTip(icon: "text.bubble.fill", textKey: "settings.tip.feedback", tint: .purple),
@@ -166,7 +166,7 @@ struct HandoffInfoSection: View {
             }
             .padding(.vertical, 4)
         } header: {
-            Label("settings.handoff.title", systemImage: "airdrop")
+            Label("settings.handoff.title", systemImage: "icloud.and.arrow.up.fill")
         }.listRowBackground(ALColor.nachtOben.opacity(0.55))
     }
 }
