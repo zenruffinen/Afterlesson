@@ -64,6 +64,32 @@ extension AppStore {
         return (error as NSError).domain == NSURLErrorDomain
     }
 
+    // MARK: Anwesenheit („Wer ist gerade online?")
+
+    /// Pro: Herzschläge der Schüler abrufen → füllt studentPresence,
+    /// die Schülerliste zeigt daraus den grünen Punkt.
+    @MainActor
+    func aktualisiereAnwesenheit() async {
+        guard appMode == AppMode.teacher.rawValue, CloudService.shared.isSignedIn else { return }
+        let presence = await CloudService.shared.fetchPresence()
+        if !presence.isEmpty || !studentPresence.isEmpty {
+            studentPresence = presence
+        }
+    }
+
+    /// Beide Rollen, ein Aufruf: Der Schüler stempelt seinen Herzschlag,
+    /// der Pro holt sich die aktuelle Runde. Läuft beim App-Start, bei
+    /// jeder Rückkehr in den Vordergrund und im Minutentakt.
+    @MainActor
+    func meldeAnwesenheit() {
+        guard CloudService.shared.isSignedIn else { return }
+        if appMode == AppMode.student.rawValue {
+            Task { await CloudService.shared.stempleHerzschlag() }
+        } else {
+            Task { await aktualisiereAnwesenheit() }
+        }
+    }
+
     /// Der Lieferkern: EINE Lektion an EINEN Schüler (Medien hochladen,
     /// Paket einstellen). Wird vom Composer und vom Postausgang genutzt.
     @MainActor

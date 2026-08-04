@@ -37,7 +37,7 @@ final class CloudService: ObservableObject {
     /// und werden verschluckt (30.07.: geisterhafte "Cloud-Fehler"-Alerts).
     func meldeFehler(_ error: Error) {
         guard !(error is CancellationError) else { return }
-        meldeFehler(error)
+        lastErrorMessage = error.localizedDescription
     }
 
     private init() {
@@ -338,6 +338,35 @@ final class CloudService: ObservableObject {
             .execute().value
         let name = rows?.first?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines)
         return (name?.isEmpty ?? true) ? nil : name
+    }
+
+    // MARK: Anwesenheit („Wer ist gerade da?")
+
+    /// Schüler: Herzschlag ins eigene Profil stempeln — der Pro sieht
+    /// daran in seiner Schülerliste, wer gerade online ist.
+    func stempleHerzschlag() async {
+        guard let client, let uid = userID else { return }
+        let stempel = ISO8601DateFormatter().string(from: Date())
+        _ = try? await client.from("profiles")
+            .update(["last_seen_at": stempel])
+            .eq("id", value: uid)
+            .execute()
+    }
+
+    /// Pro: Herzschläge der verknüpften Schüler abrufen (die RLS-Regel
+    /// „Verknüpfte Profile lesen" liefert nur eigene + verknüpfte Profile).
+    func fetchPresence() async -> [UUID: Date] {
+        guard let client, let uid = userID else { return [:] }
+        struct Row: Codable { let id: UUID; let last_seen_at: Date? }
+        let rows: [Row]? = try? await client.from("profiles")
+            .select("id,last_seen_at")
+            .neq("id", value: uid)
+            .execute().value
+        var presence: [UUID: Date] = [:]
+        for row in rows ?? [] {
+            if let seen = row.last_seen_at { presence[row.id] = seen }
+        }
+        return presence
     }
 
     private struct ResponseInsertRow: Codable {

@@ -48,6 +48,9 @@ final class AppStore: ObservableObject {
     @Published var studentCaptures: [StudentCapture] = [] {
         didSet { saveStudentCaptures() }
     }
+    /// Anwesenheit (nur Pro): Cloud-Konto → letzter Herzschlag des Schülers.
+    /// Nicht persistiert — wird bei jedem Abruf frisch gefüllt.
+    @Published var studentPresence: [UUID: Date] = [:]
     @AppStorage("appMode") var appMode: String = AppMode.teacher.rawValue
     @AppStorage("teacherName") var teacherName: String = ""
     // Schüler-Modus: Name des verbundenen Pros (aus Paketen/Cloud-Profil)

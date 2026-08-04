@@ -42,6 +42,12 @@ struct StudentsView: View {
                             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
                         }
                         ForEach(sortierte) { student in
+                            // Anwesenheit: Herzschlag des Schülers aus der Cloud
+                            // (nur Pro; 3 Minuten Karenz bei 60-s-Herzschlag)
+                            let zuletztGesehen = isTeacher
+                                ? student.cloudUserID.flatMap { store.studentPresence[$0] }
+                                : nil
+                            let istOnline = zuletztGesehen.map { Date().timeIntervalSince($0) < 180 } ?? false
                             Button {
                                 selectedStudent = student
                             } label: {
@@ -67,6 +73,16 @@ struct StudentsView: View {
                                         }
                                     }
                                     .frame(width: 50, height: 50)
+                                    // Grüner Punkt am Avatar: Schüler ist gerade online
+                                    .overlay(alignment: .bottomTrailing) {
+                                        if istOnline {
+                                            Circle()
+                                                .fill(Color.green)
+                                                .frame(width: 13, height: 13)
+                                                .overlay(Circle().strokeBorder(ALColor.nachtUnten, lineWidth: 2))
+                                                .offset(x: -2, y: -2)
+                                        }
+                                    }
 
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(student.name)
@@ -78,6 +94,16 @@ struct StudentsView: View {
                                                     .font(.caption.bold())
                                                     .foregroundStyle(ALColor.gold)
                                             }
+                                        }
+                                        if istOnline {
+                                            Text("Jetzt online")
+                                                .font(.caption2.bold())
+                                                .foregroundStyle(.green)
+                                        } else if let seen = zuletztGesehen {
+                                            Text(String(format: String(localized: "In der App: %@"),
+                                                        seen.formatted(.relative(presentation: .named))))
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
                                         }
                                         if let last = student.lastActiveDate {
                                             Text("Zuletzt: \(last.formatted(.relative(presentation: .named)))")
@@ -113,6 +139,8 @@ struct StudentsView: View {
                 }
             }
             .navigationTitle(isTeacher ? "Schüler" : String(localized: "Mein Profil"))
+            // Beim Öffnen der Liste sofort frische Herzschläge holen
+            .task { await store.aktualisiereAnwesenheit() }
             .toolbar {
                 if isTeacher {
                     ToolbarItem(placement: .navigationBarTrailing) {

@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import UserNotifications
 
 // Nimmt das Apple-Gerätetoken entgegen und reicht es an die Cloud
@@ -66,9 +67,17 @@ struct AfterLessonApp: App {
                 // Angemeldete Nutzer (Pro wie Schüler) für Push registrieren
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     CloudService.shared.enablePushIfPossible()
+                    // Anwesenheit: erst nach der Sitzungs-Wiederherstellung
+                    store.meldeAnwesenheit()
                 }
             }
+            // Herzschlag im Minutentakt: Schüler stempeln „ich bin da",
+            // der Pro holt sich die Runde (Timer pausiert im Hintergrund).
+            .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
+                store.meldeAnwesenheit()
+            }
             .onChange(of: scenePhase) { _, phase in
+                if phase == .active { store.meldeAnwesenheit() }
                 guard store.lockEnabled else { return }
                 if phase == .background || phase == .inactive {
                     isUnlocked = false

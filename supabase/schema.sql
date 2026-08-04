@@ -360,3 +360,12 @@ create trigger push_bei_antwort
     '{}',
     '5000'
   );
+
+-- ---------- 13. Anwesenheit: Wer ist gerade da? ----------
+-- Das Schüler-Gerät stempelt beim App-Start und alle 60 Sekunden
+-- seinen Herzschlag ins eigene Profil. Der Pro liest last_seen_at
+-- über die bestehende Regel "Verknüpfte Profile lesen" mit und
+-- zeigt in der Schülerliste, wer online ist. (30.07.2026)
+
+alter table public.profiles
+  add column if not exists last_seen_at timestamptz;
